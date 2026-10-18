@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniCast - Monitor de Escenario / Retorno (Stage Display)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    .stage-current {
+      font-size: clamp(2.5rem, 6vw, 5.5rem);
+      line-height: 1.1;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .stage-next {
+      font-size: clamp(1.4rem, 3vw, 2.5rem);
+      line-height: 1.2;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="w-screen h-screen flex flex-col p-6 justify-between border-4 border-amber-500/30">
+
+  <!-- TOP BAR: RELOJ MASTER, CRONÓMETRO Y ESTADO -->
+  <header class="flex items-center justify-between border-b-2 border-slate-800 pb-4">
+    <!-- Live Campus & Song Name -->
+    <div class="flex items-center gap-3">
+      <span class="px-3 py-1 rounded bg-amber-500 text-slate-950 font-black text-xs tracking-wider uppercase">
+        STAGE DISPLAY
+      </span>
+      <span id="stageSongTitle" class="text-xl font-bold text-slate-200">
+        Gracia Sublime Es
+      </span>
+      <span id="stageBadge" class="text-xs px-2 py-0.5 rounded bg-slate-800 text-amber-400 font-mono">
+        VERSO 1
+      </span>
+    </div>
+
+    <!-- Center: Alert Message Banner (for Sound Booth -> Stage) -->
+    <div id="stageAlert" class="hidden px-6 py-2 rounded-lg bg-red-600 text-white font-extrabold text-lg animate-pulse tracking-wide">
+      ⚠️ TIEMPO DE PREDICACIÓN: 5 MINUTOS RESTANTES
+    </div>
+
+    <!-- Right: Clocks -->
+    <div class="flex items-center gap-8">
+      <!-- Service Timer / Countdown -->
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] font-mono tracking-widest text-slate-400 uppercase">TIEMPO SERVICIO</span>
+        <span id="serviceTimer" class="font-mono text-3xl font-black text-emerald-400">42:18</span>
+      </div>
+      <!-- Real-time Clock -->
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] font-mono tracking-widest text-slate-400 uppercase">HORA ACTUAL</span>
+        <span id="clockTime" class="font-mono text-3xl font-black text-white">10:45 AM</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- RUNDOWN BANNER (CRONOGRAMA DE CULTO EN VIVO PARA PREDICADOR Y MÚSICOS) -->
+  <div id="stageRundownBanner" class="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-2 border-amber-500/40 rounded-2xl p-3.5 my-3 flex items-center justify-between shadow-2xl">
+    <div class="flex items-center gap-3">
+      <span class="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-black text-xs font-mono uppercase tracking-wider">
+        MINUTO A MINUTO
+      </span>
+      <div class="flex flex-col">
+        <span id="stageRundownItemTitle" class="text-xl md:text-2xl font-black text-white tracking-wide">
+          1. Cuenta Regresiva Pre-Servicio
+        </span>
+        <span id="stageRundownResponsible" class="text-xs font-semibold text-amber-400">
+          Multimedia & Sonido
+        </span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-6">
+      <div class="flex flex-col items-end">
+        <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest">TIEMPO DEL BLOQUE</span>
+        <span id="stageRundownCountdown" class="font-mono text-4xl md:text-5xl font-black text-emerald-400 tracking-tight">
+          05:00
+        </span>
+      </div>
+
+      <div class="flex flex-col items-start border-l-2 border-slate-800 pl-5 hidden lg:flex">
+        <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest">A CONTINUACIÓN</span>
+        <span id="stageRundownNextItem" class="text-sm font-bold text-slate-300 max-w-xs truncate">
+          2. Bienvenida & Oración
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: DIAPOSITIVA ACTUAL (LETRA ENORME PARA EL PÚLPITO / MÚSICOS) -->
+  <main class="flex-1 flex flex-col justify-center px-4 my-4">
+    <span class="text-xs font-mono font-bold text-amber-400 tracking-widest uppercase mb-2 flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+      EN PANTALLA ACTUAL:
+    </span>
+    <h1 id="stageCurrentText" class="stage-current text-white text-left">
+      ¿Quién rompe el poder del pecado y la oscuridad?
+    </h1>
+    <p id="stageCurrentSub" class="text-2xl text-slate-400 font-light mt-3">
+      Su amor es poderoso y tan fuerte
+    </p>
+  </main>
+
+  <!-- BOTTOM: SIGUIENTE DIAPOSITIVA (VITAL PARA ANTICIPACIÓN DE ALABANZA) -->
+  <footer class="bg-slate-900/90 border-t-2 border-slate-700 p-4 rounded-xl flex flex-col">
+    <div class="flex items-center justify-between mb-1">
+      <span class="text-xs font-mono font-bold text-sky-400 uppercase tracking-widest">
+        SIGUIENTE DIAPOSITIVA (NEXT):
+      </span>
+      <span class="text-[11px] text-slate-500 font-mono">Anticipación automática</span>
+    </div>
+    <p id="stageNextText" class="stage-next text-slate-300">
+      ¡Gracia sublime es, perfecto es Su amor! Tomó mi lugar...
+    </p>
+  </footer>
+
+  <script>
+    const channel = new BroadcastChannel('omnicast_live_channel');
+    const stageSongTitle = document.getElementById('stageSongTitle');
+    const stageBadge = document.getElementById('stageBadge');
+    const stageCurrentText = document.getElementById('stageCurrentText');
+    const stageCurrentSub = document.getElementById('stageCurrentSub');
+    const stageNextText = document.getElementById('stageNextText');
+    const clockTime = document.getElementById('clockTime');
+    const serviceTimer = document.getElementById('serviceTimer');
+
+    // Real-time master clock
+    function updateClock() {
+      const now = new Date();
+      clockTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Service timer simulation
+    let seconds = 42 * 60 + 18;
+    setInterval(() => {
+      seconds++;
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      serviceTimer.textContent = `${m}:${s}`;
+    }, 1000);
+
+    function updateStageDisplay(data) {
+      if (!data) return;
+      if (data.isClear) {
+        stageCurrentText.textContent = '[PANTALLA LIMPIA / PAUSA]';
+        stageCurrentSub.textContent = '';
+      } else {
+        stageCurrentText.textContent = data.text || '';
+        stageCurrentSub.textContent = data.subText || '';
+      }
+      if (data.songTitle) stageSongTitle.textContent = data.songTitle;
+      if (data.isVideo) {
+        stageBadge.textContent = data.badge ? `▶ ${data.badge}` : '▶ VIDEO REPRODUCIENDO';
+        stageBadge.className = 'text-xs font-mono font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse';
+      } else {
+        if (data.badge) stageBadge.textContent = data.badge;
+        stageBadge.className = 'text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30';
+      }
+      if (data.nextText) {
+        stageNextText.textContent = data.nextText;
+      } else {
+        stageNextText.textContent = '--- Fin de la sección ---';
+      }
+    }
+
+    function updateStageRundown(data) {
+      if (!data) return;
+      const titleEl = document.getElementById('stageRundownItemTitle');
+      const respEl = document.getElementById('stageRundownResponsible');
+      const countEl = document.getElementById('stageRundownCountdown');
+      const nextEl = document.getElementById('stageRundownNextItem');
+
+      if (titleEl && data.activeItemTitle) titleEl.textContent = data.activeItemTitle;
+      if (respEl && data.activeItemResponsible) respEl.textContent = data.activeItemResponsible;
+      if (nextEl) nextEl.textContent = data.nextItemTitle || 'Fin del culto';
+
+      if (countEl && data.formattedRemaining) {
+        countEl.textContent = data.formattedRemaining;
+        if (data.isOvertime) {
+          countEl.className = 'font-mono text-4xl md:text-5xl font-black text-red-500 animate-pulse tracking-tight';
+        } else if (data.itemSecondsRemaining <= 120) {
+          countEl.className = 'font-mono text-4xl md:text-5xl font-black text-amber-400 tracking-tight';
+        } else {
+          countEl.className = 'font-mono text-4xl md:text-5xl font-black text-emerald-400 tracking-tight';
+        }
+      }
+    }
+
+    channel.onmessage = (event) => {
+      if (event.data && event.data.type === 'SLIDE_UPDATE') {
+        updateStageDisplay(event.data.payload);
+      } else if (event.data && event.data.type === 'RUNDOWN_UPDATE') {
+        updateStageRundown(event.data.payload);
+      }
+    };
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'omnicast_current_slide') {
+        try {
+          updateStageDisplay(JSON.parse(e.newValue));
+        } catch(err) {}
+      } else if (e.key === 'omnicast_rundown') {
+        try {
+          updateStageRundown(JSON.parse(e.newValue));
+        } catch(err) {}
+      }
+    });
+
+    const stored = localStorage.getItem('omnicast_current_slide');
+    if (stored) {
+      try {
+        updateStageDisplay(JSON.parse(stored));
+      } catch(err) {}
+    }
+
+    const storedRundown = localStorage.getItem('omnicast_rundown');
+    if (storedRundown) {
+      try {
+        updateStageRundown(JSON.parse(storedRundown));
+      } catch(err) {}
+    }
+
+    // Connect to Server-Sent Events for WiFi synchronization with remote.html
+    const evtSource = new EventSource('/api/events');
+    evtSource.addEventListener('timer', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        const m = String(Math.floor(data.seconds / 60)).padStart(2, '0');
+        const s = String(data.seconds % 60).padStart(2, '0');
+        serviceTimer.textContent = `${m}:${s}`;
+        if (data.seconds <= 60) {
+          serviceTimer.className = 'font-mono text-3xl font-black text-rose-500 animate-pulse';
+        } else if (data.seconds <= 300) {
+          serviceTimer.className = 'font-mono text-3xl font-black text-amber-400';
+        } else {
+          serviceTimer.className = 'font-mono text-3xl font-black text-emerald-400';
+        }
+      } catch (err) {}
+    });
+
+    evtSource.addEventListener('state', (e) => {
+      try {
+        const state = JSON.parse(e.data);
+        // Stage alert message from remote
+        const alertBanner = document.getElementById('stageAlert');
+        if (alertBanner) {
+          if (state.stageMessage) {
+            alertBanner.textContent = `📢 ${state.stageMessage}`;
+            alertBanner.classList.remove('hidden');
+          } else {
+            alertBanner.classList.add('hidden');
+          }
+        }
+        // Slide update from remote
+        if (state.libraryItems && state.libraryItems[state.itemIndex]) {
+          const item = state.libraryItems[state.itemIndex];
+          const slide = item.slides && item.slides[state.slideIndex];
+          const nextSlide = item.slides && item.slides[state.slideIndex + 1];
+          updateStageDisplay({
+            text: state.isBlackout ? '[PANTALLA EN NEGRO / ORACIÓN]' : (slide ? slide.text : ''),
+            subText: state.isBlackout ? '' : (slide ? slide.subText : ''),
+            songTitle: item.title,
+            badge: slide ? slide.badge : '',
+            nextText: nextSlide ? nextSlide.text : (state.itemIndex < state.libraryItems.length - 1 ? `[Sig. Canción] ${state.libraryItems[state.itemIndex + 1].title}` : 'Fin de la lista')
+          });
+        }
+      } catch (err) {}
+    });
+  </script>
+</body>
+</html>

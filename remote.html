@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>OmniCast - Control Remoto Móvil</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      background-color: #060911;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    .safe-top { padding-top: env(safe-area-inset-top, 12px); }
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
+    .tactile-btn:active {
+      transform: scale(0.97);
+      filter: brightness(1.15);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+    }
+    .glow-amber {
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.25);
+    }
+    .glow-rose {
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.35);
+    }
+  </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between overflow-hidden bg-[#060911]">
+
+  <!-- ========================================================================= -->
+  <!-- 1. TOP STATUS & NAVIGATION BAR                                           -->
+  <!-- ========================================================================= -->
+  <header class="safe-top px-4 py-2.5 bg-slate-950/90 border-b border-slate-800/80 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-black text-white text-xs shadow-md">
+        OC
+      </div>
+      <div class="flex flex-col">
+        <span class="text-xs font-bold text-white tracking-wide">OmniCast Remote</span>
+        <span id="campusTitle" class="text-[10px] text-slate-400 font-mono">Sede Guadalajara • WiFi</span>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- Live Sync Dot -->
+      <div id="connPill" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-bold">
+        <span id="connDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="connText">EN VIVO</span>
+      </div>
+
+      <button onclick="toggleFullscreen()" title="Pantalla Completa" class="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 active:text-white">
+        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 2. MAIN TABS CONTENT AREA                                                -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 overflow-y-auto p-3.5 space-y-3.5 flex flex-col">
+
+    <!-- ======================================================================= -->
+    <!-- TAB 1: LETRAS & ALABANZA (WORSHIP LEADER REMOTE)                        -->
+    <!-- ======================================================================= -->
+    <div id="tabContentLetras" class="flex-1 flex flex-col justify-between space-y-3">
+      
+      <!-- Service Rundown Mobile Card -->
+      <div id="remoteRundownCard" class="p-3 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-amber-500/40 shadow-lg flex items-center justify-between">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+            <i data-lucide="clock" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9px] font-mono font-bold text-amber-300 uppercase">CULTO EN VIVO</span>
+              <span id="remoteRundownStatus" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            </div>
+            <div id="remoteRundownTitle" class="text-xs font-black text-white truncate max-w-[170px] sm:max-w-xs">
+              1. Cuenta Regresiva Pre-Servicio
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+          <span id="remoteRundownCountdown" class="font-mono text-sm font-black text-emerald-400 px-2 py-1 rounded-lg bg-emerald-950/80 border border-emerald-500/40">
+            05:00
+          </span>
+          <button onclick="sendRundownGoNext()" class="px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition active:scale-95 shadow flex items-center gap-1">
+            <i data-lucide="play" class="w-3 h-3 fill-current"></i>
+            <span>GO</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Current Live Slide Card -->
+      <div id="liveSlideCard" class="relative p-4 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-emerald-500/80 shadow-xl flex flex-col justify-between min-h-[170px] transition-all">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <span class="text-[11px] font-black tracking-widest text-emerald-400 uppercase font-mono">AL AIRE (PROYECTOR)</span>
+          </div>
+          <span id="liveBadge" class="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
+            VERSO 1
+          </span>
+        </div>
+
+        <!-- Lyrics Text -->
+        <div class="my-3">
+          <p id="liveSlideText" class="text-xl md:text-2xl font-black text-white leading-tight">
+            ¿Quién rompe el poder del pecado y la oscuridad?
+          </p>
+          <p id="liveSlideSubtext" class="text-xs md:text-sm text-slate-400 font-medium mt-1">
+            Su amor es poderoso y tan fuerte
+          </p>
+        </div>
+
+        <!-- Blackout Alert Banner -->
+        <div id="blackoutNotice" class="hidden absolute inset-0 bg-black/95 rounded-2xl flex flex-col items-center justify-center p-4 text-center z-20">
+          <i data-lucide="eye-off" class="w-8 h-8 text-amber-400 mb-1"></i>
+          <span class="text-base font-black text-amber-300 tracking-wider">PANTALLA EN NEGRO (BLACKOUT)</span>
+          <span class="text-xs text-slate-400 mt-1">El proyector está oculto durante oración</span>
+          <button onclick="sendAction('blackout', { isBlackout: false })" class="mt-3 px-4 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold shadow">
+            Mostrar Letras Ahora
+          </button>
+        </div>
+
+        <!-- Song info footer -->
+        <div class="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-800/80">
+          <span id="liveSongTitle" class="font-bold text-slate-300 truncate max-w-[200px]">Gracia Sublime Es</span>
+          <span id="liveSlideCounter" class="font-mono text-slate-400">1 / 5</span>
+        </div>
+      </div>
+
+      <!-- Next Slide Preview Card -->
+      <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <span class="text-[10px] font-mono text-slate-500 uppercase font-bold shrink-0">SIGUIENTE:</span>
+          <p id="nextSlideText" class="text-slate-300 font-medium truncate">
+            El Rey de Gloria, el Rey de Majestad
+          </p>
+        </div>
+        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 shrink-0 ml-2"></i>
+      </div>
+
+      <!-- Quick Slide Section Jump Pills (Verso 1, Coro, Puente) -->
+      <div class="flex items-center gap-1.5 overflow-x-auto py-1" id="quickSlidePills">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Giant Action Navigation Buttons -->
+      <div class="grid grid-cols-12 gap-2.5 pt-1">
+        <!-- Anterior -->
+        <button onclick="triggerPrevSlide()" 
+                class="col-span-4 py-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-700 border border-slate-700 text-white font-black text-sm flex flex-col items-center justify-center gap-1 tactile-btn shadow-lg">
+          <i data-lucide="chevron-left" class="w-6 h-6 text-slate-300"></i>
+          <span>ANTERIOR</span>
+        </button>
+
+        <!-- Siguiente (GIANT) -->
+        <button onclick="triggerNextSlide()" 
+                class="col-span-8 py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-base flex items-center justify-center gap-2 tactile-btn shadow-xl shadow-emerald-600/30 border border-emerald-400/40">
+          <span>SIGUIENTE</span>
+          <i data-lucide="chevron-right" class="w-7 h-7"></i>
+        </button>
+      </div>
+
+      <!-- Utility Row: Blackout & Song Selector -->
+      <div class="flex items-center justify-between gap-2 pt-1">
+        <button onclick="toggleBlackout()" id="btnRemoteBlackout"
+                class="flex-1 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 tactile-btn">
+          <i data-lucide="eye-off" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span id="blackoutBtnText">Limpiar Pantalla (Blackout)</span>
+        </button>
+
+        <select id="songSelectDropdown" onchange="handleSongDropdownChange()" 
+                class="flex-1 bg-slate-900 border border-slate-800 text-slate-300 font-semibold text-xs py-2 px-2.5 rounded-xl focus:border-sky-500 outline-none">
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- TAB 2: RELOJ DE PREDICADOR (CONFIDENCE MONITOR & STAGE TIMER)           -->
+    <!-- ======================================================================= -->
+    <div id="tabContentTimer" class="hidden flex-1 flex flex-col justify-between space-y-4">
+      
+      <!-- Current Time of Day Banner -->
+      <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+        <span class="text-xs font-mono text-slate-400">HORA ACTUAL:</span>
+        <span id="clockTimeOfDay" class="text-sm font-mono font-bold text-sky-400">10:45:00 AM</span>
+      </div>
+
+      <!-- Giant Digital Timer Display -->
+      <div id="timerDisplayCard" class="flex-1 rounded-2xl bg-slate-950 border-2 border-emerald-500/80 p-6 flex flex-col items-center justify-center text-center shadow-2xl relative transition-all glow-emerald">
+        <span id="timerStatusLabel" class="text-xs font-bold font-mono tracking-widest text-emerald-400 uppercase mb-2">
+          TIEMPO DE MENSAJE (EN VIVO)
+        </span>
+        
+        <div id="timerDigits" class="text-6xl md:text-7xl font-mono font-black text-white tracking-wider my-2">
+          35:00
+        </div>
+
+        <span id="timerHint" class="text-[11px] text-slate-400 font-medium">
+          El reloj se sincroniza con el monitor de escenario del pastor
+        </span>
+      </div>
+
+      <!-- Quick Adjust Pills -->
+      <div class="grid grid-cols-4 gap-2 text-xs font-bold font-mono">
+        <button onclick="adjustTimer(300)" class="py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500 text-sky-400 active:scale-95 transition">
+          +5 MIN
+        </button>
+        <button onclick="adjustTimer(60)" class="py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500 text-sky-400 active:scale-95 transition">
+          +1 MIN
+        </button>
+        <button onclick="adjustTimer(-60)" class="py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500 text-amber-400 active:scale-95 transition">
+          -1 MIN
+        </button>
+        <button onclick="adjustTimer(-300)" class="py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500 text-amber-400 active:scale-95 transition">
+          -5 MIN
+        </button>
+      </div>
+
+      <!-- Big Timer Play / Pause Control Button -->
+      <button onclick="toggleTimer()" id="btnTimerToggle"
+              class="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 tactile-btn">
+        <i data-lucide="play" id="timerIcon" class="w-6 h-6"></i>
+        <span id="timerBtnText">INICIAR CRONÓMETRO</span>
+      </button>
+
+      <!-- Preset Resets -->
+      <div class="flex items-center justify-between gap-2 pt-1 text-xs">
+        <button onclick="resetTimer(1200)" class="flex-1 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-semibold active:scale-95">20 min</button>
+        <button onclick="resetTimer(2100)" class="flex-1 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-semibold active:scale-95">35 min</button>
+        <button onclick="resetTimer(2700)" class="flex-1 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-semibold active:scale-95">45 min</button>
+      </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- TAB 3: MENSAJES AL ESCENARIO (STAGE ALERTS & PROMPTER)                  -->
+    <!-- ======================================================================= -->
+    <div id="tabContentMessages" class="hidden flex-1 flex flex-col justify-between space-y-3.5">
+      
+      <!-- Current Live Message Notice -->
+      <div id="currentStageMsgCard" class="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 space-y-1">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-mono text-amber-400 font-bold uppercase flex items-center gap-1.5">
+            <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+            Mensaje Activo en Escenario:
+          </span>
+          <button onclick="clearStageMessage()" class="text-[10px] text-amber-400 underline font-bold">Borrar</button>
+        </div>
+        <p id="currentStageMsgText" class="text-sm font-bold text-white italic">
+          (Sin mensaje al aire)
+        </p>
+      </div>
+
+      <!-- Quick Preset Buttons -->
+      <div class="space-y-2">
+        <span class="text-[11px] font-mono text-slate-400 font-bold block">ALERTAS RÁPIDAS AL PASTOR:</span>
+        
+        <button onclick="sendPresetMessage('Pastor, quedan 5 minutos')" 
+                class="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left text-xs font-semibold text-slate-200 flex items-center justify-between active:scale-98 transition">
+          <span>⏳ Pastor, quedan 5 minutos</span>
+          <i data-lucide="send" class="w-3.5 h-3.5 text-sky-400"></i>
+        </button>
+
+        <button onclick="sendPresetMessage('Concluir mensaje y hacer llamado')" 
+                class="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left text-xs font-semibold text-slate-200 flex items-center justify-between active:scale-98 transition">
+          <span>🔔 Concluir mensaje y hacer llamado</span>
+          <i data-lucide="send" class="w-3.5 h-3.5 text-sky-400"></i>
+        </button>
+
+        <button onclick="sendPresetMessage('Altar abierto para ministración')" 
+                class="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left text-xs font-semibold text-slate-200 flex items-center justify-between active:scale-98 transition">
+          <span>⛪ Altar abierto para ministración</span>
+          <i data-lucide="send" class="w-3.5 h-3.5 text-sky-400"></i>
+        </button>
+
+        <button onclick="sendPresetMessage('Por favor acercar el micrófono a la boca')" 
+                class="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left text-xs font-semibold text-slate-200 flex items-center justify-between active:scale-98 transition">
+          <span>🎤 Por favor acercar micrófono</span>
+          <i data-lucide="send" class="w-3.5 h-3.5 text-sky-400"></i>
+        </button>
+      </div>
+
+      <!-- Custom Message Input -->
+      <div class="space-y-2 pt-2 border-t border-slate-800">
+        <span class="text-[11px] font-mono text-slate-400 font-bold block">ENVIAR MENSAJE PERSONALIZADO:</span>
+        <div class="flex items-center gap-2">
+          <input type="text" id="customStageMsgInput" placeholder="Escribe un mensaje privado al escenario..." 
+                 class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-white focus:border-amber-500 outline-none">
+          <button onclick="sendCustomStageMessage()" 
+                  class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1 active:scale-95 shadow transition">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 3. BOTTOM TAB DOCK (MOBILE APP NAVIGATION)                                -->
+  <!-- ========================================================================= -->
+  <footer class="safe-bottom bg-slate-950 border-t border-slate-800/80 px-2 py-1.5 flex items-center justify-around shrink-0">
+    <button onclick="switchTab('letras')" id="tabBtnLetras" 
+            class="flex-1 py-1.5 flex flex-col items-center gap-1 text-emerald-400 font-bold transition">
+      <i data-lucide="music" class="w-5 h-5"></i>
+      <span class="text-[10px] tracking-wide">Letras</span>
+    </button>
+
+    <button onclick="switchTab('timer')" id="tabBtnTimer" 
+            class="flex-1 py-1.5 flex flex-col items-center gap-1 text-slate-500 font-semibold transition">
+      <i data-lucide="clock" class="w-5 h-5"></i>
+      <span class="text-[10px] tracking-wide">Reloj Pastor</span>
+    </button>
+
+    <button onclick="switchTab('messages')" id="tabBtnMessages" 
+            class="flex-1 py-1.5 flex flex-col items-center gap-1 text-slate-500 font-semibold transition">
+      <i data-lucide="message-square" class="w-5 h-5"></i>
+      <span class="text-[10px] tracking-wide">Mensajes</span>
+    </button>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- 4. ENGINE SCRIPT (REAL-TIME SSE & BROADCASTCHANNEL)                       -->
+  <!-- ========================================================================= -->
+  <script>
+    lucide.createIcons();
+
+    // Haptic feedback helper for mobile touch
+    function triggerHaptic() {
+      if (window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(20);
+      }
+    }
+
+    // State
+    let currentState = {
+      itemIndex: 0,
+      slideIndex: 0,
+      isBlackout: false,
+      timerSeconds: 2100,
+      timerRunning: false,
+      stageMessage: '',
+      libraryItems: []
+    };
+
+    // Tab Switching
+    function switchTab(tab) {
+      triggerHaptic();
+      ['letras', 'timer', 'messages'].forEach(t => {
+        const content = document.getElementById(`tabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (t === tab) {
+          if (content) content.classList.remove('hidden');
+          if (btn) {
+            btn.className = 'flex-1 py-1.5 flex flex-col items-center gap-1 text-emerald-400 font-bold transition';
+          }
+        } else {
+          if (content) content.classList.add('hidden');
+          if (btn) {
+            btn.className = 'flex-1 py-1.5 flex flex-col items-center gap-1 text-slate-500 font-semibold transition';
+          }
+        }
+      });
+      lucide.createIcons();
+    }
+
+    // -------------------------------------------------------------------------
+    // REAL-TIME SYNCHRONIZATION VIA SSE (SERVER-SENT EVENTS) & BROADCASTCHANNEL
+    // -------------------------------------------------------------------------
+    const localBroadcast = new BroadcastChannel('omnicast_live_channel');
+
+    function connectSSE() {
+      const connPill = document.getElementById('connPill');
+      const connDot = document.getElementById('connDot');
+      const connText = document.getElementById('connText');
+
+      const evtSource = new EventSource('/api/events');
+
+      evtSource.addEventListener('state', (e) => {
+        try {
+          const state = JSON.parse(e.data);
+          updateRemoteUI(state);
+        } catch (err) {
+          console.error('Error parsing SSE state:', err);
+        }
+      });
+
+      evtSource.addEventListener('timer', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          currentState.timerSeconds = data.seconds;
+          currentState.timerRunning = data.running;
+          renderTimerDigits();
+        } catch (err) {
+          console.error('Error parsing SSE timer:', err);
+        }
+      });
+
+      evtSource.onopen = () => {
+        if (connPill) connPill.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-bold';
+        if (connDot) connDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+        if (connText) connText.textContent = 'EN VIVO';
+      };
+
+      evtSource.onerror = () => {
+        if (connPill) connPill.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold';
+        if (connDot) connDot.className = 'w-2 h-2 rounded-full bg-amber-400';
+        if (connText) connText.textContent = 'RECONECTANDO';
+      };
+    }
+
+    // Also mirror BroadcastChannel for local same-machine tabs
+    localBroadcast.onmessage = (event) => {
+      const msg = event.data;
+      if (msg && msg.type === 'slide_update') {
+        if (typeof msg.itemIndex === 'number') currentState.itemIndex = msg.itemIndex;
+        if (typeof msg.slideIndex === 'number') currentState.slideIndex = msg.slideIndex;
+        if (typeof msg.isBlackout === 'boolean') currentState.isBlackout = msg.isBlackout;
+        updateRemoteUI(currentState);
+      }
+    };
+
+    // Send action to server
+    async function sendAction(action, data = {}) {
+      triggerHaptic();
+      try {
+        const payload = Object.assign({ action }, data);
+        await fetch('/api/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error('Error sending action:', err);
+      }
+    }
+
+    function triggerNextSlide() {
+      sendAction('next_slide');
+    }
+
+    function triggerPrevSlide() {
+      sendAction('prev_slide');
+    }
+
+    function toggleBlackout() {
+      sendAction('blackout');
+    }
+
+    function jumpToSlide(itemIdx, slideIdx) {
+      sendAction('set_slide', { itemIndex: itemIdx, slideIndex: slideIdx });
+    }
+
+    function handleSongDropdownChange() {
+      const select = document.getElementById('songSelectDropdown');
+      if (select) {
+        const idx = parseInt(select.value, 10);
+        jumpToSlide(idx, 0);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // UI RENDERERS
+    // -------------------------------------------------------------------------
+    function updateRemoteUI(state) {
+      Object.assign(currentState, state);
+
+      const items = currentState.libraryItems || [];
+      const item = items[currentState.itemIndex];
+
+      // 1. Blackout notice
+      const blackoutNotice = document.getElementById('blackoutNotice');
+      const blackoutBtnText = document.getElementById('blackoutBtnText');
+      if (blackoutNotice) {
+        if (currentState.isBlackout) {
+          blackoutNotice.classList.remove('hidden');
+          if (blackoutBtnText) blackoutBtnText.textContent = 'Restaurar Letras';
+        } else {
+          blackoutNotice.classList.add('hidden');
+          if (blackoutBtnText) blackoutBtnText.textContent = 'Limpiar Pantalla (Blackout)';
+        }
+      }
+
+      // 2. Lyrics content
+      if (item && item.slides && item.slides[currentState.slideIndex]) {
+        const slide = item.slides[currentState.slideIndex];
+        document.getElementById('liveSlideText').textContent = slide.text;
+        document.getElementById('liveSlideSubtext').textContent = slide.subText || '';
+        document.getElementById('liveBadge').textContent = slide.badge || `DIAPOSITIVA ${currentState.slideIndex + 1}`;
+        document.getElementById('liveSongTitle').textContent = item.title;
+        document.getElementById('liveSlideCounter').textContent = `${currentState.slideIndex + 1} / ${item.slides.length}`;
+
+        // Next slide preview
+        const nextSlideEl = document.getElementById('nextSlideText');
+        if (nextSlideEl) {
+          if (currentState.slideIndex < item.slides.length - 1) {
+            nextSlideEl.textContent = item.slides[currentState.slideIndex + 1].text;
+          } else if (currentState.itemIndex < items.length - 1 && items[currentState.itemIndex + 1].slides[0]) {
+            nextSlideEl.textContent = `[Sig. Canción] ${items[currentState.itemIndex + 1].title}`;
+          } else {
+            nextSlideEl.textContent = '(Fin de la lista de alabanza)';
+          }
+        }
+
+        // Quick slide jump pills
+        renderQuickPills(item);
+      }
+
+      // 3. Populate song dropdown if needed
+      populateSongDropdown(items);
+
+      // 4. Timer digits
+      renderTimerDigits();
+
+      // 5. Stage Message
+      const msgText = document.getElementById('currentStageMsgText');
+      if (msgText) {
+        msgText.textContent = currentState.stageMessage ? `"${currentState.stageMessage}"` : '(Sin mensaje al aire)';
+      }
+    }
+
+    function renderQuickPills(item) {
+      const container = document.getElementById('quickSlidePills');
+      if (!container || !item || !item.slides) return;
+
+      container.innerHTML = '';
+      item.slides.forEach((s, idx) => {
+        const btn = document.createElement('button');
+        const isActive = idx === currentState.slideIndex;
+        btn.onclick = () => jumpToSlide(currentState.itemIndex, idx);
+        btn.className = `px-3 py-1.5 rounded-lg text-xs font-mono font-bold shrink-0 transition active:scale-95 ${
+          isActive 
+            ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30 border border-emerald-400' 
+            : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+        }`;
+        btn.textContent = s.badge || `S${idx + 1}`;
+        container.appendChild(btn);
+      });
+    }
+
+    function populateSongDropdown(items) {
+      const select = document.getElementById('songSelectDropdown');
+      if (!select || !items || items.length === 0) return;
+
+      if (select.children.length !== items.length) {
+        select.innerHTML = '';
+        items.forEach((item, idx) => {
+          const opt = document.createElement('option');
+          opt.value = idx;
+          opt.textContent = `${idx + 1}. ${item.title}`;
+          select.appendChild(opt);
+        });
+      }
+      select.value = currentState.itemIndex;
+    }
+
+    // -------------------------------------------------------------------------
+    // PREACHER TIMER CONTROLS
+    // -------------------------------------------------------------------------
+    function formatTimerTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function renderTimerDigits() {
+      const digitsEl = document.getElementById('timerDigits');
+      const card = document.getElementById('timerDisplayCard');
+      const statusLabel = document.getElementById('timerStatusLabel');
+      const btnText = document.getElementById('timerBtnText');
+      const icon = document.getElementById('timerIcon');
+
+      if (!digitsEl) return;
+
+      digitsEl.textContent = formatTimerTime(currentState.timerSeconds);
+
+      // Color coding: Emerald (>5m), Amber (<5m), Crimson (<1m)
+      if (currentState.timerSeconds > 300) {
+        card.className = 'flex-1 rounded-2xl bg-slate-950 border-2 border-emerald-500/80 p-6 flex flex-col items-center justify-center text-center shadow-2xl relative transition-all glow-emerald';
+        digitsEl.className = 'text-6xl md:text-7xl font-mono font-black text-emerald-400 tracking-wider my-2';
+        statusLabel.className = 'text-xs font-bold font-mono tracking-widest text-emerald-400 uppercase mb-2';
+      } else if (currentState.timerSeconds > 60) {
+        card.className = 'flex-1 rounded-2xl bg-slate-950 border-2 border-amber-500/80 p-6 flex flex-col items-center justify-center text-center shadow-2xl relative transition-all glow-amber';
+        digitsEl.className = 'text-6xl md:text-7xl font-mono font-black text-amber-400 tracking-wider my-2';
+        statusLabel.className = 'text-xs font-bold font-mono tracking-widest text-amber-400 uppercase mb-2';
+      } else {
+        card.className = 'flex-1 rounded-2xl bg-slate-950 border-2 border-rose-500 p-6 flex flex-col items-center justify-center text-center shadow-2xl relative transition-all glow-rose animate-pulse';
+        digitsEl.className = 'text-6xl md:text-7xl font-mono font-black text-rose-500 tracking-wider my-2';
+        statusLabel.className = 'text-xs font-bold font-mono tracking-widest text-rose-500 uppercase mb-2';
+      }
+
+      if (btnText && icon) {
+        if (currentState.timerRunning) {
+          btnText.textContent = 'PAUSAR CRONÓMETRO';
+          icon.setAttribute('data-lucide', 'pause');
+        } else {
+          btnText.textContent = 'INICIAR CRONÓMETRO';
+          icon.setAttribute('data-lucide', 'play');
+        }
+        lucide.createIcons();
+      }
+    }
+
+    function toggleTimer() {
+      if (currentState.timerRunning) {
+        sendAction('timer_pause');
+      } else {
+        sendAction('timer_start');
+      }
+    }
+
+    function adjustTimer(delta) {
+      sendAction('timer_adjust', { delta });
+    }
+
+    function resetTimer(seconds) {
+      sendAction('timer_reset', { seconds });
+    }
+
+    // -------------------------------------------------------------------------
+    // STAGE PROMPTER MESSAGES
+    // -------------------------------------------------------------------------
+    function sendPresetMessage(msg) {
+      sendAction('stage_message', { message: msg });
+    }
+
+    function sendCustomStageMessage() {
+      const input = document.getElementById('customStageMsgInput');
+      if (input && input.value.trim()) {
+        sendAction('stage_message', { message: input.value.trim() });
+        input.value = '';
+      }
+    }
+
+    function clearStageMessage() {
+      sendAction('stage_message', { message: '' });
+    }
+
+    // Real-time Clock
+    setInterval(() => {
+      const now = new Date();
+      const el = document.getElementById('clockTimeOfDay');
+      if (el) el.textContent = now.toLocaleTimeString();
+    }, 1000);
+
+    // Fullscreen helper
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // RUNDOWN SYNC
+    // -------------------------------------------------------------------------
+    function updateRemoteRundown(data) {
+      if (!data) return;
+      const titleEl = document.getElementById('remoteRundownTitle');
+      const countEl = document.getElementById('remoteRundownCountdown');
+      const statusDot = document.getElementById('remoteRundownStatus');
+
+      if (titleEl && data.activeItemTitle) titleEl.textContent = data.activeItemTitle;
+      if (countEl && data.formattedRemaining) {
+        countEl.textContent = data.formattedRemaining;
+        if (data.isOvertime) {
+          countEl.className = 'font-mono text-sm font-black text-red-500 animate-pulse px-2 py-1 rounded-lg bg-red-950/80 border border-red-500/50';
+        } else if (data.itemSecondsRemaining <= 120) {
+          countEl.className = 'font-mono text-sm font-black text-amber-400 px-2 py-1 rounded-lg bg-amber-950/80 border border-amber-500/40';
+        } else {
+          countEl.className = 'font-mono text-sm font-black text-emerald-400 px-2 py-1 rounded-lg bg-emerald-950/80 border border-emerald-500/40';
+        }
+      }
+      if (statusDot) {
+        statusDot.className = data.isServiceRunning ? 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping' : 'w-1.5 h-1.5 rounded-full bg-slate-500';
+      }
+    }
+
+    try {
+      const liveChan = new BroadcastChannel('omnicast_live_channel');
+      liveChan.onmessage = (e) => {
+        if (e.data && e.data.type === 'RUNDOWN_UPDATE') {
+          updateRemoteRundown(e.data.payload);
+        }
+      };
+    } catch(e) {}
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'omnicast_rundown') {
+        try { updateRemoteRundown(JSON.parse(e.newValue)); } catch(err) {}
+      }
+    });
+
+    const initRundownData = localStorage.getItem('omnicast_rundown');
+    if (initRundownData) {
+      try { updateRemoteRundown(JSON.parse(initRundownData)); } catch(err) {}
+    }
+
+    function sendRundownGoNext() {
+      try {
+        const liveChan = new BroadcastChannel('omnicast_live_channel');
+        liveChan.postMessage({ type: 'RUNDOWN_GO_NEXT' });
+      } catch(e) {}
+      sendAction('rundown_next');
+    }
+
+    // Startup
+    connectSSE();
+  </script>
+</body>
+</html>

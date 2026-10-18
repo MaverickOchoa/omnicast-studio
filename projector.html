@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniCast - Salida Proyector / Audiencia (HDMI 1080p)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #000;
+      overflow: hidden;
+      user-select: none;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .slide-text {
+      text-shadow: 0 4px 30px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.9);
+    }
+  </style>
+</head>
+<body class="w-screen h-screen flex items-center justify-center relative">
+
+  <!-- Canvas for Animated Motion Loops & Particle Backgrounds -->
+  <canvas id="motionCanvas" class="absolute inset-0 w-full h-full object-cover z-0"></canvas>
+
+  <!-- Ambient Dark Overlay for Readability -->
+  <div class="absolute inset-0 bg-black/35 backdrop-blur-[0.5px] z-10"></div>
+
+  <!-- Main Lyric / Scripture Container -->
+  <div class="relative z-20 max-w-5xl px-12 text-center flex flex-col items-center justify-center">
+    <div id="referenceBadge" class="hidden mb-4 px-6 py-1.5 rounded-full bg-amber-500/25 border border-amber-400/50 text-amber-300 font-extrabold text-xl tracking-widest uppercase shadow-lg">
+      VERSO 1
+    </div>
+    
+    <h1 id="mainText" class="slide-text text-white font-black text-5xl md:text-7xl leading-tight tracking-wide transition-all duration-300">
+      OmniCast Studio
+    </h1>
+
+    <p id="subText" class="mt-4 text-slate-200 text-2xl font-medium slide-text transition-all duration-300">
+      Esperando señal del operador de presentación...
+    </p>
+  </div>
+
+  <!-- Bottom Tally Indicator -->
+  <div class="absolute bottom-4 right-6 text-xs text-white/40 font-mono tracking-widest flex items-center gap-2 z-20">
+    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+    <span id="campusIndicator">SALIDA PÚBLICA HDMI 1080p</span>
+  </div>
+
+  <script>
+    const channel = new BroadcastChannel('omnicast_live_channel');
+    const mainText = document.getElementById('mainText');
+    const subText = document.getElementById('subText');
+    const refBadge = document.getElementById('referenceBadge');
+    const campusIndicator = document.getElementById('campusIndicator');
+    const motionCanvas = document.getElementById('motionCanvas');
+    const ctx = motionCanvas.getContext('2d');
+
+    // High DPI Canvas setup
+    function resizeCanvas() {
+      motionCanvas.width = window.innerWidth;
+      motionCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Theme definitions with real particle / color palettes
+    const themesPalette = {
+      purple: { bg1: '#09081a', bg2: '#1e103a', light1: '#7c3aed', light2: '#a855f7', particle: 'rgba(192, 132, 252, 0.4)' },
+      gold:   { bg1: '#140c03', bg2: '#381e05', light1: '#d97706', light2: '#f59e0b', particle: 'rgba(251, 191, 36, 0.5)' },
+      blue:   { bg1: '#031124', bg2: '#082f49', light1: '#0284c7', light2: '#38bdf8', particle: 'rgba(125, 211, 252, 0.4)' },
+      emerald:{ bg1: '#021810', bg2: '#064e3b', light1: '#059669', light2: '#10b981', particle: 'rgba(110, 231, 183, 0.4)' },
+      crimson:{ bg1: '#1a0408', bg2: '#4c0519', light1: '#be123c', light2: '#f43f5e', particle: 'rgba(251, 113, 133, 0.4)' },
+      dark:   { bg1: '#000000', bg2: '#090d16', light1: '#1e293b', light2: '#334155', particle: 'rgba(148, 163, 184, 0.2)' }
+    };
+    let activeTheme = 'purple';
+
+    // Particle system for motion backgrounds
+    const particles = [];
+    for (let i = 0; i < 45; i++) {
+      particles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        radius: Math.random() * 3.5 + 1.5,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: -Math.random() * 0.5 - 0.2,
+        alpha: Math.random() * 0.7 + 0.3
+      });
+    }
+
+    let animTime = 0;
+    function renderMotionBackground() {
+      animTime += 0.015;
+      const w = motionCanvas.width;
+      const h = motionCanvas.height;
+      const t = themesPalette[activeTheme] || themesPalette.purple;
+
+      // 1. Draw smooth gradient base
+      const grad = ctx.createRadialGradient(
+        w * 0.5 + Math.sin(animTime * 0.5) * 120,
+        h * 0.5 + Math.cos(animTime * 0.4) * 80,
+        50,
+        w * 0.5,
+        h * 0.5,
+        w * 0.75
+      );
+      grad.addColorStop(0, t.bg2);
+      grad.addColorStop(1, t.bg1);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // 2. Animated soft atmospheric light beams
+      if (activeTheme !== 'dark') {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        
+        // Light Beam 1
+        const beamGrad1 = ctx.createLinearGradient(0, 0, w, h);
+        beamGrad1.addColorStop(0, 'transparent');
+        beamGrad1.addColorStop(0.5, t.light1 + '33'); // 20% opacity
+        beamGrad1.addColorStop(1, 'transparent');
+        ctx.fillStyle = beamGrad1;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.2 + Math.sin(animTime) * 100, 0);
+        ctx.lineTo(w * 0.6 + Math.cos(animTime) * 100, h);
+        ctx.lineTo(w * 0.4, h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Light Beam 2
+        const beamGrad2 = ctx.createLinearGradient(w, 0, 0, h);
+        beamGrad2.addColorStop(0, 'transparent');
+        beamGrad2.addColorStop(0.5, t.light2 + '26');
+        beamGrad2.addColorStop(1, 'transparent');
+        ctx.fillStyle = beamGrad2;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.8 + Math.cos(animTime * 0.8) * 80, 0);
+        ctx.lineTo(w * 0.3, h);
+        ctx.lineTo(w * 0.5, h);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      // 3. Floating particles (Worship ambient particles)
+      if (activeTheme !== 'dark') {
+        ctx.fillStyle = t.particle;
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.y < -10) p.y = h + 10;
+          if (p.x < -10) p.x = w + 10;
+          if (p.x > w + 10) p.x = -10;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      requestAnimationFrame(renderMotionBackground);
+    }
+    requestAnimationFrame(renderMotionBackground);
+
+    // Update Display logic
+    function updateDisplay(data) {
+      if (!data) return;
+      
+      mainText.style.opacity = '0';
+      subText.style.opacity = '0';
+      
+      setTimeout(() => {
+        if (data.isClear) {
+          mainText.textContent = '';
+          subText.textContent = '';
+          refBadge.classList.add('hidden');
+        } else {
+          const txt = data.text || '';
+          mainText.textContent = txt;
+          subText.textContent = data.subText || '';
+
+          if (txt.length > 120) {
+            mainText.className = 'slide-text text-white font-black text-3xl md:text-4xl lg:text-5xl leading-snug tracking-wide transition-all duration-300';
+          } else if (txt.length > 60) {
+            mainText.className = 'slide-text text-white font-black text-4xl md:text-5xl lg:text-6xl leading-tight tracking-wide transition-all duration-300';
+          } else {
+            mainText.className = 'slide-text text-white font-black text-5xl md:text-7xl leading-tight tracking-wide transition-all duration-300';
+          }
+          
+          if (data.badge) {
+            refBadge.textContent = data.badge;
+            refBadge.className = data.isVideo
+              ? 'mb-4 px-6 py-1.5 rounded-full bg-red-600/30 border border-red-400 text-red-200 font-extrabold text-xl tracking-widest uppercase shadow-lg animate-pulse'
+              : 'mb-4 px-6 py-1.5 rounded-full bg-amber-500/25 border border-amber-400/50 text-amber-300 font-extrabold text-xl tracking-widest uppercase shadow-lg';
+            refBadge.classList.remove('hidden');
+          } else {
+            refBadge.classList.add('hidden');
+          }
+        }
+
+        if (data.theme && themesPalette[data.theme]) {
+          activeTheme = data.theme;
+        }
+
+        if (data.campusName) {
+          campusIndicator.textContent = data.campusName.toUpperCase() + ' - HDMI 1080p';
+        }
+
+        mainText.style.opacity = '1';
+        subText.style.opacity = '1';
+      }, 100);
+    }
+
+    channel.onmessage = (event) => {
+      if (event.data && event.data.type === 'SLIDE_UPDATE') {
+        updateDisplay(event.data.payload);
+      }
+    };
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'omnicast_current_slide') {
+        try {
+          updateDisplay(JSON.parse(e.newValue));
+        } catch(err) {}
+      }
+    });
+
+    const stored = localStorage.getItem('omnicast_current_slide');
+    if (stored) {
+      try {
+        updateDisplay(JSON.parse(stored));
+      } catch(err) {}
+    }
+
+    // Connect to Server-Sent Events for WiFi synchronization with remote.html
+    const evtSource = new EventSource('/api/events');
+    evtSource.addEventListener('state', (e) => {
+      try {
+        const state = JSON.parse(e.data);
+        if (state.libraryItems && state.libraryItems[state.itemIndex]) {
+          const item = state.libraryItems[state.itemIndex];
+          const slide = item.slides && item.slides[state.slideIndex];
+          updateDisplay({
+            text: state.isBlackout ? '' : (slide ? slide.text : ''),
+            subText: state.isBlackout ? '' : (slide ? slide.subText : ''),
+            isClear: state.isBlackout,
+            reference: slide ? slide.badge : '',
+            theme: state.theme
+          });
+        }
+      } catch (err) {}
+    });
+  </script>
+</body>
+</html>
