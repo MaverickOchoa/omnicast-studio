@@ -1,0 +1,19 @@
+{
+  "name": "omnicast-studio",
+  "version": "1.0.0",
+  "description": "Multi-Tenant Presentation and Live Broadcast Suite",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "propresenter",
+    "wirecast",
+    "obs",
+    "atem",
+    "church-production",
+    "broadcast"
+  ],
+  "author": "Antigravity Engineering",
+  "license": "MIT"
+}
