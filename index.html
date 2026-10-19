@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=Caveat:wght@700&family=JetBrains+Mono:wght@400;600&display=swap');
 
     body {
       font-family: 'Inter', sans-serif;
@@ -485,6 +485,10 @@
             </div>
 
             <div class="flex items-center gap-2">
+              <button onclick="openLyricsStyleModal()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-900/60 to-indigo-900/60 hover:from-purple-800 hover:to-indigo-800 text-purple-200 text-xs font-bold flex items-center gap-1.5 border border-purple-500/40 shadow-sm transition active:scale-95">
+                <i data-lucide="palette" class="w-3.5 h-3.5 text-purple-300"></i>
+                <span>Estilos & Loops</span>
+              </button>
               <button id="clearSlideBtn" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition">
                 <i data-lucide="eye-off" class="w-3.5 h-3.5 text-amber-400"></i>
                 <span>Limpiar Texto</span>
@@ -496,29 +500,49 @@
             </div>
           </div>
 
-          <!-- FONDOS DINÁMICOS SELECTOR -->
-          <div class="px-3 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center gap-2 overflow-x-auto shrink-0 select-none">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1 shrink-0">
-              <i data-lucide="image" class="w-3 h-3"></i> Fondo:
-            </span>
-            <button onclick="setTheme('purple')" id="themeBtn-purple" class="theme-pill active-theme px-3 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-indigo-900 to-purple-900 text-white border border-purple-500/60 transition shrink-0">
-              🌌 Celestial
-            </button>
-            <button onclick="setTheme('gold')" id="themeBtn-gold" class="theme-pill px-3 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-amber-900 to-yellow-800 text-white border border-amber-500/60 transition shrink-0">
-              🌟 Resplandor Oro
-            </button>
-            <button onclick="setTheme('blue')" id="themeBtn-blue" class="theme-pill px-3 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-sky-950 to-blue-900 text-white border border-sky-500/60 transition shrink-0">
-              🌊 Océano Profundo
-            </button>
-            <button onclick="setTheme('emerald')" id="themeBtn-emerald" class="theme-pill px-3 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-emerald-950 to-teal-900 text-white border border-emerald-500/60 transition shrink-0">
-              🌿 Esmeralda
-            </button>
-            <button onclick="setTheme('crimson')" id="themeBtn-crimson" class="theme-pill px-3 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-red-950 to-rose-900 text-white border border-rose-500/60 transition shrink-0">
-              🍷 Carmesí
-            </button>
-            <button onclick="setTheme('dark')" id="themeBtn-dark" class="theme-pill px-3 py-1 rounded-md text-[11px] font-semibold bg-black text-slate-300 border border-slate-700 transition shrink-0">
-              ⬛ Negro Puro
-            </button>
+          <!-- FONDOS DINÁMICOS & LAYOUT SELECTOR -->
+          <div class="px-3 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-3 overflow-x-auto shrink-0 select-none">
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1 shrink-0">
+                <i data-lucide="film" class="w-3 h-3"></i> Loop:
+              </span>
+              <button onclick="setTheme('purple')" id="themeBtn-purple" class="theme-pill active-theme px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-indigo-900 to-purple-900 text-white border border-purple-500/60 transition shrink-0">
+                🌌 Celestial
+              </button>
+              <button onclick="setTheme('gold')" id="themeBtn-gold" class="theme-pill px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-amber-900 to-yellow-800 text-white border border-amber-500/60 transition shrink-0">
+                🌟 Oro
+              </button>
+              <button onclick="setTheme('blue')" id="themeBtn-blue" class="theme-pill px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-sky-950 to-blue-900 text-white border border-sky-500/60 transition shrink-0">
+                🌊 Aguas
+              </button>
+              <button onclick="setTheme('emerald')" id="themeBtn-emerald" class="theme-pill px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-emerald-950 to-teal-900 text-white border border-emerald-500/60 transition shrink-0">
+                🌿 Esmeralda
+              </button>
+              <button onclick="setTheme('crimson')" id="themeBtn-crimson" class="theme-pill px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-red-950 to-rose-900 text-white border border-rose-500/60 transition shrink-0">
+                🔥 Fuego
+              </button>
+              <button onclick="setTheme('bokeh')" id="themeBtn-bokeh" class="theme-pill px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-violet-950 to-slate-900 text-white border border-violet-500/60 transition shrink-0">
+                ✨ Bokeh
+              </button>
+              <button onclick="setTheme('dark')" id="themeBtn-dark" class="theme-pill px-2.5 py-1 rounded-md text-[11px] font-semibold bg-black text-slate-300 border border-slate-700 transition shrink-0">
+                ⬛ Negro
+              </button>
+            </div>
+
+            <!-- Layout Quick Toggles -->
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="toggleProjectorLayoutQuick()" id="quickProjectorLayoutBtn" title="Alternar disposición Proyector HDMI" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition">
+                <span class="text-slate-500">SALA:</span>
+                <span id="quickProjectorLayoutLabel" class="text-sky-400">🎯 CENTRADO</span>
+              </button>
+              <button onclick="toggleStreamLayoutQuick()" id="quickStreamLayoutBtn" title="Alternar disposición Transmisión Capa 2" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition">
+                <span class="text-slate-500">STREAM:</span>
+                <span id="quickStreamLayoutLabel" class="text-emerald-400">📺 LOWER THIRD</span>
+              </button>
+              <button onclick="openLyricsStyleModal()" class="p-1 rounded-md text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition" title="Configuración avanzada de estilos y fuentes">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
           </div>
 
           <div id="slidesGrid" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -3349,6 +3373,284 @@ Te adoraré, te adoraré..."
   </div>
 
   <!-- ========================================================================= -->
+  <!-- MODAL: EDITOR DE ESTILOS DE LETRAS & MOTION LOOPS (ESTILO PROPRESENTER 7)  -->
+  <!-- ========================================================================= -->
+  <div id="lyricsStyleModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 md:p-4">
+    <div class="bg-[#0b101a] border border-slate-700/80 rounded-2xl max-w-4xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[94vh] overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 shadow-inner">
+            <i data-lucide="palette" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white tracking-wide">Estilos de Letras & Biblioteca de Motion Loops</h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold uppercase">
+                ProPresenter 7 Broadcast Grade
+              </span>
+            </div>
+            <p class="text-xs text-slate-400">Control visual de salidas independientes para Proyector de Sala y Transmisión de Video</p>
+          </div>
+        </div>
+        <button onclick="closeLyricsStyleModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Presets Rápidos Bar -->
+      <div class="flex items-center justify-between px-3.5 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs">
+        <span class="text-[11px] font-bold text-slate-400 flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i> Presets de 1-Clic:
+        </span>
+        <div class="flex items-center gap-2 overflow-x-auto">
+          <button onclick="applyLyricsStylePreset('intimate')" class="px-2.5 py-1 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-500/30 text-indigo-200 text-[11px] font-semibold transition">
+            🌌 Adoración Íntima
+          </button>
+          <button onclick="applyLyricsStylePreset('shekinah')" class="px-2.5 py-1 rounded-lg bg-amber-950/70 hover:bg-amber-900 border border-amber-500/30 text-amber-200 text-[11px] font-semibold transition">
+            🌟 Gloria Shekinah
+          </button>
+          <button onclick="applyLyricsStylePreset('worship_fire')" class="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900 border border-rose-500/30 text-rose-200 text-[11px] font-semibold transition">
+            🔥 Alabanza Viva
+          </button>
+          <button onclick="applyLyricsStylePreset('hymn_classic')" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-600/40 text-slate-200 text-[11px] font-semibold transition">
+            📖 Himno Solemne (Serif)
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (2 Columns: Controls on left, Live Canvas Preview on right) -->
+      <div class="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-5 pr-1">
+        
+        <!-- Left: Configuration Panels (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col gap-4">
+          
+          <!-- Section 1: Salidas & Layouts -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <span class="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="monitor" class="w-4 h-4"></i> Disposición de Pantalla (Layout Modes)
+            </span>
+
+            <div class="grid grid-cols-2 gap-3">
+              <!-- Proyector Sala -->
+              <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-slate-300 block">Salida Proyector Altar (Sala):</label>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <button type="button" onclick="setLyricsLayout('center', 'projector')" id="styleLayoutProjCenter" class="p-2.5 rounded-lg bg-slate-800 border-2 border-sky-500 text-sky-300 text-center text-xs font-bold transition flex flex-col items-center gap-1">
+                    <i data-lucide="align-center" class="w-4 h-4"></i>
+                    <span>Centrado</span>
+                  </button>
+                  <button type="button" onclick="setLyricsLayout('lowerThird', 'projector')" id="styleLayoutProjLower" class="p-2.5 rounded-lg bg-slate-950 border border-slate-700 hover:border-slate-600 text-slate-400 text-center text-xs font-semibold transition flex flex-col items-center gap-1">
+                    <i data-lucide="chevrons-down" class="w-4 h-4"></i>
+                    <span>Tercio Inferior</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Transmisión Stream -->
+              <div class="space-y-1.5">
+                <label class="text-[11px] font-bold text-slate-300 block">Salida Transmisión (Capa 2):</label>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <button type="button" onclick="setLyricsLayout('lowerThird', 'stream')" id="styleLayoutStreamLower" class="p-2.5 rounded-lg bg-slate-800 border-2 border-emerald-500 text-emerald-300 text-center text-xs font-bold transition flex flex-col items-center gap-1">
+                    <i data-lucide="layers" class="w-4 h-4"></i>
+                    <span>Lower Third</span>
+                  </button>
+                  <button type="button" onclick="setLyricsLayout('fullScreen', 'stream')" id="styleLayoutStreamFull" class="p-2.5 rounded-lg bg-slate-950 border border-slate-700 hover:border-slate-600 text-slate-400 text-center text-xs font-semibold transition flex flex-col items-center gap-1">
+                    <i data-lucide="maximize" class="w-4 h-4"></i>
+                    <span>Pantalla Full</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Biblioteca de Motion Loops & Fondos -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="film" class="w-4 h-4"></i> Biblioteca de Motion Loops (GPU Shader)
+              </span>
+              <span class="text-[10px] font-mono text-slate-400">60 FPS • Sin lag</span>
+            </div>
+
+            <!-- Loop Grid -->
+            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              <button onclick="selectLyricsMotionLoop('purple')" id="loopCard-purple" class="p-2 rounded-lg bg-gradient-to-br from-indigo-950 to-purple-900 border-2 border-purple-500 text-white text-[11px] font-bold flex flex-col items-center gap-1 transition">
+                <span>🌌 Celestial</span>
+              </button>
+              <button onclick="selectLyricsMotionLoop('gold')" id="loopCard-gold" class="p-2 rounded-lg bg-gradient-to-br from-amber-950 to-yellow-900 border border-slate-700 text-amber-300 text-[11px] font-bold flex flex-col items-center gap-1 transition">
+                <span>🌟 Oro Gloria</span>
+              </button>
+              <button onclick="selectLyricsMotionLoop('blue')" id="loopCard-blue" class="p-2 rounded-lg bg-gradient-to-br from-sky-950 to-blue-900 border border-slate-700 text-sky-300 text-[11px] font-bold flex flex-col items-center gap-1 transition">
+                <span>🌊 Aguas Vivas</span>
+              </button>
+              <button onclick="selectLyricsMotionLoop('emerald')" id="loopCard-emerald" class="p-2 rounded-lg bg-gradient-to-br from-emerald-950 to-teal-900 border border-slate-700 text-emerald-300 text-[11px] font-bold flex flex-col items-center gap-1 transition">
+                <span>🌿 Esmeralda</span>
+              </button>
+              <button onclick="selectLyricsMotionLoop('crimson')" id="loopCard-crimson" class="p-2 rounded-lg bg-gradient-to-br from-red-950 to-rose-900 border border-slate-700 text-rose-300 text-[11px] font-bold flex flex-col items-center gap-1 transition">
+                <span>🔥 Fuego Santo</span>
+              </button>
+              <button onclick="selectLyricsMotionLoop('bokeh')" id="loopCard-bokeh" class="p-2 rounded-lg bg-gradient-to-br from-violet-950 to-slate-900 border border-slate-700 text-violet-300 text-[11px] font-bold flex flex-col items-center gap-1 transition">
+                <span>✨ Bokeh Suave</span>
+              </button>
+              <button onclick="selectLyricsMotionLoop('dark')" id="loopCard-dark" class="p-2 rounded-lg bg-black border border-slate-700 text-slate-300 text-[11px] font-bold flex flex-col items-center gap-1 transition">
+                <span>⬛ Negro Puro</span>
+              </button>
+            </div>
+
+            <!-- Video Loop Custom URL Input -->
+            <div class="pt-2 border-t border-slate-800 space-y-1.5">
+              <label class="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+                <span>Video Loop de Fondo (.mp4 / WebM):</span>
+                <button type="button" onclick="clearVideoLoopUrl()" class="text-[10px] text-rose-400 hover:underline">Quitar video</button>
+              </label>
+              <div class="flex items-center gap-2">
+                <input type="text" id="lyricsVideoLoopInput" placeholder="URL directa de video o deja vacío para Motion Loop..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-purple-500 font-mono">
+                <button type="button" onclick="testVideoLoopUrl()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Probar</button>
+              </div>
+            </div>
+
+            <!-- Dimmer & Blur Sliders -->
+            <div class="grid grid-cols-2 gap-4 pt-1">
+              <div>
+                <div class="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1">
+                  <span>Atenuador Oscuro (Dimmer):</span>
+                  <span id="labelDimmerVal" class="text-amber-400 font-mono">40%</span>
+                </div>
+                <input type="range" id="sliderDimmer" min="15" max="85" value="40" oninput="handleDimmerChange(this.value)" class="w-full accent-amber-500 cursor-pointer">
+              </div>
+              <div>
+                <div class="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1">
+                  <span>Desenfoque (Blur):</span>
+                  <span id="labelBlurVal" class="text-sky-400 font-mono">0 px</span>
+                </div>
+                <input type="range" id="sliderBlur" min="0" max="12" value="0" oninput="handleBlurChange(this.value)" class="w-full accent-sky-500 cursor-pointer">
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Tipografía & Legibilidad -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <span class="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="type" class="w-4 h-4"></i> Tipografía & Legibilidad de Letras
+            </span>
+
+            <div class="grid grid-cols-2 gap-3">
+              <!-- Font Family -->
+              <div>
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Familia de Fuente:</label>
+                <select id="selectFontFamily" onchange="handleFontFamilyChange(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-purple-500">
+                  <option value="Inter">Inter Sans (Moderna y Nítida)</option>
+                  <option value="Cinzel">Cinzel Serif (Clásica / Himnos)</option>
+                  <option value="Montserrat">Montserrat Black (Audaz y Potente)</option>
+                  <option value="Caveat">Caveat (Manuscrita / Acústico)</option>
+                </select>
+              </div>
+
+              <!-- Font Size -->
+              <div>
+                <label class="text-[11px] font-bold text-slate-300 block mb-1">Tamaño en Pantalla:</label>
+                <select id="selectFontSize" onchange="handleFontSizeChange(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-purple-500">
+                  <option value="sm">Pequeño (44px)</option>
+                  <option value="md">Mediano (56px)</option>
+                  <option value="lg" selected>Grande (68px - Recomendado)</option>
+                  <option value="xl">Gigante (82px)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <!-- Uppercase Toggle -->
+              <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800">
+                <span class="text-xs font-semibold text-slate-300">MAYÚSCULAS:</span>
+                <button type="button" id="btnToggleUppercase" onclick="toggleUppercaseSetting()" class="px-3 py-1 rounded text-xs font-bold bg-purple-600 text-white transition">
+                  ACTIVADO
+                </button>
+              </div>
+
+              <!-- Text Shadow -->
+              <div>
+                <select id="selectTextShadow" onchange="handleTextShadowChange(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-purple-500">
+                  <option value="broadcast" selected>Sombra Broadcast 4K (Máxima Legibilidad)</option>
+                  <option value="glow">Resplandor Suave (Glow)</option>
+                  <option value="none">Sin Sombra</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: Live Interactive Visual Preview (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col gap-3">
+          <div class="flex items-center justify-between text-slate-300 font-bold border-b border-slate-800 pb-1.5">
+            <span class="text-xs font-bold text-white flex items-center gap-1.5">
+              <i data-lucide="eye" class="w-4 h-4 text-emerald-400"></i> Monitor de Previsualización en Vivo
+            </span>
+            <span id="previewLayoutTag" class="text-[10px] font-mono text-sky-400">CENTRADO</span>
+          </div>
+
+          <!-- Preview Frame (Aspect 16:9) -->
+          <div id="stylePreviewFrame" class="aspect-video w-full rounded-xl overflow-hidden relative border border-slate-700 shadow-2xl flex items-center justify-center p-4 select-none">
+            
+            <!-- Canvas or gradient preview -->
+            <div id="stylePreviewBg" class="absolute inset-0 bg-gradient-to-br from-indigo-950 via-purple-900 to-slate-950 transition-all duration-300"></div>
+            <div id="stylePreviewOverlay" class="absolute inset-0 bg-black/40 transition-all duration-300"></div>
+
+            <!-- Content Container -->
+            <div id="stylePreviewContentBox" class="relative z-10 w-full text-center flex flex-col items-center justify-center transition-all duration-300">
+              <div id="stylePreviewBadge" class="mb-2 px-3 py-0.5 rounded-full bg-amber-500/25 border border-amber-400/50 text-amber-300 font-extrabold text-[10px] tracking-widest uppercase shadow">
+                CORO
+              </div>
+              <h2 id="stylePreviewText" class="text-white font-black text-lg md:text-xl leading-snug tracking-wide uppercase transition-all duration-200" style="text-shadow: 0 2px 10px rgba(0,0,0,0.95);">
+                Gracia sublime es, perfecto es tu amor
+              </h2>
+              <p id="stylePreviewSubtext" class="mt-1 text-slate-300 text-xs font-medium" style="text-shadow: 0 1px 5px rgba(0,0,0,0.9);">
+                Tomaste mi lugar, cargaste tú mi cruz
+              </p>
+            </div>
+
+            <!-- Watermark tag -->
+            <div class="absolute bottom-2 right-2 text-[9px] font-mono text-white/50 bg-black/60 px-1.5 py-0.5 rounded">
+              HDMI 1080p
+            </div>
+          </div>
+
+          <!-- Guide / Note Card -->
+          <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 text-[11px] text-slate-400">
+            <div class="flex items-center gap-1.5 text-purple-300 font-bold">
+              <i data-lucide="info" class="w-3.5 h-3.5"></i>
+              <span>Sincronización Automática</span>
+            </div>
+            <p>
+              Al hacer clic en <strong class="text-white">Aplicar a Pantallas</strong>, los cambios se propagan de inmediato al proyector de sala (<code class="text-sky-300 font-mono">/projector.html</code>) y a la Capa 2 del switcher de transmisión sin necesidad de recargar la página.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer Action Buttons -->
+      <div class="flex items-center justify-between border-t border-slate-800 pt-3 shrink-0">
+        <button onclick="resetLyricsStyleDefaults()" class="text-xs text-slate-400 hover:text-white transition flex items-center gap-1">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Restablecer Valores
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button onclick="closeLyricsStyleModal()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            Cancelar
+          </button>
+          <button onclick="applyAndSaveLyricsStyle()" class="px-5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-purple-600/25 active:scale-95 transition">
+            <i data-lucide="check" class="w-4 h-4"></i> Aplicar a Pantallas & Guardar
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
   <!-- MODAL: AJUSTES DE SEDE LOCAL & PREFERENCIAS (CAMPUS SETTINGS)             -->
   <!-- ========================================================================= -->
   <div id="campusSettingsModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 md:p-4">
@@ -3840,13 +4142,42 @@ Te adoraré, te adoraré..."
       blue:   { name: 'Océano Profundo', css: 'linear-gradient(135deg, #031124 0%, #082f49 50%, #0284c7 100%)', slideTint: 'from-sky-950/60 to-slate-900', activeRing: 'ring-sky-500/50 border-sky-500' },
       emerald:{ name: 'Esmeralda', css: 'linear-gradient(135deg, #021810 0%, #064e3b 50%, #059669 100%)', slideTint: 'from-emerald-950/60 to-slate-900', activeRing: 'ring-emerald-500/50 border-emerald-500' },
       crimson:{ name: 'Carmesí', css: 'linear-gradient(135deg, #1a0408 0%, #4c0519 50%, #be123c 100%)', slideTint: 'from-rose-950/60 to-slate-900', activeRing: 'ring-rose-500/50 border-rose-500' },
+      bokeh:  { name: 'Ambient Bokeh', css: 'linear-gradient(135deg, #090910 0%, #151525 50%, #8b5cf6 100%)', slideTint: 'from-violet-950/60 to-slate-900', activeRing: 'ring-violet-500/50 border-violet-500' },
       dark:   { name: 'Negro Puro', css: 'linear-gradient(135deg, #000000 0%, #090d16 100%)', slideTint: 'from-slate-950 to-slate-900', activeRing: 'ring-slate-500/50 border-slate-500' }
     };
     let currentTheme = 'purple';
 
+    // -------------------------------------------------------------------------
+    // PHASE 13: PROPRESENTER 7 BROADCAST GRADE LYRICS & MOTION LOOPS ENGINE
+    // -------------------------------------------------------------------------
+    const lyricsStyleConfig = {
+      projectorLayout: 'center',      // 'center' | 'lowerThird'
+      streamLayout: 'lowerThird',     // 'lowerThird' | 'fullScreen'
+      fontFamily: 'Inter',            // 'Inter' | 'Cinzel' | 'Montserrat' | 'Caveat'
+      fontSize: 'lg',                 // 'sm' | 'md' | 'lg' | 'xl'
+      isUppercase: true,
+      textShadow: 'broadcast',        // 'broadcast' | 'glow' | 'none'
+      motionLoop: 'purple',           // matches currentTheme
+      videoLoopUrl: '',
+      overlayDimmer: 40,              // 15 to 85 %
+      backgroundBlur: 0               // 0 to 12 px
+    };
+
+    function loadSavedLyricsStyle() {
+      try {
+        const saved = localStorage.getItem('omnicast_lyrics_style');
+        if (saved) {
+          Object.assign(lyricsStyleConfig, JSON.parse(saved));
+          currentTheme = lyricsStyleConfig.motionLoop || currentTheme;
+        }
+      } catch (e) {}
+      updateQuickLayoutBadges();
+    }
+
     function setTheme(themeKey) {
       if (!themesPalette[themeKey]) return;
       currentTheme = themeKey;
+      lyricsStyleConfig.motionLoop = themeKey;
 
       document.querySelectorAll('.theme-pill').forEach(btn => btn.classList.remove('active-theme'));
       const activeBtn = document.getElementById(`themeBtn-${themeKey}`);
@@ -3857,6 +4188,336 @@ Te adoraré, te adoraré..."
 
       renderSlidesGrid();
       broadcastSlide();
+    }
+
+    function openLyricsStyleModal() {
+      // Load current values into form inputs
+      const selFont = document.getElementById('selectFontFamily');
+      if (selFont) selFont.value = lyricsStyleConfig.fontFamily;
+
+      const selSize = document.getElementById('selectFontSize');
+      if (selSize) selSize.value = lyricsStyleConfig.fontSize;
+
+      const selShadow = document.getElementById('selectTextShadow');
+      if (selShadow) selShadow.value = lyricsStyleConfig.textShadow;
+
+      const inpVideo = document.getElementById('lyricsVideoLoopInput');
+      if (inpVideo) inpVideo.value = lyricsStyleConfig.videoLoopUrl || '';
+
+      const sliderDim = document.getElementById('sliderDimmer');
+      if (sliderDim) sliderDim.value = lyricsStyleConfig.overlayDimmer;
+      const lblDim = document.getElementById('labelDimmerVal');
+      if (lblDim) lblDim.textContent = `${lyricsStyleConfig.overlayDimmer}%`;
+
+      const sliderBlr = document.getElementById('sliderBlur');
+      if (sliderBlr) sliderBlr.value = lyricsStyleConfig.backgroundBlur;
+      const lblBlr = document.getElementById('labelBlurVal');
+      if (lblBlr) lblBlr.textContent = `${lyricsStyleConfig.backgroundBlur} px`;
+
+      updateLyricsLayoutUI();
+      updateMotionLoopCardsUI();
+      updateUppercaseButtonUI();
+      updateLyricsPreviewBox();
+
+      const modal = document.getElementById('lyricsStyleModal');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeLyricsStyleModal() {
+      const modal = document.getElementById('lyricsStyleModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function setLyricsLayout(mode, target) {
+      if (target === 'projector') {
+        lyricsStyleConfig.projectorLayout = mode;
+      } else if (target === 'stream') {
+        lyricsStyleConfig.streamLayout = mode;
+      }
+      updateLyricsLayoutUI();
+      updateLyricsPreviewBox();
+      updateQuickLayoutBadges();
+    }
+
+    function updateLyricsLayoutUI() {
+      const btnProjCenter = document.getElementById('styleLayoutProjCenter');
+      const btnProjLower = document.getElementById('styleLayoutProjLower');
+      if (btnProjCenter && btnProjLower) {
+        if (lyricsStyleConfig.projectorLayout === 'center') {
+          btnProjCenter.className = 'p-2.5 rounded-lg bg-slate-800 border-2 border-sky-500 text-sky-300 text-center text-xs font-bold transition flex flex-col items-center gap-1 shadow-sm';
+          btnProjLower.className = 'p-2.5 rounded-lg bg-slate-950 border border-slate-700 hover:border-slate-600 text-slate-400 text-center text-xs font-semibold transition flex flex-col items-center gap-1';
+        } else {
+          btnProjCenter.className = 'p-2.5 rounded-lg bg-slate-950 border border-slate-700 hover:border-slate-600 text-slate-400 text-center text-xs font-semibold transition flex flex-col items-center gap-1';
+          btnProjLower.className = 'p-2.5 rounded-lg bg-slate-800 border-2 border-sky-500 text-sky-300 text-center text-xs font-bold transition flex flex-col items-center gap-1 shadow-sm';
+        }
+      }
+
+      const btnStreamLower = document.getElementById('styleLayoutStreamLower');
+      const btnStreamFull = document.getElementById('styleLayoutStreamFull');
+      if (btnStreamLower && btnStreamFull) {
+        if (lyricsStyleConfig.streamLayout === 'lowerThird') {
+          btnStreamLower.className = 'p-2.5 rounded-lg bg-slate-800 border-2 border-emerald-500 text-emerald-300 text-center text-xs font-bold transition flex flex-col items-center gap-1 shadow-sm';
+          btnStreamFull.className = 'p-2.5 rounded-lg bg-slate-950 border border-slate-700 hover:border-slate-600 text-slate-400 text-center text-xs font-semibold transition flex flex-col items-center gap-1';
+        } else {
+          btnStreamLower.className = 'p-2.5 rounded-lg bg-slate-950 border border-slate-700 hover:border-slate-600 text-slate-400 text-center text-xs font-semibold transition flex flex-col items-center gap-1';
+          btnStreamFull.className = 'p-2.5 rounded-lg bg-slate-800 border-2 border-emerald-500 text-emerald-300 text-center text-xs font-bold transition flex flex-col items-center gap-1 shadow-sm';
+        }
+      }
+    }
+
+    function selectLyricsMotionLoop(themeKey) {
+      if (!themesPalette[themeKey]) return;
+      lyricsStyleConfig.motionLoop = themeKey;
+      setTheme(themeKey);
+      updateMotionLoopCardsUI();
+      updateLyricsPreviewBox();
+    }
+
+    function updateMotionLoopCardsUI() {
+      ['purple', 'gold', 'blue', 'emerald', 'crimson', 'bokeh', 'dark'].forEach(k => {
+        const card = document.getElementById(`loopCard-${k}`);
+        if (!card) return;
+        if (k === lyricsStyleConfig.motionLoop) {
+          card.classList.add('border-purple-500', 'ring-2', 'ring-purple-500/40', 'scale-[1.03]');
+          card.classList.remove('border-slate-700');
+        } else {
+          card.classList.remove('border-purple-500', 'ring-2', 'ring-purple-500/40', 'scale-[1.03]');
+          card.classList.add('border-slate-700');
+        }
+      });
+    }
+
+    function handleDimmerChange(val) {
+      lyricsStyleConfig.overlayDimmer = parseInt(val, 10);
+      const lbl = document.getElementById('labelDimmerVal');
+      if (lbl) lbl.textContent = `${val}%`;
+      updateLyricsPreviewBox();
+    }
+
+    function handleBlurChange(val) {
+      lyricsStyleConfig.backgroundBlur = parseInt(val, 10);
+      const lbl = document.getElementById('labelBlurVal');
+      if (lbl) lbl.textContent = `${val} px`;
+      updateLyricsPreviewBox();
+    }
+
+    function handleFontFamilyChange(val) {
+      lyricsStyleConfig.fontFamily = val;
+      updateLyricsPreviewBox();
+    }
+
+    function handleFontSizeChange(val) {
+      lyricsStyleConfig.fontSize = val;
+      updateLyricsPreviewBox();
+    }
+
+    function toggleUppercaseSetting() {
+      lyricsStyleConfig.isUppercase = !lyricsStyleConfig.isUppercase;
+      updateUppercaseButtonUI();
+      updateLyricsPreviewBox();
+    }
+
+    function updateUppercaseButtonUI() {
+      const btn = document.getElementById('btnToggleUppercase');
+      if (!btn) return;
+      if (lyricsStyleConfig.isUppercase) {
+        btn.textContent = 'ACTIVADO';
+        btn.className = 'px-3 py-1 rounded text-xs font-bold bg-purple-600 text-white transition';
+      } else {
+        btn.textContent = 'DESACTIVADO';
+        btn.className = 'px-3 py-1 rounded text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700 transition';
+      }
+    }
+
+    function handleTextShadowChange(val) {
+      lyricsStyleConfig.textShadow = val;
+      updateLyricsPreviewBox();
+    }
+
+    function testVideoLoopUrl() {
+      const inp = document.getElementById('lyricsVideoLoopInput');
+      if (inp) {
+        lyricsStyleConfig.videoLoopUrl = inp.value.trim();
+        showNotification('🎬 Video loop asignado a la salida de pantalla', 'info');
+        updateLyricsPreviewBox();
+      }
+    }
+
+    function clearVideoLoopUrl() {
+      const inp = document.getElementById('lyricsVideoLoopInput');
+      if (inp) inp.value = '';
+      lyricsStyleConfig.videoLoopUrl = '';
+      showNotification('Fondo de video restablecido a Motion Loop procedural', 'info');
+      updateLyricsPreviewBox();
+    }
+
+    function updateLyricsPreviewBox() {
+      const prevBg = document.getElementById('stylePreviewBg');
+      const prevOverlay = document.getElementById('stylePreviewOverlay');
+      const prevBox = document.getElementById('stylePreviewContentBox');
+      const prevText = document.getElementById('stylePreviewText');
+      const prevSub = document.getElementById('stylePreviewSubtext');
+      const prevTag = document.getElementById('previewLayoutTag');
+
+      if (!prevBg || !prevText) return;
+
+      // Theme Gradient Background
+      const themeData = themesPalette[lyricsStyleConfig.motionLoop] || themesPalette.purple;
+      prevBg.style.background = themeData.css;
+
+      // Overlay Dimmer & Blur
+      if (prevOverlay) {
+        prevOverlay.style.backgroundColor = `rgba(0, 0, 0, ${lyricsStyleConfig.overlayDimmer / 100})`;
+        prevOverlay.style.backdropFilter = `blur(${lyricsStyleConfig.backgroundBlur}px)`;
+      }
+
+      // Font Family Mapping
+      let fontStack = "'Inter', sans-serif";
+      if (lyricsStyleConfig.fontFamily === 'Cinzel') fontStack = "'Cinzel', serif";
+      else if (lyricsStyleConfig.fontFamily === 'Montserrat') fontStack = "'Montserrat', sans-serif";
+      else if (lyricsStyleConfig.fontFamily === 'Caveat') fontStack = "'Caveat', cursive";
+
+      prevText.style.fontFamily = fontStack;
+      if (prevSub) prevSub.style.fontFamily = fontStack;
+      prevText.style.textTransform = lyricsStyleConfig.isUppercase ? 'uppercase' : 'none';
+
+      // Text Shadow
+      if (lyricsStyleConfig.textShadow === 'glow') {
+        prevText.style.textShadow = '0 0 15px rgba(255,255,255,0.7), 0 2px 8px rgba(0,0,0,0.9)';
+      } else if (lyricsStyleConfig.textShadow === 'none') {
+        prevText.style.textShadow = 'none';
+      } else {
+        prevText.style.textShadow = '0 3px 15px rgba(0,0,0,0.98), 0 1px 4px rgba(0,0,0,0.9)';
+      }
+
+      // Layout Placement (Center vs Lower Third)
+      if (prevBox && prevTag) {
+        if (lyricsStyleConfig.projectorLayout === 'lowerThird') {
+          prevBox.className = 'relative z-10 w-full mt-auto p-3 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10 text-center flex flex-col items-center justify-center transition-all duration-300';
+          prevTag.textContent = 'TERCIO INFERIOR';
+          prevTag.className = 'text-[10px] font-mono text-emerald-400 font-bold';
+        } else {
+          prevBox.className = 'relative z-10 w-full text-center flex flex-col items-center justify-center transition-all duration-300';
+          prevTag.textContent = 'CENTRADO';
+          prevTag.className = 'text-[10px] font-mono text-sky-400 font-bold';
+        }
+      }
+    }
+
+    function applyLyricsStylePreset(presetKey) {
+      if (presetKey === 'intimate') {
+        lyricsStyleConfig.projectorLayout = 'center';
+        lyricsStyleConfig.streamLayout = 'lowerThird';
+        lyricsStyleConfig.motionLoop = 'purple';
+        lyricsStyleConfig.fontFamily = 'Inter';
+        lyricsStyleConfig.fontSize = 'lg';
+        lyricsStyleConfig.isUppercase = true;
+        lyricsStyleConfig.textShadow = 'broadcast';
+        lyricsStyleConfig.overlayDimmer = 45;
+        lyricsStyleConfig.backgroundBlur = 2;
+      } else if (presetKey === 'shekinah') {
+        lyricsStyleConfig.projectorLayout = 'center';
+        lyricsStyleConfig.streamLayout = 'lowerThird';
+        lyricsStyleConfig.motionLoop = 'gold';
+        lyricsStyleConfig.fontFamily = 'Montserrat';
+        lyricsStyleConfig.fontSize = 'xl';
+        lyricsStyleConfig.isUppercase = true;
+        lyricsStyleConfig.textShadow = 'glow';
+        lyricsStyleConfig.overlayDimmer = 35;
+        lyricsStyleConfig.backgroundBlur = 0;
+      } else if (presetKey === 'worship_fire') {
+        lyricsStyleConfig.projectorLayout = 'center';
+        lyricsStyleConfig.streamLayout = 'fullScreen';
+        lyricsStyleConfig.motionLoop = 'crimson';
+        lyricsStyleConfig.fontFamily = 'Montserrat';
+        lyricsStyleConfig.fontSize = 'xl';
+        lyricsStyleConfig.isUppercase = true;
+        lyricsStyleConfig.textShadow = 'broadcast';
+        lyricsStyleConfig.overlayDimmer = 40;
+        lyricsStyleConfig.backgroundBlur = 0;
+      } else if (presetKey === 'hymn_classic') {
+        lyricsStyleConfig.projectorLayout = 'center';
+        lyricsStyleConfig.streamLayout = 'lowerThird';
+        lyricsStyleConfig.motionLoop = 'blue';
+        lyricsStyleConfig.fontFamily = 'Cinzel';
+        lyricsStyleConfig.fontSize = 'md';
+        lyricsStyleConfig.isUppercase = false;
+        lyricsStyleConfig.textShadow = 'broadcast';
+        lyricsStyleConfig.overlayDimmer = 50;
+        lyricsStyleConfig.backgroundBlur = 0;
+      }
+
+      setTheme(lyricsStyleConfig.motionLoop);
+      openLyricsStyleModal(); // re-populates UI
+      showNotification(`✨ Preset "${presetKey.toUpperCase()}" aplicado a la previsualización`, 'success');
+    }
+
+    function resetLyricsStyleDefaults() {
+      lyricsStyleConfig.projectorLayout = 'center';
+      lyricsStyleConfig.streamLayout = 'lowerThird';
+      lyricsStyleConfig.fontFamily = 'Inter';
+      lyricsStyleConfig.fontSize = 'lg';
+      lyricsStyleConfig.isUppercase = true;
+      lyricsStyleConfig.textShadow = 'broadcast';
+      lyricsStyleConfig.motionLoop = 'purple';
+      lyricsStyleConfig.videoLoopUrl = '';
+      lyricsStyleConfig.overlayDimmer = 40;
+      lyricsStyleConfig.backgroundBlur = 0;
+
+      setTheme('purple');
+      openLyricsStyleModal();
+      showNotification('Estilos restablecidos a valores de fábrica', 'info');
+    }
+
+    function applyAndSaveLyricsStyle() {
+      try {
+        localStorage.setItem('omnicast_lyrics_style', JSON.stringify(lyricsStyleConfig));
+      } catch (e) {}
+
+      updateQuickLayoutBadges();
+      closeLyricsStyleModal();
+      broadcastSlide();
+      renderSlidesGrid();
+      showNotification('✅ Estilos y Motion Loops aplicados a Proyector y Transmisión', 'success');
+    }
+
+    function toggleProjectorLayoutQuick() {
+      lyricsStyleConfig.projectorLayout = lyricsStyleConfig.projectorLayout === 'center' ? 'lowerThird' : 'center';
+      updateQuickLayoutBadges();
+      broadcastSlide();
+      try { localStorage.setItem('omnicast_lyrics_style', JSON.stringify(lyricsStyleConfig)); } catch (e) {}
+      showNotification(`Proyector de Sala cambiado a modo: ${lyricsStyleConfig.projectorLayout.toUpperCase()}`, 'info');
+    }
+
+    function toggleStreamLayoutQuick() {
+      lyricsStyleConfig.streamLayout = lyricsStyleConfig.streamLayout === 'lowerThird' ? 'fullScreen' : 'lowerThird';
+      updateQuickLayoutBadges();
+      broadcastSlide();
+      try { localStorage.setItem('omnicast_lyrics_style', JSON.stringify(lyricsStyleConfig)); } catch (e) {}
+      showNotification(`Transmisión (Capa 2) cambiada a modo: ${lyricsStyleConfig.streamLayout.toUpperCase()}`, 'info');
+    }
+
+    function updateQuickLayoutBadges() {
+      const lblProj = document.getElementById('quickProjectorLayoutLabel');
+      if (lblProj) {
+        lblProj.textContent = lyricsStyleConfig.projectorLayout === 'center' ? '🎯 CENTRADO' : '📺 TERCIO INF.';
+        lblProj.className = lyricsStyleConfig.projectorLayout === 'center' ? 'text-sky-400 font-bold' : 'text-amber-400 font-bold';
+      }
+
+      const lblStream = document.getElementById('quickStreamLayoutLabel');
+      if (lblStream) {
+        lblStream.textContent = lyricsStyleConfig.streamLayout === 'lowerThird' ? '📺 LOWER THIRD' : '🖼️ FULL SCREEN';
+        lblStream.className = lyricsStyleConfig.streamLayout === 'lowerThird' ? 'text-emerald-400 font-bold' : 'text-purple-400 font-bold';
+      }
+
+      const streamBadge = document.getElementById('activeSongStreamModeBadge');
+      if (streamBadge) {
+        streamBadge.textContent = lyricsStyleConfig.streamLayout === 'lowerThird' ? 'TRANSMISIÓN: LOWER THIRD (ALFA)' : 'TRANSMISIÓN: PANTALLA COMPLETA';
+        streamBadge.className = lyricsStyleConfig.streamLayout === 'lowerThird'
+          ? 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/40'
+          : 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/40';
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -5053,6 +5714,14 @@ Te adoraré, te adoraré..."
         isVideo: isVideo,
         duration: item.duration || 225,
         theme: currentTheme,
+        layoutMode: lyricsStyleConfig.projectorLayout,
+        fontFamily: lyricsStyleConfig.fontFamily,
+        fontSize: lyricsStyleConfig.fontSize,
+        isUppercase: lyricsStyleConfig.isUppercase,
+        textShadow: lyricsStyleConfig.textShadow,
+        overlayDarkness: (lyricsStyleConfig.overlayDimmer || 40) / 100,
+        backgroundBlur: lyricsStyleConfig.backgroundBlur || 0,
+        videoLoopUrl: lyricsStyleConfig.videoLoopUrl || '',
         campusName: tenants[currentTenantKey].name,
         timestamp: Date.now()
       };
@@ -7230,22 +7899,87 @@ Pues resucitaste, Rey`
             ctx.restore();
 
           } else {
-            // Standard Song / Bible Text -> Elegant Lower Third Overlay!
-            ctx.fillStyle = 'rgba(9, 13, 22, 0.94)';
-            ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 5;
-            ctx.beginPath();
-            ctx.rect(120, 840, 1680, 180);
-            ctx.fill();
-            ctx.stroke();
+            // Standard Song / Bible Text -> Configurable Broadcast Lower Third or Full Screen
+            const themeAccent = {
+              purple: '#a855f7',
+              gold: '#f59e0b',
+              blue: '#38bdf8',
+              emerald: '#10b981',
+              crimson: '#f43f5e',
+              bokeh: '#c084fc',
+              dark: '#64748b'
+            }[lyricsStyleConfig.motionLoop || currentTheme] || '#38bdf8';
 
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 46px Inter, sans-serif';
-            ctx.fillText(slide.text, 180, 920);
+            const fontName = lyricsStyleConfig.fontFamily === 'Cinzel' ? 'Cinzel, serif'
+              : (lyricsStyleConfig.fontFamily === 'Montserrat' ? 'Montserrat, sans-serif'
+              : (lyricsStyleConfig.fontFamily === 'Caveat' ? 'Caveat, cursive' : 'Inter, sans-serif'));
 
-            ctx.fillStyle = '#38bdf8';
-            ctx.font = 'bold 26px Inter, sans-serif';
-            ctx.fillText(`${item.title.toUpperCase()} • ${slide.badge || 'EN VIVO'}`, 180, 980);
+            const slideTxt = lyricsStyleConfig.isUppercase ? slide.text.toUpperCase() : slide.text;
+
+            if (lyricsStyleConfig.streamLayout === 'fullScreen') {
+              // Mode A: Full Screen Broadcast Over Cameras
+              ctx.save();
+              const fGrad = ctx.createLinearGradient(0, 0, w, h);
+              fGrad.addColorStop(0, '#09081a');
+              fGrad.addColorStop(0.5, '#19102e');
+              fGrad.addColorStop(1, '#070b14');
+              ctx.fillStyle = fGrad;
+              ctx.fillRect(0, 0, w, h);
+
+              // Soft ambient light
+              ctx.fillStyle = themeAccent + '1a';
+              ctx.beginPath();
+              ctx.arc(960, 540, 360 + Math.sin(time * 1.5) * 40, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.textAlign = 'center';
+              if (slide.badge) {
+                ctx.fillStyle = themeAccent;
+                ctx.font = `bold 28px ${fontName}`;
+                ctx.fillText(`${item.title.toUpperCase()} • ${slide.badge}`, 960, 420);
+              }
+
+              ctx.fillStyle = '#ffffff';
+              ctx.font = `bold 62px ${fontName}`;
+              ctx.fillText(slideTxt, 960, 530);
+
+              if (slide.subText) {
+                ctx.fillStyle = '#cbd5e1';
+                ctx.font = `30px ${fontName}`;
+                ctx.fillText(slide.subText, 960, 610);
+              }
+              ctx.restore();
+            } else {
+              // Mode B: Sleek Broadcast Lower Third Over Cameras (Alpha Friendly)
+              ctx.save();
+              const boxGrad = ctx.createLinearGradient(120, 840, 1800, 1020);
+              boxGrad.addColorStop(0, 'rgba(9, 13, 22, 0.94)');
+              boxGrad.addColorStop(1, 'rgba(15, 23, 42, 0.96)');
+              ctx.fillStyle = boxGrad;
+              ctx.strokeStyle = themeAccent;
+              ctx.lineWidth = 4;
+
+              ctx.beginPath();
+              ctx.roundRect(120, 840, 1680, 180, 20);
+              ctx.fill();
+              ctx.stroke();
+
+              // Left Accent Color Pillar
+              ctx.fillStyle = themeAccent;
+              ctx.beginPath();
+              ctx.roundRect(120, 840, 14, 180, [20, 0, 0, 20]);
+              ctx.fill();
+
+              ctx.textAlign = 'left';
+              ctx.fillStyle = '#ffffff';
+              ctx.font = `bold 44px ${fontName}`;
+              ctx.fillText(slideTxt, 170, 915);
+
+              ctx.fillStyle = themeAccent;
+              ctx.font = `bold 24px ${fontName}`;
+              ctx.fillText(`${item.title.toUpperCase()} • ${slide.badge || 'EN VIVO'}`, 170, 975);
+              ctx.restore();
+            }
           }
         } else if (overlayShot === 2) {
           // Shot 2: Dynamic Lower Third with customizable speaker / guest
@@ -8977,6 +9711,7 @@ Resucitaste en majestad`;
     }
 
     loadSavedCampusSettings();
+    loadSavedLyricsStyle();
     updateHqKpis();
     renderSongsList();
     renderSlidesGrid();

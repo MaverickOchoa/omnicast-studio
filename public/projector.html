@@ -3,8 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OmniCast - Salida Proyector / Audiencia (HDMI 1080p)</title>
+  <title>OmniCast - Salida Proyector / Audiencia (HDMI 1080p / 4K)</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for ProPresenter Grade Church Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Inter:wght@400;600;800;900&family=Montserrat:wght@700;800;900&family=Caveat:wght@700&display=swap" rel="stylesheet">
   <style>
     body {
       background-color: #000;
@@ -12,32 +16,51 @@
       user-select: none;
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
-    .slide-text {
-      text-shadow: 0 4px 30px rgba(0,0,0,0.95), 0 2px 10px rgba(0,0,0,0.9);
+    .slide-text-broadcast {
+      text-shadow: 0 4px 35px rgba(0,0,0,0.98), 0 2px 14px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.9);
+    }
+    .slide-text-glow {
+      text-shadow: 0 0 30px rgba(255,255,255,0.4), 0 4px 25px rgba(0,0,0,0.9);
+    }
+    .slide-text-none {
+      text-shadow: none;
+    }
+    /* Smooth Transitions */
+    .fade-transition {
+      transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     }
   </style>
 </head>
-<body class="w-screen h-screen flex items-center justify-center relative">
+<body class="w-screen h-screen flex items-center justify-center relative overflow-hidden bg-black">
 
-  <!-- Canvas for Animated Motion Loops & Particle Backgrounds -->
+  <!-- Video Loop Background Player (When Video Loop is selected) -->
+  <video id="videoLoopPlayer" autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover z-0 hidden"></video>
+
+  <!-- Procedural Canvas for Dynamic Motion Loops (GPU Animated 60fps) -->
   <canvas id="motionCanvas" class="absolute inset-0 w-full h-full object-cover z-0"></canvas>
 
-  <!-- Ambient Dark Overlay for Readability -->
-  <div class="absolute inset-0 bg-black/35 backdrop-blur-[0.5px] z-10"></div>
+  <!-- Ambient Dark Overlay for Readability with Adjustable Dimmer & Blur -->
+  <div id="ambientOverlay" class="absolute inset-0 bg-black/40 backdrop-blur-[0px] z-10 transition-all duration-500"></div>
 
-  <!-- Main Lyric / Scripture Container -->
-  <div class="relative z-20 max-w-5xl px-12 text-center flex flex-col items-center justify-center">
-    <div id="referenceBadge" class="hidden mb-4 px-6 py-1.5 rounded-full bg-amber-500/25 border border-amber-400/50 text-amber-300 font-extrabold text-xl tracking-widest uppercase shadow-lg">
-      VERSO 1
+  <!-- Main Lyric / Scripture Wrapper (Center vs Lower Third Layout) -->
+  <div id="lyricsWrapper" class="absolute inset-0 z-20 flex items-center justify-center p-6 md:p-12 transition-all duration-500">
+    <div id="lyricsBox" class="w-full max-w-5xl text-center flex flex-col items-center justify-center transition-all duration-500">
+      
+      <!-- Section / Verse Badge -->
+      <div id="referenceBadge" class="hidden mb-4 px-6 py-1.5 rounded-full bg-amber-500/25 border border-amber-400/50 text-amber-300 font-extrabold text-xl tracking-widest uppercase shadow-lg">
+        VERSO 1
+      </div>
+      
+      <!-- Main Slide Lyric Text -->
+      <h1 id="mainText" class="slide-text-broadcast text-white font-black text-5xl md:text-7xl leading-tight tracking-wide fade-transition">
+        OmniCast Studio
+      </h1>
+
+      <!-- Secondary Subtext / Chords / Scripture Reference -->
+      <p id="subText" class="mt-4 text-slate-200 text-2xl font-medium slide-text-broadcast fade-transition">
+        Esperando señal del operador de presentación...
+      </p>
     </div>
-    
-    <h1 id="mainText" class="slide-text text-white font-black text-5xl md:text-7xl leading-tight tracking-wide transition-all duration-300">
-      OmniCast Studio
-    </h1>
-
-    <p id="subText" class="mt-4 text-slate-200 text-2xl font-medium slide-text transition-all duration-300">
-      Esperando señal del operador de presentación...
-    </p>
   </div>
 
   <!-- Bottom Tally Indicator -->
@@ -51,6 +74,10 @@
     const mainText = document.getElementById('mainText');
     const subText = document.getElementById('subText');
     const refBadge = document.getElementById('referenceBadge');
+    const lyricsWrapper = document.getElementById('lyricsWrapper');
+    const lyricsBox = document.getElementById('lyricsBox');
+    const ambientOverlay = document.getElementById('ambientOverlay');
+    const videoLoopPlayer = document.getElementById('videoLoopPlayer');
     const campusIndicator = document.getElementById('campusIndicator');
     const motionCanvas = document.getElementById('motionCanvas');
     const ctx = motionCanvas.getContext('2d');
@@ -63,27 +90,80 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Theme definitions with real particle / color palettes
+    // -------------------------------------------------------------------------
+    // PROCEDURAL MOTION LOOPS SHADER ENGINE (60 FPS GPU ANIMATED)
+    // -------------------------------------------------------------------------
     const themesPalette = {
-      purple: { bg1: '#09081a', bg2: '#1e103a', light1: '#7c3aed', light2: '#a855f7', particle: 'rgba(192, 132, 252, 0.4)' },
-      gold:   { bg1: '#140c03', bg2: '#381e05', light1: '#d97706', light2: '#f59e0b', particle: 'rgba(251, 191, 36, 0.5)' },
-      blue:   { bg1: '#031124', bg2: '#082f49', light1: '#0284c7', light2: '#38bdf8', particle: 'rgba(125, 211, 252, 0.4)' },
-      emerald:{ bg1: '#021810', bg2: '#064e3b', light1: '#059669', light2: '#10b981', particle: 'rgba(110, 231, 183, 0.4)' },
-      crimson:{ bg1: '#1a0408', bg2: '#4c0519', light1: '#be123c', light2: '#f43f5e', particle: 'rgba(251, 113, 133, 0.4)' },
-      dark:   { bg1: '#000000', bg2: '#090d16', light1: '#1e293b', light2: '#334155', particle: 'rgba(148, 163, 184, 0.2)' }
+      purple: { 
+        name: 'Celestial Worship', 
+        bg1: '#070514', bg2: '#1a0d33', 
+        light1: '#7c3aed', light2: '#a855f7', 
+        particle: 'rgba(192, 132, 252, 0.55)',
+        type: 'nebula'
+      },
+      gold: { 
+        name: 'Shekinah Gold', 
+        bg1: '#120b02', bg2: '#331a03', 
+        light1: '#d97706', light2: '#f59e0b', 
+        particle: 'rgba(251, 191, 36, 0.65)',
+        type: 'embers'
+      },
+      blue: { 
+        name: 'Living Waters', 
+        bg1: '#020e1f', bg2: '#06263e', 
+        light1: '#0284c7', light2: '#38bdf8', 
+        particle: 'rgba(125, 211, 252, 0.55)',
+        type: 'waves'
+      },
+      emerald: { 
+        name: 'Revival Emerald', 
+        bg1: '#01140d', bg2: '#043b2d', 
+        light1: '#059669', light2: '#10b981', 
+        particle: 'rgba(110, 231, 183, 0.55)',
+        type: 'rays'
+      },
+      crimson: { 
+        name: 'Holy Fire', 
+        bg1: '#170306', bg2: '#3d0413', 
+        light1: '#be123c', light2: '#f43f5e', 
+        particle: 'rgba(251, 113, 133, 0.6)',
+        type: 'embers'
+      },
+      bokeh: {
+        name: 'Ambient Bokeh',
+        bg1: '#090910', bg2: '#151525',
+        light1: '#8b5cf6', light2: '#38bdf8',
+        particle: 'rgba(255, 255, 255, 0.4)',
+        type: 'bokeh'
+      },
+      dark: { 
+        name: 'Minimalist Solemn', 
+        bg1: '#000000', bg2: '#080a0f', 
+        light1: '#1e293b', light2: '#334155', 
+        particle: 'rgba(148, 163, 184, 0.15)',
+        type: 'dark'
+      }
     };
-    let activeTheme = 'purple';
 
-    // Particle system for motion backgrounds
+    let activeTheme = 'purple';
+    let currentLayoutMode = 'center'; // 'center' | 'lowerThird'
+    let currentFontFamily = 'Inter';
+    let isUppercase = true;
+    let currentTextShadow = 'broadcast';
+    let activeVideoLoop = '';
+
+    // Particle collection for motion backgrounds
     const particles = [];
-    for (let i = 0; i < 45; i++) {
+    for (let i = 0; i < 55; i++) {
       particles.push({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
-        radius: Math.random() * 3.5 + 1.5,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: -Math.random() * 0.5 - 0.2,
-        alpha: Math.random() * 0.7 + 0.3
+        radius: Math.random() * 4 + 1.2,
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: -Math.random() * 0.6 - 0.15,
+        alpha: Math.random() * 0.7 + 0.3,
+        pulseSpeed: Math.random() * 0.03 + 0.01,
+        bokehColor: ['rgba(244, 63, 94, 0.25)', 'rgba(56, 189, 248, 0.25)', 'rgba(168, 85, 247, 0.25)', 'rgba(251, 191, 36, 0.25)'][i % 4]
       });
     }
 
@@ -96,9 +176,9 @@
 
       // 1. Draw smooth gradient base
       const grad = ctx.createRadialGradient(
-        w * 0.5 + Math.sin(animTime * 0.5) * 120,
-        h * 0.5 + Math.cos(animTime * 0.4) * 80,
-        50,
+        w * 0.5 + Math.sin(animTime * 0.5) * 140,
+        h * 0.5 + Math.cos(animTime * 0.4) * 90,
+        60,
         w * 0.5,
         h * 0.5,
         w * 0.75
@@ -108,42 +188,62 @@
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
 
-      // 2. Animated soft atmospheric light beams
-      if (activeTheme !== 'dark') {
+      // 2. Specialized Motion Types
+      if (t.type === 'bokeh') {
+        // Draw soft ambient floating bokeh discs
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        particles.forEach((p, idx) => {
+          p.y += p.vy * 0.7;
+          p.x += Math.sin(animTime + idx) * 0.3;
+          if (p.y < -50) p.y = h + 50;
+          if (p.x < -50) p.x = w + 50;
+          if (p.x > w + 50) p.x = -50;
+
+          const bokehSize = (p.radius * 9) + Math.sin(animTime * 2 + idx) * 4;
+          const bGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, bokehSize);
+          bGrad.addColorStop(0, p.bokehColor);
+          bGrad.addColorStop(0.7, p.bokehColor.replace('0.25', '0.08'));
+          bGrad.addColorStop(1, 'transparent');
+          ctx.fillStyle = bGrad;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, bokehSize, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+      } else if (activeTheme !== 'dark') {
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
         
-        // Light Beam 1
+        // Volumetric Light Beam 1
         const beamGrad1 = ctx.createLinearGradient(0, 0, w, h);
         beamGrad1.addColorStop(0, 'transparent');
-        beamGrad1.addColorStop(0.5, t.light1 + '33'); // 20% opacity
+        beamGrad1.addColorStop(0.5, t.light1 + '30');
         beamGrad1.addColorStop(1, 'transparent');
         ctx.fillStyle = beamGrad1;
         ctx.beginPath();
-        ctx.moveTo(w * 0.2 + Math.sin(animTime) * 100, 0);
-        ctx.lineTo(w * 0.6 + Math.cos(animTime) * 100, h);
+        ctx.moveTo(w * 0.2 + Math.sin(animTime) * 120, 0);
+        ctx.lineTo(w * 0.7 + Math.cos(animTime) * 120, h);
         ctx.lineTo(w * 0.4, h);
         ctx.closePath();
         ctx.fill();
 
-        // Light Beam 2
+        // Volumetric Light Beam 2
         const beamGrad2 = ctx.createLinearGradient(w, 0, 0, h);
         beamGrad2.addColorStop(0, 'transparent');
-        beamGrad2.addColorStop(0.5, t.light2 + '26');
+        beamGrad2.addColorStop(0.5, t.light2 + '25');
         beamGrad2.addColorStop(1, 'transparent');
         ctx.fillStyle = beamGrad2;
         ctx.beginPath();
-        ctx.moveTo(w * 0.8 + Math.cos(animTime * 0.8) * 80, 0);
-        ctx.lineTo(w * 0.3, h);
-        ctx.lineTo(w * 0.5, h);
+        ctx.moveTo(w * 0.8 + Math.cos(animTime * 0.8) * 90, 0);
+        ctx.lineTo(w * 0.25, h);
+        ctx.lineTo(w * 0.48, h);
         ctx.closePath();
         ctx.fill();
 
         ctx.restore();
-      }
 
-      // 3. Floating particles (Worship ambient particles)
-      if (activeTheme !== 'dark') {
+        // Floating ambient particles / embers
         ctx.fillStyle = t.particle;
         particles.forEach(p => {
           p.x += p.vx;
@@ -162,13 +262,76 @@
     }
     requestAnimationFrame(renderMotionBackground);
 
-    // Update Display logic
+    // -------------------------------------------------------------------------
+    // LAYOUT MODE & DISPLAY UPDATE ENGINE
+    // -------------------------------------------------------------------------
+    function applyLayoutMode(mode) {
+      currentLayoutMode = mode || 'center';
+      if (currentLayoutMode === 'lowerThird') {
+        lyricsWrapper.className = 'absolute inset-0 z-20 flex items-end justify-center p-6 md:p-10 pointer-events-none transition-all duration-500';
+        lyricsBox.className = 'w-full max-w-5xl p-6 md:p-8 rounded-3xl bg-slate-950/85 backdrop-blur-xl border border-white/10 shadow-2xl text-center flex flex-col items-center justify-center transition-all duration-500';
+      } else {
+        lyricsWrapper.className = 'absolute inset-0 z-20 flex items-center justify-center p-6 md:p-12 transition-all duration-500';
+        lyricsBox.className = 'w-full max-w-5xl text-center flex flex-col items-center justify-center transition-all duration-500';
+      }
+    }
+
+    function applyTypography(data) {
+      if (data.fontFamily) currentFontFamily = data.fontFamily;
+      if (typeof data.isUppercase === 'boolean') isUppercase = data.isUppercase;
+      if (data.textShadow) currentTextShadow = data.textShadow;
+
+      // Font Family Mapping
+      let fontStack = "'Inter', sans-serif";
+      if (currentFontFamily === 'Cinzel') fontStack = "'Cinzel', serif";
+      else if (currentFontFamily === 'Montserrat') fontStack = "'Montserrat', sans-serif";
+      else if (currentFontFamily === 'Caveat') fontStack = "'Caveat', cursive";
+
+      mainText.style.fontFamily = fontStack;
+      subText.style.fontFamily = fontStack;
+      mainText.style.textTransform = isUppercase ? 'uppercase' : 'none';
+
+      // Text Shadow Class
+      mainText.classList.remove('slide-text-broadcast', 'slide-text-glow', 'slide-text-none');
+      subText.classList.remove('slide-text-broadcast', 'slide-text-glow', 'slide-text-none');
+      if (currentTextShadow === 'glow') {
+        mainText.classList.add('slide-text-glow');
+        subText.classList.add('slide-text-glow');
+      } else if (currentTextShadow === 'none') {
+        mainText.classList.add('slide-text-none');
+        subText.classList.add('slide-text-none');
+      } else {
+        mainText.classList.add('slide-text-broadcast');
+        subText.classList.add('slide-text-broadcast');
+      }
+
+      // Dimmer Overlay and Blur
+      if (typeof data.overlayDarkness === 'number') {
+        ambientOverlay.style.backgroundColor = `rgba(0, 0, 0, ${data.overlayDarkness})`;
+      }
+      if (typeof data.backgroundBlur === 'number') {
+        ambientOverlay.style.backdropFilter = `blur(${data.backgroundBlur}px)`;
+      }
+
+      // Video Loop Handler
+      if (data.videoLoopUrl && data.videoLoopUrl !== activeVideoLoop) {
+        activeVideoLoop = data.videoLoopUrl;
+        videoLoopPlayer.src = activeVideoLoop;
+        videoLoopPlayer.classList.remove('hidden');
+      } else if (!data.videoLoopUrl && activeVideoLoop) {
+        activeVideoLoop = '';
+        videoLoopPlayer.pause();
+        videoLoopPlayer.src = '';
+        videoLoopPlayer.classList.add('hidden');
+      }
+    }
+
     function updateDisplay(data) {
       if (!data) return;
-      
+
       mainText.style.opacity = '0';
       subText.style.opacity = '0';
-      
+
       setTimeout(() => {
         if (data.isClear) {
           mainText.textContent = '';
@@ -179,14 +342,19 @@
           mainText.textContent = txt;
           subText.textContent = data.subText || '';
 
-          if (txt.length > 120) {
-            mainText.className = 'slide-text text-white font-black text-3xl md:text-4xl lg:text-5xl leading-snug tracking-wide transition-all duration-300';
-          } else if (txt.length > 60) {
-            mainText.className = 'slide-text text-white font-black text-4xl md:text-5xl lg:text-6xl leading-tight tracking-wide transition-all duration-300';
+          // Responsive dynamic font sizing
+          if (currentLayoutMode === 'lowerThird') {
+            mainText.className = 'slide-text-broadcast text-white font-black text-2xl md:text-3xl lg:text-4xl leading-tight tracking-wide fade-transition';
           } else {
-            mainText.className = 'slide-text text-white font-black text-5xl md:text-7xl leading-tight tracking-wide transition-all duration-300';
+            if (txt.length > 120) {
+              mainText.className = 'slide-text-broadcast text-white font-black text-3xl md:text-4xl lg:text-5xl leading-snug tracking-wide fade-transition';
+            } else if (txt.length > 60) {
+              mainText.className = 'slide-text-broadcast text-white font-black text-4xl md:text-5xl lg:text-6xl leading-tight tracking-wide fade-transition';
+            } else {
+              mainText.className = 'slide-text-broadcast text-white font-black text-5xl md:text-7xl leading-tight tracking-wide fade-transition';
+            }
           }
-          
+
           if (data.badge) {
             refBadge.textContent = data.badge;
             refBadge.className = data.isVideo
@@ -198,10 +366,20 @@
           }
         }
 
+        // Layout Mode
+        if (data.layoutMode) {
+          applyLayoutMode(data.layoutMode);
+        }
+
+        // Typography & Styles
+        applyTypography(data);
+
+        // Theme Palette
         if (data.theme && themesPalette[data.theme]) {
           activeTheme = data.theme;
         }
 
+        // Campus Identifier
         if (data.campusName) {
           campusIndicator.textContent = data.campusName.toUpperCase() + ' - HDMI 1080p';
         }
