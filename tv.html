@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-slate-100 overflow-hidden select-none">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OmniCast - Smart TV Hub (Lobby, Pasillos & Sala Cuna)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at 50% 20%, #0d1527 0%, #060913 60%, #020408 100%);
+    }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .font-serif { font-family: 'Cinzel', serif; }
+    .glow-amber { text-shadow: 0 0 30px rgba(245, 158, 11, 0.45); }
+    .glow-cyan { text-shadow: 0 0 30px rgba(56, 189, 248, 0.45); }
+    .glow-white { text-shadow: 0 4px 20px rgba(0,0,0,0.9); }
+    @keyframes pulseSlow {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.02); opacity: 0.92; }
+    }
+    .pulse-slow { animation: pulseSlow 4s infinite ease-in-out; }
+  </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between p-8 md:p-12 relative overflow-hidden">
+
+  <!-- Atmospheric Background Canvas for Light Beams and Floating Dust -->
+  <canvas id="bgCanvas" class="absolute inset-0 w-full h-full object-cover z-0 opacity-40"></canvas>
+
+  <!-- ========================================================================= -->
+  <!-- TOP ALERT BANNER (Llamado a padres / Sala Cuna / Notificaciones Urgentes)  -->
+  <!-- ========================================================================= -->
+  <div id="tvAlertBanner" class="hidden absolute top-0 left-0 right-0 z-50 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white px-8 py-4 shadow-2xl border-b-2 border-red-300 flex items-center justify-between animate-bounce">
+    <div class="flex items-center gap-4">
+      <div class="p-2 rounded-full bg-white text-red-600 animate-pulse">
+        <i data-lucide="bell" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <span class="text-xs uppercase tracking-widest font-mono text-red-100 block font-bold">AVISO IMPORTANTE DE SALA CUNA:</span>
+        <h2 id="tvAlertText" class="text-2xl md:text-3xl font-black tracking-wide">
+          PADRES DEL BEBÉ C-14 FAVOR PASAR A SALA CUNA
+        </h2>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 bg-red-950/60 px-4 py-2 rounded-xl border border-red-400/40 text-xs font-mono font-bold">
+      <span class="w-3 h-3 rounded-full bg-red-400 animate-ping"></span>
+      <span>ATENCIÓN INMEDIATA</span>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 1. TOP HEADER (Identidad Institucional, Reloj de Pared Digital)           -->
+  <!-- ========================================================================= -->
+  <header class="relative z-10 flex items-center justify-between border-b border-slate-800/80 pb-6 shrink-0">
+    <div class="flex items-center gap-4">
+      <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-600 to-indigo-600 p-0.5 shadow-xl shadow-sky-900/30 flex items-center justify-center">
+        <div class="w-full h-full bg-slate-950/90 rounded-[14px] flex items-center justify-center text-sky-400">
+          <i data-lucide="tv-2" class="w-8 h-8"></i>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 id="campusTitle" class="text-2xl font-black text-white tracking-wide uppercase">
+            IGLESIA NACIONAL
+          </h1>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/40 font-bold">
+            SMART TV HUB
+          </span>
+        </div>
+        <p id="campusSubtitle" class="text-xs text-slate-400 font-medium">Campus Guadalajara Norte • Red WiFi Pasillos & Lobby</p>
+      </div>
+    </div>
+
+    <!-- Live Wall Clock & Mode Tag -->
+    <div class="flex items-center gap-6">
+      <div class="text-right">
+        <span class="text-[10px] font-mono uppercase tracking-widest text-slate-400 block font-bold">HORA LOCAL</span>
+        <span id="digitalClock" class="text-4xl md:text-5xl font-black font-mono tracking-tight text-white glow-cyan">
+          10:00:00
+        </span>
+      </div>
+      <div class="h-12 w-[1px] bg-slate-800"></div>
+      <div class="flex flex-col items-end">
+        <span id="tvModeBadge" class="px-3.5 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+          <span>MODO: LOBBY & BIENVENIDA</span>
+        </span>
+        <span id="wifiConnectionTag" class="text-[10px] font-mono text-emerald-400 mt-1 flex items-center gap-1">
+          <i data-lucide="wifi" class="w-3 h-3"></i> Conectado por Wi-Fi (Sin Cables)
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 2. MAIN VIEW AREA (3 Dynamic Modes: LOBBY / SERVICE FEED / ANNOUNCEMENTS)  -->
+  <!-- ========================================================================= -->
+  <main class="relative z-10 flex-1 flex my-6 overflow-hidden">
+
+    <!-- MODE A: LOBBY & BIENVENIDA (Countdown + Announcements Split) -->
+    <div id="viewModeLobby" class="w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      
+      <!-- Left Column: Big Welcome Hero + Countdown (7 cols) -->
+      <div class="lg:col-span-7 flex flex-col justify-center h-full pr-4 space-y-6">
+        
+        <div class="space-y-2">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-xs font-bold uppercase tracking-widest">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>Reunión Presencial Dominical</span>
+          </div>
+          <h2 class="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-none tracking-tight">
+            ¡BIENVENIDOS <br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-sky-300 to-indigo-300">A CASA!</span>
+          </h2>
+          <p class="text-lg md:text-xl text-slate-300 font-medium">
+            Prepara tu corazón para alabar juntos. Te invitamos a pasar al auditorio principal.
+          </p>
+        </div>
+
+        <!-- Big Countdown Card -->
+        <div class="p-6 md:p-8 rounded-3xl bg-slate-900/80 border border-slate-700/80 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+          <div class="absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-amber-500/10 blur-3xl pointer-events-none"></div>
+          
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-bold font-mono tracking-widest uppercase text-amber-400 flex items-center gap-2">
+              <i data-lucide="timer" class="w-4 h-4"></i> El culto comienza en:
+            </span>
+            <span id="serviceScheduleLabel" class="text-xs font-mono text-slate-400 bg-slate-950 px-3 py-1 rounded-lg border border-slate-800">
+              DOMINGO • 10:00 AM
+            </span>
+          </div>
+
+          <!-- Big Digits -->
+          <div class="flex items-center gap-4 text-center justify-start">
+            <div class="flex flex-col items-center">
+              <span id="cdMinutes" class="text-6xl md:text-8xl font-black font-mono text-white glow-white tracking-tight">
+                05
+              </span>
+              <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest font-bold mt-1">Minutos</span>
+            </div>
+            <span class="text-5xl md:text-7xl font-bold font-mono text-amber-400 -mt-6">:</span>
+            <div class="flex flex-col items-center">
+              <span id="cdSeconds" class="text-6xl md:text-8xl font-black font-mono text-amber-400 glow-amber tracking-tight">
+                48
+              </span>
+              <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest font-bold mt-1">Segundos</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full h-2 bg-slate-950 rounded-full overflow-hidden mt-6 border border-slate-800">
+            <div id="cdProgressBar" class="h-full bg-gradient-to-r from-amber-500 via-sky-400 to-indigo-500 rounded-full transition-all duration-1000" style="width: 75%;"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Animated Announcements Carousel & Giving QR (5 cols) -->
+      <div class="lg:col-span-5 flex flex-col justify-center h-full space-y-4">
+        
+        <!-- Rotating Announcement Card -->
+        <div id="announcementCard" class="p-6 rounded-3xl bg-slate-900/90 border border-slate-700/80 shadow-2xl relative overflow-hidden transition-all duration-500">
+          <div class="flex items-center justify-between mb-3">
+            <span id="annBadge" class="text-[10px] font-mono px-2.5 py-1 rounded-full bg-sky-500/20 text-sky-300 font-bold uppercase tracking-wider border border-sky-500/30">
+              PRÓXIMO EVENTO
+            </span>
+            <span id="annIndex" class="text-xs font-mono text-slate-500">1 / 3</span>
+          </div>
+
+          <h3 id="annTitle" class="text-2xl font-black text-white leading-snug mb-2">
+            Campamento Juvenil 2026: "Imparables"
+          </h3>
+          <p id="annBody" class="text-sm text-slate-300 leading-relaxed mb-4">
+            Inscripciones abiertas hoy en el módulo de recepción. Aparta tu lugar con solo $200 MXN.
+          </p>
+
+          <div class="flex items-center justify-between pt-3 border-t border-slate-800/80 text-xs text-slate-400 font-mono">
+            <span id="annDate">📅 14 - 17 de Noviembre</span>
+            <span class="text-amber-400 font-bold">¡Cupo Limitado!</span>
+          </div>
+        </div>
+
+        <!-- Giving & Connection QR Box -->
+        <div class="p-5 rounded-3xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-5 shadow-inner">
+          <div class="space-y-1">
+            <span class="text-[10px] font-mono text-amber-400 uppercase tracking-widest font-bold block">GENEROSIDAD & DIEZMOS</span>
+            <h4 class="text-base font-bold text-white">Ofrenda en Línea / Tarjeta</h4>
+            <p class="text-xs text-slate-400">Escanea con la cámara de tu celular para ofrendar de forma segura sin filas.</p>
+          </div>
+          <!-- Real Styled QR Simulator -->
+          <div class="w-24 h-24 bg-white p-2 rounded-2xl shrink-0 flex items-center justify-center shadow-lg">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://iglesianacional.org/dar" alt="QR Dar" class="w-full h-full object-contain">
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- MODE B: SERVICE FEED (Pasillos, Sala Cuna & Cafetería) -->
+    <div id="viewModeService" class="hidden w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      
+      <!-- Left: Big Live Lyrics Display (8 cols) -->
+      <div class="lg:col-span-8 flex flex-col justify-center h-full pr-4 space-y-4">
+        
+        <div class="flex items-center gap-3">
+          <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600 text-white text-xs font-bold font-mono animate-pulse">
+            <span class="w-2 h-2 rounded-full bg-white"></span>
+            <span>CULTO AL AIRE EN VIVO</span>
+          </span>
+          <span id="svcSongBadge" class="text-xs font-mono px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-bold uppercase">
+            CORO
+          </span>
+          <span id="svcSongTitle" class="text-xs font-bold text-sky-400">
+            • Gracia Sublime Es (Phil Wickham)
+          </span>
+        </div>
+
+        <!-- Lyrics Screen Box -->
+        <div class="p-8 md:p-12 rounded-3xl bg-black/60 border border-slate-700 shadow-2xl backdrop-blur-2xl flex flex-col items-center justify-center text-center min-h-[380px]">
+          <h2 id="svcMainText" class="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-wide glow-white">
+            Gracia sublime es, perfecto es tu amor
+          </h2>
+          <p id="svcSubText" class="mt-4 text-xl md:text-2xl text-slate-300 font-medium">
+            Tomaste mi lugar, cargaste tú mi cruz
+          </p>
+        </div>
+
+        <!-- Speaker Info Bar -->
+        <div class="flex items-center justify-between p-4 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs font-mono">
+          <span class="text-slate-400">Bloque Actual: <strong id="svcBlockLabel" class="text-white">Alabanza & Adoración</strong></span>
+          <span class="text-emerald-400 font-bold">Transmitiendo audio y video en tiempo real a sala cuna</span>
+        </div>
+
+      </div>
+
+      <!-- Right: Next Up & Schedule Telemetry (4 cols) -->
+      <div class="lg:col-span-4 flex flex-col justify-center h-full space-y-4">
+        
+        <div class="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
+          <span class="text-xs font-bold font-mono tracking-wider text-amber-400 uppercase block">
+            📋 ORDEN DEL SERVICIO:
+          </span>
+
+          <div class="space-y-2 text-xs">
+            <div class="p-3 rounded-xl bg-slate-800/80 border border-emerald-500/50 flex items-center justify-between">
+              <span class="font-bold text-white">1. Alabanza Congregacional</span>
+              <span class="text-emerald-400 font-bold">AL AIRE</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-slate-400">
+              <span>2. Bienvenida & Diezmos</span>
+              <span>10:25 AM</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-slate-400">
+              <span>3. Mensaje: Pr. David Mendoza</span>
+              <span>10:40 AM</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Room info -->
+        <div class="p-5 rounded-3xl bg-slate-950/80 border border-slate-800 text-center space-y-1">
+          <span class="text-[10px] font-mono text-slate-500 uppercase">ZONA PASILLOS / SALA CUNA</span>
+          <p class="text-xs text-slate-300 font-semibold">Si necesitas asistencia para tu bebé, solicita apoyo a las voluntarias del área.</p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- MODE C: ANNOUNCEMENTS CAROUSEL (Pantalla Completa) -->
+    <div id="viewModeAnnouncements" class="hidden w-full h-full flex flex-col justify-center items-center text-center p-8">
+      <div class="max-w-4xl space-y-6">
+        <span class="text-sm font-mono font-bold px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
+          COMUNICADO OFICIAL • IGLESIA NACIONAL
+        </span>
+        <h2 id="fullAnnTitle" class="text-5xl md:text-6xl font-black text-white leading-tight">
+          Gran Noche de Adoración & Milagros
+        </h2>
+        <p id="fullAnnBody" class="text-2xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          Viernes 31 de Octubre a las 7:30 PM. Entrada libre. Trae a tus familiares y amigos enfermos.
+        </p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 3. BOTTOM FOOTER TICKER                                                   -->
+  <!-- ========================================================================= -->
+  <footer class="relative z-10 flex items-center justify-between border-t border-slate-800/80 pt-4 text-xs font-mono shrink-0">
+    <div class="flex items-center gap-3 overflow-hidden">
+      <span class="px-2.5 py-0.5 rounded bg-sky-500/20 text-sky-400 font-bold shrink-0">NOTICIAS</span>
+      <p id="footerTickerText" class="text-slate-300 truncate">
+        "Porque donde están dos o tres congregados en mi nombre, allí estoy yo en medio de ellos." Mateo 18:20 • Conexión Wi-Fi gratuita: Red 'Iglesia-Invitados' (Sin clave)
+      </p>
+    </div>
+    
+    <div class="flex items-center gap-4 shrink-0 text-slate-500 pl-4">
+      <span>OMNICAST SMART TV</span>
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT: REAL-TIME MULTI-DEVICE SYNC & SMART TV SHADER BACKGROUND      -->
+  <!-- ========================================================================= -->
+  <script>
+    // 1. Clock Engine
+    function updateClock() {
+      const now = new Date();
+      let h = now.getHours();
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      document.getElementById('digitalClock').textContent = `${String(h).padStart(2, '0')}:${m}:${s} ${ampm}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 2. Countdown Engine
+    let countdownTotalSeconds = 5 * 60 + 48; // 5 min 48s default
+    setInterval(() => {
+      if (countdownTotalSeconds > 0) {
+        countdownTotalSeconds--;
+        const mins = Math.floor(countdownTotalSeconds / 60);
+        const secs = countdownTotalSeconds % 60;
+        document.getElementById('cdMinutes').textContent = String(mins).padStart(2, '0');
+        document.getElementById('cdSeconds').textContent = String(secs).padStart(2, '0');
+        const pct = Math.min(100, Math.max(0, (countdownTotalSeconds / (15 * 60)) * 100));
+        document.getElementById('cdProgressBar').style.width = `${pct}%`;
+      }
+    }, 1000);
+
+    // 3. Rotating Announcements Data
+    const announcements = [
+      {
+        badge: 'PRÓXIMO EVENTO',
+        title: 'Campamento Juvenil 2026: "Imparables"',
+        body: 'Inscripciones abiertas hoy en el módulo de recepción. Aparta tu lugar con solo $200 MXN.',
+        date: '📅 14 - 17 de Noviembre',
+        urgent: '¡Cupo Limitado!'
+      },
+      {
+        badge: 'VIDA DE COMUNIDAD',
+        title: 'Grupos de Conexión en Hogares',
+        body: 'Encuentra una familia cerca de tu casa los miércoles a las 7:30 PM. Pregunta en recepción por tu colonia.',
+        date: '📅 Todos los Miércoles',
+        urgent: 'Crecimiento Espiritual'
+      },
+      {
+        badge: 'ORACIÓN & MILAGROS',
+        title: 'Noche de Avivamiento & Intercesión',
+        body: 'Viernes 7:00 PM en el auditorio central. Clamando por sanidades, familias y finanzas.',
+        date: '📅 Viernes 7:00 PM',
+        urgent: 'Entrada Libre'
+      }
+    ];
+
+    let currentAnnIdx = 0;
+    setInterval(() => {
+      currentAnnIdx = (currentAnnIdx + 1) % announcements.length;
+      const ann = announcements[currentAnnIdx];
+      const card = document.getElementById('announcementCard');
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(10px)';
+
+      setTimeout(() => {
+        document.getElementById('annBadge').textContent = ann.badge;
+        document.getElementById('annIndex').textContent = `${currentAnnIdx + 1} / ${announcements.length}`;
+        document.getElementById('annTitle').textContent = ann.title;
+        document.getElementById('annBody').textContent = ann.body;
+        document.getElementById('annDate').textContent = ann.date;
+
+        document.getElementById('fullAnnTitle').textContent = ann.title;
+        document.getElementById('fullAnnBody').textContent = ann.body;
+
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, 350);
+    }, 9000);
+
+    // 4. Background Canvas Shaders (Ambient Particles for TV)
+    const bgCanvas = document.getElementById('bgCanvas');
+    const bctx = bgCanvas.getContext('2d');
+    function resizeCanvas() {
+      bgCanvas.width = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const particles = [];
+    for (let i = 0; i < 40; i++) {
+      particles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        radius: Math.random() * 3 + 1,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: -Math.random() * 0.4 - 0.1,
+        color: ['rgba(56, 189, 248, 0.4)', 'rgba(168, 85, 247, 0.4)', 'rgba(251, 191, 36, 0.3)'][i % 3]
+      });
+    }
+
+    function renderBg() {
+      bctx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.y < -10) p.y = bgCanvas.height + 10;
+        if (p.x < -10) p.x = bgCanvas.width + 10;
+        if (p.x > bgCanvas.width + 10) p.x = -10;
+
+        bctx.fillStyle = p.color;
+        bctx.beginPath();
+        bctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        bctx.fill();
+      });
+      requestAnimationFrame(renderBg);
+    }
+    renderBg();
+
+    // 5. Modes & Live Signal Engine
+    let currentMode = 'LOBBY'; // 'LOBBY' | 'SERVICE' | 'ANNOUNCEMENTS'
+
+    function switchMode(mode) {
+      currentMode = mode || 'LOBBY';
+      const vLobby = document.getElementById('viewModeLobby');
+      const vService = document.getElementById('viewModeService');
+      const vAnn = document.getElementById('viewModeAnnouncements');
+      const badge = document.getElementById('tvModeBadge');
+
+      vLobby.classList.add('hidden');
+      vService.classList.add('hidden');
+      vAnn.classList.add('hidden');
+
+      if (currentMode === 'SERVICE') {
+        vService.classList.remove('hidden');
+        badge.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span><span>MODO: SALA CUNA / CULTO EN VIVO</span>';
+        badge.className = 'px-3.5 py-1.5 rounded-xl bg-red-500/20 text-red-300 border border-red-500/40 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg';
+      } else if (currentMode === 'ANNOUNCEMENTS') {
+        vAnn.classList.remove('hidden');
+        badge.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-ping"></span><span>MODO: CARTELERA DIGITAL</span>';
+        badge.className = 'px-3.5 py-1.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg';
+      } else {
+        vLobby.classList.remove('hidden');
+        badge.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span><span>MODO: LOBBY & BIENVENIDA</span>';
+        badge.className = 'px-3.5 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg';
+      }
+    }
+
+    // 6. Alert Banner Engine
+    function setTvAlert(text) {
+      const banner = document.getElementById('tvAlertBanner');
+      const alertTxt = document.getElementById('tvAlertText');
+      if (text && text.trim().length > 0) {
+        alertTxt.textContent = text.trim();
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    // 7. Live Lyrics Synchronization from BroadcastChannel & Server
+    const liveChannel = new BroadcastChannel('omnicast_live_channel');
+    const tvChannel = new BroadcastChannel('omnicast_tv_channel');
+
+    function handleLiveSlideUpdate(payload) {
+      if (!payload) return;
+      if (payload.text) {
+        document.getElementById('svcMainText').textContent = payload.text;
+        document.getElementById('svcSubText').textContent = payload.subText || '';
+      }
+      if (payload.songTitle) {
+        document.getElementById('svcSongTitle').textContent = `• ${payload.songTitle}`;
+      }
+      if (payload.badge) {
+        document.getElementById('svcSongBadge').textContent = payload.badge;
+      }
+      if (payload.campusName) {
+        document.getElementById('campusSubtitle').textContent = payload.campusName;
+      }
+    }
+
+    liveChannel.onmessage = (e) => {
+      if (e.data && e.data.type === 'SLIDE_UPDATE') {
+        handleLiveSlideUpdate(e.data.payload);
+      }
+    };
+
+    tvChannel.onmessage = (e) => {
+      if (e.data) {
+        if (e.data.type === 'SET_MODE') switchMode(e.data.mode);
+        if (e.data.type === 'SET_ALERT') setTvAlert(e.data.alert);
+      }
+    };
+
+    // Server-Sent Events for Full Network Synchronicity across Smart TVs
+    function connectSSE() {
+      const sse = new EventSource('/api/events');
+      sse.addEventListener('state', (e) => {
+        try {
+          const state = JSON.parse(e.data);
+          if (state.tvMode) switchMode(state.tvMode);
+          if (typeof state.tvAlert === 'string') setTvAlert(state.tvAlert);
+          
+          if (state.libraryItems && state.libraryItems[state.itemIndex]) {
+            const item = state.libraryItems[state.itemIndex];
+            const slide = item.slides && item.slides[state.slideIndex];
+            handleLiveSlideUpdate({
+              text: slide ? slide.text : '',
+              subText: slide ? slide.subText : '',
+              songTitle: item.title,
+              badge: slide ? slide.badge : ''
+            });
+          }
+        } catch(err) {}
+      });
+
+      sse.onerror = () => {
+        setTimeout(connectSSE, 3000);
+      };
+    }
+    connectSSE();
+
+    // WakeLock API to keep Smart TV screen turned ON indefinitely
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').catch(() => {});
+    }
+  </script>
+</body>
+</html>

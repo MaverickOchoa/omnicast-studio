@@ -26,6 +26,8 @@ let studioState = {
   timerRunning: false,
   stageMessage: '',
   theme: 'purple',
+  tvMode: 'LOBBY', // 'LOBBY' | 'SERVICE' | 'ANNOUNCEMENTS'
+  tvAlert: '',
   libraryItems: []
 };
 
@@ -93,7 +95,8 @@ const server = http.createServer((req, res) => {
       allIps: ips,
       remoteUrl: `http://${primaryIp}:${PORT}/remote.html`,
       stageUrl: `http://${primaryIp}:${PORT}/stage.html`,
-      projectorUrl: `http://${primaryIp}:${PORT}/projector.html`
+      projectorUrl: `http://${primaryIp}:${PORT}/projector.html`,
+      tvUrl: `http://${primaryIp}:${PORT}/tv.html`
     }));
     return;
   }
@@ -193,6 +196,10 @@ const server = http.createServer((req, res) => {
           studioState.timerSeconds = Math.max(0, studioState.timerSeconds + delta);
         } else if (action === 'stage_message') {
           studioState.stageMessage = data.message || '';
+        } else if (action === 'set_tv_mode') {
+          studioState.tvMode = data.mode || 'LOBBY';
+        } else if (action === 'set_tv_alert') {
+          studioState.tvAlert = data.alert || '';
         }
 
         broadcastSSE('state', studioState);

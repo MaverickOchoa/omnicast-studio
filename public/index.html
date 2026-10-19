@@ -246,6 +246,14 @@
 
     <!-- Operator Avatar, Settings Button & SaaS Logout -->
     <div class="flex items-center gap-2">
+      <!-- Matriz de Pantallas & Smart TVs Button -->
+      <button onclick="openDisplayMatrixModal()" title="Matriz de Pantallas, Smart TVs y Salidas Inalámbricas" 
+              class="flex items-center gap-1.5 bg-gradient-to-r from-sky-950/80 to-indigo-950/80 hover:from-sky-900 hover:to-indigo-900 text-sky-200 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-sky-500/40 transition active:scale-95 shadow group">
+        <i data-lucide="tv-2" class="w-3.5 h-3.5 text-sky-400 group-hover:scale-110 transition-transform"></i>
+        <span class="hidden sm:inline">Pantallas & TVs</span>
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      </button>
+
       <button onclick="openCampusSettingsModal()" title="Ajustes de Sede y Preferencias Locales" 
               class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-700/80 transition active:scale-95 shadow group">
         <i data-lucide="settings" class="w-3.5 h-3.5 text-sky-400 group-hover:rotate-45 transition-transform duration-200"></i>
@@ -3651,6 +3659,229 @@ Te adoraré, te adoraré..."
   </div>
 
   <!-- ========================================================================= -->
+  <!-- MODAL: MATRIZ DE SALIDAS & SMART TV HUB (PANTALLAS SIN CABLE HDMI)        -->
+  <!-- ========================================================================= -->
+  <div id="displayMatrixModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 md:p-4">
+    <div class="bg-[#0b101a] border border-slate-700/80 rounded-2xl max-w-4xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[94vh] overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 shadow-inner">
+            <i data-lucide="tv-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white tracking-wide">Matriz de Pantallas & Smart TV Hub</h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase">
+                4 Salidas Activas • Sin Cables HDMI
+              </span>
+            </div>
+            <p class="text-xs text-slate-400">Enruta contenidos independientes a Proyectores, Retorno de Músicos, Smart TVs de pasillos y Pantallas LED</p>
+          </div>
+        </div>
+        <button onclick="closeDisplayMatrixModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Main Body: 4 Video Outputs Grid -->
+      <div class="flex-1 overflow-y-auto space-y-4 pr-1">
+        
+        <!-- Output 3 (FEATURED): Smart TVs de Pasillos, Lobby & Sala Cuna -->
+        <div class="p-4 md:p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-sky-950/30 to-slate-900 border-2 border-sky-500/60 shadow-xl space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-3">
+              <div class="p-2 rounded-xl bg-sky-500/20 text-sky-400">
+                <i data-lucide="tv" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 class="text-sm font-bold text-white uppercase tracking-wide">Salida 3: Smart TVs de Pasillos, Lobby & Sala Cuna</h4>
+                  <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    TRANSMISIÓN WI-FI (0 CABLES)
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400">Samsung, LG, Android TV, Roku, Fire TV Stick en cualquier lugar del edificio</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <a href="/tv.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Abrir en Pantalla</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Mode Selector for Smart TVs -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <button onclick="setTvDisplayMode('LOBBY')" id="tvModeBtn-LOBBY" class="p-3 rounded-xl bg-slate-800 border-2 border-amber-500 text-left transition flex flex-col gap-1 shadow-md">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <i data-lucide="clock" class="w-3.5 h-3.5"></i> Modo Lobby & Bienvenida
+                </span>
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+              </div>
+              <p class="text-[11px] text-slate-400">Reloj gigante, cuenta regresiva hacia el culto y QR de diezmos/ofrendas.</p>
+            </button>
+
+            <button onclick="setTvDisplayMode('SERVICE')" id="tvModeBtn-SERVICE" class="p-3 rounded-xl bg-slate-950 border border-slate-700 hover:border-slate-600 text-left transition flex flex-col gap-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <i data-lucide="video" class="w-3.5 h-3.5 text-red-400"></i> Modo Sala Cuna / En Vivo
+                </span>
+                <span class="w-2 h-2 rounded-full bg-slate-600"></span>
+              </div>
+              <p class="text-[11px] text-slate-400">Letras y audio del culto en tiempo real para papás y personas en recepción.</p>
+            </button>
+
+            <button onclick="setTvDisplayMode('ANNOUNCEMENTS')" id="tvModeBtn-ANNOUNCEMENTS" class="p-3 rounded-xl bg-slate-950 border border-slate-700 hover:border-slate-600 text-left transition flex flex-col gap-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <i data-lucide="megaphone" class="w-3.5 h-3.5 text-purple-400"></i> Modo Cartelera Digital
+                </span>
+                <span class="w-2 h-2 rounded-full bg-slate-600"></span>
+              </div>
+              <p class="text-[11px] text-slate-400">Rotación automática de avisos, campamentos y eventos oficiales de la sede.</p>
+            </button>
+          </div>
+
+          <!-- Nursery / Parent Calling Banner Input -->
+          <div class="p-3 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-red-400 flex items-center gap-1.5">
+                <i data-lucide="bell" class="w-3.5 h-3.5"></i> Llamado a Padres (Alerta en Smart TVs de Sala Cuna):
+              </span>
+              <span class="text-[10px] font-mono text-slate-400">Aparece parpadeando arriba en todas las teles</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input type="text" id="tvAlertInput" placeholder="Ej: Padres del bebé C-14 favor pasar a sala cuna..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-red-500 font-medium">
+              <button onclick="sendTvParentAlert()" class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                <span>Enviar Alerta</span>
+              </button>
+              <button onclick="clearTvParentAlert()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                Limpiar
+              </button>
+            </div>
+
+            <!-- Quick Alert Chips -->
+            <div class="flex items-center gap-1.5 pt-1 overflow-x-auto text-[11px]">
+              <span class="text-[10px] text-slate-500 font-mono">Rápidos:</span>
+              <button onclick="setQuickAlertText('Bebé C-14 favor pasar a sala cuna')" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800">
+                Bebé C-14
+              </button>
+              <button onclick="setQuickAlertText('Bebé A-03 favor pasar a sala cuna')" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800">
+                Bebé A-03
+              </button>
+              <button onclick="setQuickAlertText('Vehículo placas JKL-456 con luces encendidas')" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800">
+                Auto en estacionamiento
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row: Other 3 Outputs (Proyector Sala, Stage Display, Resolume Arena) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          
+          <!-- Output 1: Proyector Sala -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="projector" class="w-4 h-4 text-sky-400"></i>
+                <h5 class="text-xs font-bold text-white">Salida 1: Proyector Altar</h5>
+              </div>
+              <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">HDMI 1080p</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Letras de alabanza gigantes, Biblia y fondos animados en el auditorio principal.</p>
+            <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+              <span class="text-[10px] font-mono text-slate-500">/projector.html</span>
+              <a href="/projector.html" target="_blank" class="text-xs text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1">
+                Abrir <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- Output 2: Stage Display -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
+                <h5 class="text-xs font-bold text-white">Salida 2: Monitor Pastor</h5>
+              </div>
+              <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold">STAGE DISPLAY</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Monitor de músicos y predicador con reloj, cronómetro y alertas privadas.</p>
+            <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+              <span class="text-[10px] font-mono text-slate-500">/stage.html</span>
+              <a href="/stage.html" target="_blank" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1">
+                Abrir <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- Output 4: Mapeo LED Resolume Arena -->
+          <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="grid-3x3" class="w-4 h-4 text-purple-400"></i>
+                <h5 class="text-xs font-bold text-white">Salida 4: Pantallas LED</h5>
+              </div>
+              <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold">ARENA MAP</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Compositor Ultra-Wide 3840x1080 y tótems laterales de escenario a 60 FPS.</p>
+            <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+              <span class="text-[10px] font-mono text-slate-500">Columna Arena</span>
+              <button onclick="switchView('arena'); closeDisplayMatrixModal();" class="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1">
+                Ir a Mapeo <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Connection Instructions Box with QR -->
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-5">
+          <div class="space-y-1.5">
+            <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+              <i data-lucide="wifi" class="w-4 h-4"></i> ¿Cómo conectar cualquier Smart TV sin cables HDMI?
+            </span>
+            <ol class="list-decimal list-inside text-[11px] text-slate-400 space-y-1">
+              <li>Conecta la Smart TV (Samsung, LG, Roku, Fire TV o Android) al <strong>mismo Wi-Fi</strong> de la iglesia.</li>
+              <li>Abre la aplicación <strong>"Navegador de Internet"</strong> en la Smart TV.</li>
+              <li>Escribe esta dirección web: <code id="matrixTvUrlDisplay" class="text-emerald-300 font-mono font-bold bg-slate-900 px-2 py-0.5 rounded border border-slate-800 select-all">http://192.168.100.87:3000/tv.html</code></li>
+            </ol>
+          </div>
+
+          <div class="flex items-center gap-3 bg-slate-900/90 p-3 rounded-xl border border-slate-800 shrink-0">
+            <div class="text-right">
+              <span class="text-[10px] font-mono uppercase text-slate-500 block">ESCANEAR CON CELULAR</span>
+              <span class="text-xs font-bold text-white">Abrir TV Hub</span>
+            </div>
+            <div class="w-16 h-16 bg-white p-1 rounded-lg">
+              <img id="matrixTvQrImg" src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=http://192.168.100.87:3000/tv.html" alt="QR TV" class="w-full h-full object-contain">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between border-t border-slate-800 pt-3 shrink-0">
+        <span class="text-[11px] font-mono text-slate-500">
+          📡 Sincronización en tiempo real vía WebSockets & BroadcastChannel
+        </span>
+        <button onclick="closeDisplayMatrixModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
   <!-- MODAL: AJUSTES DE SEDE LOCAL & PREFERENCIAS (CAMPUS SETTINGS)             -->
   <!-- ========================================================================= -->
   <div id="campusSettingsModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 md:p-4">
@@ -4517,6 +4748,121 @@ Te adoraré, te adoraré..."
         streamBadge.className = lyricsStyleConfig.streamLayout === 'lowerThird'
           ? 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/40'
           : 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/40';
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // PHASE 14: SMART TV HUB & VIDEO DISPLAY ROUTING MATRIX (WIRELESS OUTPUTS)
+    // -------------------------------------------------------------------------
+    const tvChannel = new BroadcastChannel('omnicast_tv_channel');
+    let currentTvMode = 'LOBBY'; // 'LOBBY' | 'SERVICE' | 'ANNOUNCEMENTS'
+    let currentTvAlert = '';
+
+    function openDisplayMatrixModal() {
+      // Fetch dynamic network IP for TV URLs
+      fetch('/api/info').then(r => r.json()).then(data => {
+        const ip = data.primaryIp || window.location.hostname || 'localhost';
+        const port = data.port || window.location.port || '3000';
+        const fullTvUrl = `http://${ip}:${port}/tv.html`;
+
+        const displayEl = document.getElementById('matrixTvUrlDisplay');
+        if (displayEl) displayEl.textContent = fullTvUrl;
+
+        const qrImg = document.getElementById('matrixTvQrImg');
+        if (qrImg) qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(fullTvUrl)}`;
+      }).catch(() => {
+        const originTvUrl = `${window.location.origin}/tv.html`;
+        const displayEl = document.getElementById('matrixTvUrlDisplay');
+        if (displayEl) displayEl.textContent = originTvUrl;
+      });
+
+      updateTvModeButtonsUI();
+      const modal = document.getElementById('displayMatrixModal');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeDisplayMatrixModal() {
+      const modal = document.getElementById('displayMatrixModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function setTvDisplayMode(mode) {
+      currentTvMode = mode;
+      updateTvModeButtonsUI();
+
+      // Broadcast to local tabs and Smart TVs
+      tvChannel.postMessage({ type: 'SET_MODE', mode: currentTvMode });
+
+      // Send to server SSE clients for WiFi Smart TVs
+      fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_tv_mode', mode: currentTvMode })
+      }).catch(() => {});
+
+      const modeNames = {
+        'LOBBY': 'Lobby & Bienvenida',
+        'SERVICE': 'Sala Cuna / Culto en Vivo',
+        'ANNOUNCEMENTS': 'Cartelera Digital'
+      };
+      showNotification(`📺 Smart TVs cambiadas a: ${modeNames[mode] || mode}`, 'success');
+    }
+
+    function updateTvModeButtonsUI() {
+      ['LOBBY', 'SERVICE', 'ANNOUNCEMENTS'].forEach(m => {
+        const btn = document.getElementById(`tvModeBtn-${m}`);
+        if (!btn) return;
+        if (m === currentTvMode) {
+          const borderColor = m === 'LOBBY' ? 'border-amber-500' : (m === 'SERVICE' ? 'border-red-500' : 'border-purple-500');
+          btn.className = `p-3 rounded-xl bg-slate-800 border-2 ${borderColor} text-left transition flex flex-col gap-1 shadow-md scale-[1.01]`;
+        } else {
+          btn.className = 'p-3 rounded-xl bg-slate-950 border border-slate-700 hover:border-slate-600 text-left transition flex flex-col gap-1 opacity-75';
+        }
+      });
+    }
+
+    function sendTvParentAlert() {
+      const inp = document.getElementById('tvAlertInput');
+      if (!inp) return;
+      const text = inp.value.trim();
+      if (!text) {
+        showNotification('Escribe el mensaje o número de cuna para alertar', 'info');
+        return;
+      }
+      currentTvAlert = text;
+
+      // Broadcast to Smart TVs
+      tvChannel.postMessage({ type: 'SET_ALERT', alert: currentTvAlert });
+      fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_tv_alert', alert: currentTvAlert })
+      }).catch(() => {});
+
+      showNotification(`🚨 Alerta enviada a Smart TVs: "${text}"`, 'success');
+    }
+
+    function clearTvParentAlert() {
+      currentTvAlert = '';
+      const inp = document.getElementById('tvAlertInput');
+      if (inp) inp.value = '';
+
+      tvChannel.postMessage({ type: 'SET_ALERT', alert: '' });
+      fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_tv_alert', alert: '' })
+      }).catch(() => {});
+
+      showNotification('Alerta de sala cuna retirada de las Smart TVs', 'info');
+    }
+
+    function setQuickAlertText(txt) {
+      const inp = document.getElementById('tvAlertInput');
+      if (inp) {
+        inp.value = txt;
+        sendTvParentAlert();
       }
     }
 
