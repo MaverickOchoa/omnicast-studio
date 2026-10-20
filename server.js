@@ -28,6 +28,7 @@ let studioState = {
   theme: 'purple',
   tvMode: 'LOBBY', // 'LOBBY' | 'SERVICE' | 'ANNOUNCEMENTS'
   tvAlert: '',
+  lastServiceRecap: null,
   libraryItems: []
 };
 
@@ -211,6 +212,31 @@ const server = http.createServer((req, res) => {
       }
     });
     return;
+  }
+
+  // API 6: Service Recap (Post-Culto & CCLI Licensing Audit)
+  if (parsedUrl === '/api/recap') {
+    if (req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(studioState.lastServiceRecap || { status: 'empty' }));
+      return;
+    } else if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const recapData = JSON.parse(body);
+          studioState.lastServiceRecap = recapData;
+          broadcastSSE('recap', recapData);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, message: 'Recap guardado en servidor' }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: e.message }));
+        }
+      });
+      return;
+    }
   }
 
   // Static File Serving

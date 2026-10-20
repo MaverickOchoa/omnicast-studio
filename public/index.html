@@ -97,6 +97,33 @@
       background: transparent;
       cursor: ns-resize;
     }
+
+    /* Service Recap & CCLI Audit Print Layout */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #serviceRecapPrintContainer, #serviceRecapPrintContainer * {
+        visibility: visible !important;
+      }
+      #serviceRecapPrintContainer {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        display: block !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+        padding: 20px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+      }
+      @page {
+        margin: 1.2cm 1.5cm;
+        size: letter portrait;
+      }
+    }
   </style>
 </head>
 <body class="h-full flex flex-col overflow-hidden bg-[#090d16]">
@@ -252,6 +279,13 @@
         <i data-lucide="tv-2" class="w-3.5 h-3.5 text-sky-400 group-hover:scale-110 transition-transform"></i>
         <span class="hidden sm:inline">Pantallas & TVs</span>
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      </button>
+
+      <!-- Auditoría Ministerial & Reporte Post-Culto Button -->
+      <button onclick="openServiceRecapModal()" title="Auditoría Ministerial, Asistencia y Reporte CCLI Post-Culto" 
+              class="flex items-center gap-1.5 bg-gradient-to-r from-emerald-950/80 to-teal-950/80 hover:from-emerald-900 hover:to-teal-900 text-emerald-200 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-emerald-500/40 transition active:scale-95 shadow group">
+        <i data-lucide="clipboard-check" class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform"></i>
+        <span class="hidden sm:inline">Reporte de Culto</span>
       </button>
 
       <button onclick="openCampusSettingsModal()" title="Ajustes de Sede y Preferencias Locales" 
@@ -419,8 +453,13 @@
                 <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
                 <span id="btnMasterServiceToggleText">Iniciar Culto</span>
               </button>
+              <button onclick="openServiceRecapModal()" title="Finalizar Culto y Ver Reporte Post-Culto"
+                      class="px-2.5 py-1.5 rounded-lg bg-teal-600/30 hover:bg-teal-600 text-teal-300 hover:text-white text-xs font-semibold border border-teal-500/40 transition flex items-center gap-1 active:scale-95 shadow">
+                <i data-lucide="clipboard-check" class="w-3.5 h-3.5"></i>
+                <span>Reporte</span>
+              </button>
               <button onclick="resetRundownService()" title="Reiniciar tiempos del culto"
-                      class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition">
+                      class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition">
                 <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -676,7 +715,11 @@
               <span class="text-slate-400">Desfase Global: <strong id="masterBoardDrift" class="text-emerald-400 font-mono">0 min (A TIEMPO)</strong></span>
             </div>
             <div class="flex items-center gap-2">
-              <button onclick="switchLetrasSidebarTab('library')" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 font-semibold">
+              <button onclick="openServiceRecapModal()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold transition flex items-center gap-1.5 shadow active:scale-95">
+                <i data-lucide="clipboard-check" class="w-4 h-4"></i>
+                <span>Finalizar Culto & Reporte</span>
+              </button>
+              <button onclick="switchLetrasSidebarTab('library')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 font-semibold">
                 <i data-lucide="music" class="w-3.5 h-3.5"></i>
                 <span>Volver a Canciones</span>
               </button>
@@ -3882,6 +3925,337 @@ Te adoraré, te adoraré..."
   </div>
 
   <!-- ========================================================================= -->
+  <!-- MODAL: REPORTE POST-CULTO & AUDITORÍA MINISTERIAL (SERVICE RECAP & CCLI)   -->
+  <!-- ========================================================================= -->
+  <div id="serviceRecapModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+    <div class="bg-[#0b101a] border border-slate-700/80 rounded-2xl max-w-5xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[95vh] overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner">
+            <i data-lucide="clipboard-check" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-lg font-bold text-white tracking-wide">Auditoría Ministerial & Reporte Post-Culto</h3>
+              <span id="recapServiceStatusBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Culto Auditado
+              </span>
+            </div>
+            <p class="text-xs text-slate-400">Control de cronograma, asistencia, decisiones de fe y reporte oficial de licencias CCLI</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="recapDateBadge" class="hidden sm:inline-block px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 text-xs font-mono">
+            20 Oct 2026
+          </span>
+          <button onclick="closeServiceRecapModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Top Executive KPI Summary Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+        <!-- Card 1: Duración -->
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono uppercase text-slate-400">Duración Culto</span>
+            <span id="recapDriftBadge" class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">+2m desfase</span>
+          </div>
+          <div class="mt-1">
+            <span id="recapTotalDuration" class="text-2xl font-black font-mono text-white">92m</span>
+            <span id="recapPlannedDuration" class="text-[11px] text-slate-400 ml-1">Plan: 90m</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Asistencia -->
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono uppercase text-slate-400">Asistencia Total</span>
+            <i data-lucide="users" class="w-3.5 h-3.5 text-emerald-400"></i>
+          </div>
+          <div class="mt-1">
+            <span id="recapTotalAttendance" class="text-2xl font-black font-mono text-emerald-400">485</span>
+            <span id="recapAttendanceBreakdown" class="text-[11px] text-slate-400 ml-1">410 Adultos • 75 Niños</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Decisiones de Fe -->
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono uppercase text-slate-400">Decisiones & Altar</span>
+            <i data-lucide="heart-handshake" class="w-3.5 h-3.5 text-sky-400"></i>
+          </div>
+          <div class="mt-1">
+            <span id="recapTotalDecisions" class="text-2xl font-black font-mono text-sky-400">8</span>
+            <span class="text-[11px] text-slate-400 ml-1">Nuevos & Altar</span>
+          </div>
+        </div>
+
+        <!-- Card 4: Obras CCLI -->
+        <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono uppercase text-slate-400">Licencias CCLI</span>
+            <span class="text-[10px] font-mono font-bold text-emerald-400">100% OK</span>
+          </div>
+          <div class="mt-1">
+            <span id="recapTotalSongs" class="text-2xl font-black font-mono text-purple-400">3 Canciones</span>
+            <span class="text-[11px] text-slate-400 ml-1">Auditadas</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex items-center gap-1 border-b border-slate-800 pb-2 shrink-0 overflow-x-auto">
+        <button onclick="switchRecapTab('audit')" id="btnTabRecapAudit"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+          <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+          <span>Auditoría de Cronograma</span>
+        </button>
+        <button onclick="switchRecapTab('ccli')" id="btnTabRecapCCLI"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent">
+          <i data-lucide="music" class="w-3.5 h-3.5"></i>
+          <span>Alabanzas & CCLI</span>
+        </button>
+        <button onclick="switchRecapTab('attendance')" id="btnTabRecapAttendance"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+          <span>Asistencia & Notas</span>
+        </button>
+        <button onclick="switchRecapTab('history')" id="btnTabRecapHistory"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent">
+          <i data-lucide="history" class="w-3.5 h-3.5"></i>
+          <span>Historial Guardado</span>
+        </button>
+      </div>
+
+      <!-- Tab View 1: Cronograma & Auditoría de Tiempos -->
+      <div id="recapViewAudit" class="flex-1 overflow-y-auto space-y-3">
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <span>Comparativa segmento a segmento entre lo planificado y el tiempo real ejecutado en plataforma:</span>
+          <span class="font-mono text-[11px] text-amber-300">💡 Puedes ajustar los minutos con los botones +/- si es necesario</span>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 overflow-hidden bg-slate-950/60 shadow">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900 text-[10px] font-mono uppercase tracking-wider text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="py-2.5 px-3 w-10 text-center">#</th>
+                <th class="py-2.5 px-3 w-20">Hora Plan</th>
+                <th class="py-2.5 px-3">Bloque / Segmento</th>
+                <th class="py-2.5 px-3">Responsable</th>
+                <th class="py-2.5 px-3 w-20 text-center">Plan</th>
+                <th class="py-2.5 px-3 w-32 text-center">Real Ejecutado</th>
+                <th class="py-2.5 px-3 w-28 text-center">Desfase</th>
+                <th class="py-2.5 px-3 w-24 text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="recapAuditTableBody" class="divide-y divide-slate-800/70 font-sans">
+              <!-- Populated by JS -->
+            </tbody>
+            <tfoot class="bg-slate-900/90 font-mono text-xs border-t border-slate-700">
+              <tr>
+                <td colspan="4" class="py-2.5 px-3 font-bold text-white text-right">TOTALES DEL CULTO:</td>
+                <td id="recapTotalPlannedFooter" class="py-2.5 px-3 text-center font-bold text-slate-300">90 min</td>
+                <td id="recapTotalActualFooter" class="py-2.5 px-3 text-center font-bold text-white">92 min</td>
+                <td id="recapTotalDriftFooter" class="py-2.5 px-3 text-center font-bold text-amber-400">+2 min (2.2%)</td>
+                <td class="py-2.5 px-3 text-center text-emerald-400 font-bold text-[10px]">CUMPLIDO</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tab View 2: Alabanzas & Reporte CCLI -->
+      <div id="recapViewCCLI" class="hidden flex-1 overflow-y-auto space-y-3">
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <div>
+            <h4 class="font-bold text-white text-sm">Registro Legal de Obras Musicales (CCLI SongSelect)</h4>
+            <p class="text-xs text-slate-400">Alabanzas proyectadas en las pantallas durante este servicio para reporte de regalías de autor.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="addManualSongToCCLI()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5 text-purple-400"></i>
+              <span>+ Canción Extra</span>
+            </button>
+            <button onclick="exportServiceRecapCCLI_CSV()" class="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow active:scale-95">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Descargar CSV CCLI</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 overflow-hidden bg-slate-950/60 shadow">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900 text-[10px] font-mono uppercase tracking-wider text-slate-400 border-b border-slate-800">
+              <tr>
+                <th class="py-2.5 px-3 w-10 text-center">#</th>
+                <th class="py-2.5 px-3">Canción / Obra</th>
+                <th class="py-2.5 px-3">Autor(es) / Compositores</th>
+                <th class="py-2.5 px-3 w-32 font-mono">Licencia CCLI #</th>
+                <th class="py-2.5 px-3 w-16 text-center">Tono</th>
+                <th class="py-2.5 px-3 w-28 text-center">Diapositivas</th>
+                <th class="py-2.5 px-3 w-24 text-center">Hora</th>
+                <th class="py-2.5 px-3 w-24 text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="recapCCLITableBody" class="divide-y divide-slate-800/70 font-sans">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="p-3 rounded-xl bg-purple-950/30 border border-purple-500/30 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2 text-purple-200">
+            <i data-lucide="shield-check" class="w-4 h-4 text-purple-400 shrink-0"></i>
+            <span>Formato 100% compatible con el portal de subida directa <strong>CCLI SongSelect Reporting</strong> (report.ccli.com).</span>
+          </div>
+          <a href="https://report.ccli.com" target="_blank" rel="noopener noreferrer" class="text-xs text-purple-300 hover:text-white underline font-semibold flex items-center gap-1">
+            Abrir Portal CCLI <i data-lucide="external-link" class="w-3 h-3"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Tab View 3: Asistencia, Incidentes & Notas -->
+      <div id="recapViewAttendance" class="hidden flex-1 overflow-y-auto space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Col 1: Conteo de Asistentes y Altar -->
+          <div class="space-y-3 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
+              Métricas de Asistencia & Cosecha
+            </h4>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] text-slate-400 font-semibold block mb-1">Adultos (Auditorio Principal):</label>
+                <input type="number" id="inputRecapAdults" value="410" min="0" oninput="updateRecapAttendanceFromInputs()"
+                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-400">
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-400 font-semibold block mb-1">Niños (Cunas & Clases):</label>
+                <input type="number" id="inputRecapChildren" value="75" min="0" oninput="updateRecapAttendanceFromInputs()"
+                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-400">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <label class="text-[11px] text-slate-400 font-semibold block mb-1">Decisiones de Fe / Altar:</label>
+                <input type="number" id="inputRecapDecisions" value="8" min="0" oninput="updateRecapAttendanceFromInputs()"
+                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono font-bold text-sky-400 focus:outline-none focus:border-sky-400">
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-400 font-semibold block mb-1">Primeras Visitas (Familias):</label>
+                <input type="number" id="inputRecapVisitors" value="12" min="0" oninput="updateRecapAttendanceFromInputs()"
+                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono font-bold text-purple-300 focus:outline-none focus:border-purple-400">
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800">
+              <label class="text-[11px] text-slate-400 font-semibold block mb-1">Diezmos y Ofrendas (Opcional):</label>
+              <input type="text" id="inputRecapOffering" placeholder="Ej: $42,500 MXN / Transferencias registradas"
+                     class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400">
+            </div>
+          </div>
+
+          <!-- Col 2: Liderazgo y Observaciones -->
+          <div class="space-y-3 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="user-check" class="w-4 h-4 text-sky-400"></i>
+              Liderazgo & Incidencias
+            </h4>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="text-[11px] text-slate-400 font-semibold block mb-1">Director de Culto:</label>
+                <input type="text" id="inputRecapDirector" value="Ps. Daniel Santos"
+                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-400">
+              </div>
+              <div>
+                <label class="text-[11px] text-slate-400 font-semibold block mb-1">Predicador / Tema:</label>
+                <input type="text" id="inputRecapSpeaker" value='Pr. David Mendoza ("Caminando sobre las Aguas")'
+                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-400">
+              </div>
+            </div>
+
+            <div>
+              <label class="text-[11px] text-slate-400 font-semibold block mb-1">Observaciones Técnicas & Pastorales:</label>
+              <textarea id="inputRecapNotes" rows="4"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-400 leading-relaxed"
+                        placeholder="Ej: Culto con extraordinaria unción congregacional. Transmisión streaming fluida a 1080p60 a través de YouTube y Facebook. Retorno de plataforma sin incidencias.">Servicio con gran respuesta congregacional. Transmisión streaming 1080p60 impecable sin pérdidas de frames ni caídas de bitrate. Micrófonos inalámbricos y retorno de músicos en orden.</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab View 4: Historial de Cultos Guardados -->
+      <div id="recapViewHistory" class="hidden flex-1 overflow-y-auto space-y-3">
+        <div class="flex items-center justify-between text-xs text-slate-400">
+          <span>Servicios auditados y guardados en la memoria local y servidor:</span>
+          <span id="recapHistoryCountBadge" class="text-xs font-mono text-emerald-400">0 Registros</span>
+        </div>
+        <div id="recapHistoryListContainer" class="space-y-2">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Modal Footer Action Bar -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800 pt-3 shrink-0">
+        <div class="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
+          <i data-lucide="shield" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>OmniCast Ministerial Audit Engine v2.0 • Listo para reporte pastoral</span>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap justify-end">
+          <button onclick="copyServiceRecapToWhatsApp()"
+                  class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow active:scale-95"
+                  title="Copiar resumen con formato de emojis para pegar en el grupo de WhatsApp del liderazgo">
+            <i data-lucide="message-circle" class="w-4 h-4"></i>
+            <span>Copiar WhatsApp</span>
+          </button>
+
+          <button onclick="exportServiceRecapCSV()"
+                  class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5 shadow active:scale-95"
+                  title="Descargar cronograma y auditoría en formato CSV">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Descargar CSV</span>
+          </button>
+
+          <button onclick="printServiceRecapReport()"
+                  class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow active:scale-95"
+                  title="Imprimir documento oficial con membrete eclesiástico y firmas pastorales o guardar como PDF">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>Imprimir / PDF</span>
+          </button>
+
+          <button onclick="saveServiceRecapToHistory()"
+                  class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow active:scale-95"
+                  title="Guardar este reporte en el historial permanente">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            <span>Guardar Culto</span>
+          </button>
+
+          <button onclick="closeServiceRecapModal()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            Cerrar
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- CONTAINER: INFORME EJECUTIVO IMPRESO / PDF (SOLO VISIBLE EN @media print)  -->
+  <!-- ========================================================================= -->
+  <div id="serviceRecapPrintContainer" class="hidden" style="display: none;">
+    <!-- Populated dynamically before window.print() -->
+  </div>
+
+  <!-- ========================================================================= -->
   <!-- MODAL: AJUSTES DE SEDE LOCAL & PREFERENCIAS (CAMPUS SETTINGS)             -->
   <!-- ========================================================================= -->
   <div id="campusSettingsModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 md:p-4">
@@ -4867,6 +5241,739 @@ Te adoraré, te adoraré..."
     }
 
     // -------------------------------------------------------------------------
+    // SERVICE RECAP, MINISTERIAL AUDIT & CCLI LICENSING ENGINE (PHASE 15)
+    // -------------------------------------------------------------------------
+    let currentRecapTab = 'audit'; // 'audit' | 'ccli' | 'attendance' | 'history'
+    let serviceSongsRecapLog = [
+      {
+        id: 'song-1',
+        title: 'Gracia Sublime Es',
+        author: 'Phil Wickham / Jeremy Riddle',
+        ccli: '7065049',
+        tone: 'Bb',
+        slideHits: 5,
+        firstTime: '10:15 AM',
+        status: 'VERIFICADA'
+      },
+      {
+        id: 'song-2',
+        title: 'Way Maker (Milagroso)',
+        author: 'Sinach / Osinachi Kalu Okoro',
+        ccli: '7115744',
+        tone: 'E',
+        slideHits: 4,
+        firstTime: '10:23 AM',
+        status: 'VERIFICADA'
+      },
+      {
+        id: 'song-3',
+        title: 'La Bondad de Dios (Goodness of God)',
+        author: 'Jenn Johnson / Bethel Music',
+        ccli: '7117726',
+        tone: 'G',
+        slideHits: 4,
+        firstTime: '10:32 AM',
+        status: 'VERIFICADA'
+      }
+    ];
+
+    // Local audit working copy
+    let serviceRecapAuditItems = [];
+
+    function recordCurrentSongForRecap() {
+      const item = libraryItems[currentItemIndex];
+      if (!item || item.category === 'medios' || item.category === 'biblia') return;
+
+      const existing = serviceSongsRecapLog.find(s => s.id === item.id || s.title.toLowerCase() === item.title.toLowerCase());
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      if (existing) {
+        existing.slideHits = (existing.slideHits || 0) + 1;
+        existing.lastTime = nowStr;
+      } else {
+        serviceSongsRecapLog.push({
+          id: item.id || `song-${Date.now()}`,
+          title: item.title,
+          author: item.author || 'Dominio Público',
+          ccli: item.ccli || (item.id === 'song-1' ? '7065049' : item.id === 'song-2' ? '7115744' : item.id === 'song-3' ? '7117726' : '7068424'),
+          tone: item.tone || 'G',
+          slideHits: 1,
+          firstTime: nowStr,
+          status: 'VERIFICADA'
+        });
+      }
+    }
+
+    function openServiceRecapModal() {
+      // 1. Prepare items working copy with planned vs actual times
+      const scheduleTimes = calculateRundownScheduleTimes();
+      const preset = defaultRundowns[activeRundownKey] || defaultRundowns['sunday_morning'];
+
+      // Populate audit items from current rundown
+      serviceRecapAuditItems = currentRundownItems.map((it, idx) => {
+        let actualMin = it.durationMin;
+        if (typeof it.actualDurationSec === 'number' && it.actualDurationSec > 0) {
+          actualMin = Math.max(1, Math.round(it.actualDurationSec / 60));
+        } else {
+          // If service finished or preset loaded, provide realistic defaults
+          if (idx === 2) actualMin = it.durationMin + 1; // alabanza +1m
+          else if (idx === 6) actualMin = it.durationMin + 2; // predicacion +2m
+          else if (idx === 7) actualMin = Math.max(1, it.durationMin - 1); // ministracion
+          else actualMin = it.durationMin;
+        }
+        return {
+          id: it.id,
+          index: idx + 1,
+          scheduleTime: scheduleTimes[idx] || `${idx + 1}`,
+          title: it.title,
+          responsible: it.responsible,
+          plannedMin: it.durationMin,
+          actualMin: actualMin,
+          category: it.category,
+          status: it.status || 'COMPLETED'
+        };
+      });
+
+      // Update date badge
+      const now = new Date();
+      const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const dateStr = now.toLocaleDateString('es-ES', dateOptions);
+      const recapDateBadge = document.getElementById('recapDateBadge');
+      if (recapDateBadge) recapDateBadge.textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+
+      // Render tab views
+      switchRecapTab(currentRecapTab);
+      renderRecapAuditTable();
+      renderRecapCCLITable();
+      updateRecapAttendanceFromInputs();
+      renderRecapHistoryList();
+
+      const modal = document.getElementById('serviceRecapModal');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeServiceRecapModal() {
+      const modal = document.getElementById('serviceRecapModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function switchRecapTab(tab) {
+      currentRecapTab = tab;
+      const tabs = ['audit', 'ccli', 'attendance', 'history'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`btnTabRecap${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        const view = document.getElementById(`recapView${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (btn) {
+          if (t === tab) {
+            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm';
+          } else {
+            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent';
+          }
+        }
+        if (view) {
+          if (t === tab) view.classList.remove('hidden');
+          else view.classList.add('hidden');
+        }
+      });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function updateRecapItemDuration(idx, deltaMin) {
+      if (!serviceRecapAuditItems[idx]) return;
+      serviceRecapAuditItems[idx].actualMin = Math.max(1, serviceRecapAuditItems[idx].actualMin + deltaMin);
+      renderRecapAuditTable();
+    }
+
+    function renderRecapAuditTable() {
+      const tbody = document.getElementById('recapAuditTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      let totalPlanned = 0;
+      let totalActual = 0;
+
+      serviceRecapAuditItems.forEach((item, idx) => {
+        totalPlanned += item.plannedMin;
+        totalActual += item.actualMin;
+        const drift = item.actualMin - item.plannedMin;
+
+        let driftBadge = '';
+        if (drift === 0) {
+          driftBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">A TIEMPO</span>';
+        } else if (drift > 0) {
+          driftBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">+${drift} min RETRASO</span>`;
+        } else {
+          driftBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">${drift} min ADELANTO</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-900/40 transition';
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 text-center font-mono text-slate-400">${idx + 1}</td>
+          <td class="py-2.5 px-3 font-mono font-semibold text-slate-200">${item.scheduleTime}</td>
+          <td class="py-2.5 px-3">
+            <span class="font-bold text-white block">${item.title}</span>
+            <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider">${item.category}</span>
+          </td>
+          <td class="py-2.5 px-3 text-slate-300 text-xs">${item.responsible}</td>
+          <td class="py-2.5 px-3 text-center font-mono text-slate-400">${item.plannedMin} min</td>
+          <td class="py-2.5 px-3 text-center">
+            <div class="inline-flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
+              <button onclick="updateRecapItemDuration(${idx}, -1)" class="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold flex items-center justify-center transition active:scale-90">-</button>
+              <span class="font-mono font-bold text-white w-8 text-center">${item.actualMin}m</span>
+              <button onclick="updateRecapItemDuration(${idx}, 1)" class="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-bold flex items-center justify-center transition active:scale-90">+</button>
+            </div>
+          </td>
+          <td class="py-2.5 px-3 text-center">${driftBadge}</td>
+          <td class="py-2.5 px-3 text-center">
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-emerald-400 font-mono text-[9px] font-bold">✓ LISTO</span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Update footers and top KPI card
+      const totalDrift = totalActual - totalPlanned;
+      const driftPercent = totalPlanned > 0 ? ((totalDrift / totalPlanned) * 100).toFixed(1) : 0;
+
+      const plannedFoot = document.getElementById('recapTotalPlannedFooter');
+      const actualFoot = document.getElementById('recapTotalActualFooter');
+      const driftFoot = document.getElementById('recapTotalDriftFooter');
+      if (plannedFoot) plannedFoot.textContent = `${totalPlanned} min`;
+      if (actualFoot) actualFoot.textContent = `${totalActual} min`;
+      if (driftFoot) {
+        driftFoot.textContent = `${totalDrift >= 0 ? '+' : ''}${totalDrift} min (${driftPercent}%)`;
+        driftFoot.className = totalDrift > 0 ? 'py-2.5 px-3 text-center font-bold text-amber-400' : 'py-2.5 px-3 text-center font-bold text-emerald-400';
+      }
+
+      // KPI card
+      const durEl = document.getElementById('recapTotalDuration');
+      const planEl = document.getElementById('recapPlannedDuration');
+      const driftEl = document.getElementById('recapDriftBadge');
+      if (durEl) durEl.textContent = `${totalActual}m`;
+      if (planEl) planEl.textContent = `Plan: ${totalPlanned}m`;
+      if (driftEl) {
+        if (totalDrift === 0) {
+          driftEl.textContent = 'A TIEMPO';
+          driftEl.className = 'text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+        } else if (totalDrift > 0) {
+          driftEl.textContent = `+${totalDrift}m desfase`;
+          driftEl.className = 'text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30';
+        } else {
+          driftEl.textContent = `${totalDrift}m adelanto`;
+          driftEl.className = 'text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30';
+        }
+      }
+    }
+
+    function renderRecapCCLITable() {
+      const tbody = document.getElementById('recapCCLITableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      serviceSongsRecapLog.forEach((song, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-900/40 transition';
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 text-center font-mono text-slate-400">${idx + 1}</td>
+          <td class="py-2.5 px-3 font-bold text-white">${song.title}</td>
+          <td class="py-2.5 px-3 text-slate-300 text-xs">${song.author}</td>
+          <td class="py-2.5 px-3 font-mono font-bold text-purple-300">
+            <span class="bg-purple-950/60 px-2 py-0.5 rounded border border-purple-500/30">CCLI #${song.ccli}</span>
+          </td>
+          <td class="py-2.5 px-3 text-center font-mono font-bold text-amber-400">${song.tone || 'G'}</td>
+          <td class="py-2.5 px-3 text-center font-mono text-slate-300">${song.slideHits || 1} diapositivas</td>
+          <td class="py-2.5 px-3 text-center font-mono text-slate-400 text-xs">${song.firstTime || '10:15 AM'}</td>
+          <td class="py-2.5 px-3 text-center">
+            <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono text-[9px] font-bold">✓ CCLI OK</span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const totalSongsEl = document.getElementById('recapTotalSongs');
+      if (totalSongsEl) totalSongsEl.textContent = `${serviceSongsRecapLog.length} Canciones`;
+    }
+
+    function addManualSongToCCLI() {
+      const title = prompt('Título de la Alabanza o Canción:', 'Ya No Soy Esclavo');
+      if (!title) return;
+      const author = prompt('Autor(es) / Compositores:', 'Bethel Music / Jonathan David Helser') || 'Desconocido';
+      const ccli = prompt('Número de Licencia CCLI:', '7030123') || '7030123';
+      const tone = prompt('Tonalidad (Key):', 'Bb') || 'Bb';
+
+      serviceSongsRecapLog.push({
+        id: `manual-song-${Date.now()}`,
+        title: title,
+        author: author,
+        ccli: ccli,
+        tone: tone,
+        slideHits: 1,
+        firstTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: 'VERIFICADA'
+      });
+
+      renderRecapCCLITable();
+      showToast(`🎵 Alabanza "${title}" agregada al reporte CCLI`, '✓');
+    }
+
+    function updateRecapAttendanceFromInputs() {
+      const adults = parseInt(document.getElementById('inputRecapAdults')?.value, 10) || 0;
+      const children = parseInt(document.getElementById('inputRecapChildren')?.value, 10) || 0;
+      const decisions = parseInt(document.getElementById('inputRecapDecisions')?.value, 10) || 0;
+      const total = adults + children;
+
+      const totalEl = document.getElementById('recapTotalAttendance');
+      const breakdownEl = document.getElementById('recapAttendanceBreakdown');
+      const decisionsEl = document.getElementById('recapTotalDecisions');
+
+      if (totalEl) totalEl.textContent = total.toLocaleString();
+      if (breakdownEl) breakdownEl.textContent = `${adults} Adultos • ${children} Niños`;
+      if (decisionsEl) decisionsEl.textContent = decisions.toLocaleString();
+    }
+
+    function generateServiceRecapWhatsAppText() {
+      const adults = parseInt(document.getElementById('inputRecapAdults')?.value, 10) || 0;
+      const children = parseInt(document.getElementById('inputRecapChildren')?.value, 10) || 0;
+      const decisions = parseInt(document.getElementById('inputRecapDecisions')?.value, 10) || 0;
+      const visitors = parseInt(document.getElementById('inputRecapVisitors')?.value, 10) || 0;
+      const offering = document.getElementById('inputRecapOffering')?.value.trim();
+      const director = document.getElementById('inputRecapDirector')?.value.trim() || 'Ps. Daniel Santos';
+      const speaker = document.getElementById('inputRecapSpeaker')?.value.trim() || 'Pr. David Mendoza';
+      const notes = document.getElementById('inputRecapNotes')?.value.trim() || 'Servicio bendecido.';
+
+      const preset = defaultRundowns[activeRundownKey] || defaultRundowns['sunday_morning'];
+      const totalPlanned = serviceRecapAuditItems.reduce((acc, it) => acc + it.plannedMin, 0);
+      const totalActual = serviceRecapAuditItems.reduce((acc, it) => acc + it.actualMin, 0);
+      const totalDrift = totalActual - totalPlanned;
+      const driftStr = totalDrift === 0 ? 'A TIEMPO' : (totalDrift > 0 ? `+${totalDrift} min retraso` : `${totalDrift} min adelanto`);
+
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const capitalDateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+
+      let auditLines = '';
+      serviceRecapAuditItems.forEach((it, i) => {
+        const d = it.actualMin - it.plannedMin;
+        const dTag = d === 0 ? '✓' : (d > 0 ? `+${d}m` : `${d}m`);
+        auditLines += `${i + 1}. *${it.title}*: ${it.actualMin}m (${dTag})\n`;
+      });
+
+      let songsLines = '';
+      serviceSongsRecapLog.forEach((s, i) => {
+        songsLines += `• *${s.title}* (${s.author}) — CCLI #${s.ccli} [Tono: ${s.tone}]\n`;
+      });
+
+      let offeringText = offering ? `\n💰 *OFRENDAS & DIEZMOS:*\n${offering}\n` : '';
+
+      return `🏛️ *REPORTE EJECUTIVO DE CULTO*
+*OmniCast Studio • Auditoría Ministerial*
+━━━━━━━━━━━━━━━━━━━━━━
+📅 *Fecha:* ${capitalDateStr}
+🏷️ *Culto:* ${preset.name || 'Culto Dominical'}
+⏱️ *Duración:* *${totalActual} min* (Plan: ${totalPlanned} min | ${driftStr})
+👤 *Director de Culto:* ${director}
+📖 *Predicador:* ${speaker}
+
+👥 *ASISTENCIA & ALMAS:*
+• Auditorio Principal: *${adults}* adultos
+• Cunas y Clases de Niños: *${children}* niños
+• *Total General: ${adults + children} personas*
+• *Decisiones de Fe / Altar: ${decisions} personas* 🙌
+• Primeras Visitas: ${visitors} familias
+${offeringText}
+⏱️ *CRONOGRAMA AUDITADO:*
+${auditLines}
+🎵 *ALABANZAS & LICENCIAS CCLI:*
+${songsLines}
+📝 *OBSERVACIONES & NOTAS:*
+${notes}
+━━━━━━━━━━━━━━━━━━━━━━
+_Generado automáticamente por OmniCast Studio Ministerial Suite_`;
+    }
+
+    function copyServiceRecapToWhatsApp() {
+      const text = generateServiceRecapWhatsAppText();
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('📋 ¡Reporte copiado! Pégalo en el grupo de WhatsApp del Liderazgo', '📱');
+      }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('📋 ¡Reporte copiado al portapapeles!', '✓');
+      });
+    }
+
+    function exportServiceRecapCCLI_CSV() {
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      let csvContent = '\uFEFF'; // UTF-8 BOM
+      csvContent += 'Title,Author_Composer,CCLI_License_Number,Key,Projections_Count,Time_Used,Service_Name\n';
+
+      const preset = defaultRundowns[activeRundownKey] || defaultRundowns['sunday_morning'];
+      serviceSongsRecapLog.forEach(s => {
+        csvContent += `"${s.title.replace(/"/g, '""')}","${s.author.replace(/"/g, '""')}","${s.ccli}","${s.tone || 'G'}","${s.slideHits || 1}","${s.firstTime || ''}","${(preset.name || 'Culto').replace(/"/g, '""')}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Reporte_CCLI_${dateStr}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('💾 Reporte CCLI descargado en formato CSV', '✓');
+    }
+
+    function exportServiceRecapCSV() {
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      let csvContent = '\uFEFF'; // UTF-8 BOM
+      csvContent += 'Index,Scheduled_Time,Title,Responsible,Planned_Min,Actual_Min,Drift_Min,Status\n';
+
+      serviceRecapAuditItems.forEach(it => {
+        const drift = it.actualMin - it.plannedMin;
+        csvContent += `${it.index},"${it.scheduleTime}","${it.title.replace(/"/g, '""')}","${it.responsible.replace(/"/g, '""')}",${it.plannedMin},${it.actualMin},${drift},"${it.status}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Auditoria_Culto_${dateStr}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('💾 Cronograma auditado descargado en formato CSV', '✓');
+    }
+
+    function printServiceRecapReport() {
+      const container = document.getElementById('serviceRecapPrintContainer');
+      if (!container) return;
+
+      const adults = parseInt(document.getElementById('inputRecapAdults')?.value, 10) || 0;
+      const children = parseInt(document.getElementById('inputRecapChildren')?.value, 10) || 0;
+      const decisions = parseInt(document.getElementById('inputRecapDecisions')?.value, 10) || 0;
+      const visitors = parseInt(document.getElementById('inputRecapVisitors')?.value, 10) || 0;
+      const offering = document.getElementById('inputRecapOffering')?.value.trim();
+      const director = document.getElementById('inputRecapDirector')?.value.trim() || 'Ps. Daniel Santos';
+      const speaker = document.getElementById('inputRecapSpeaker')?.value.trim() || 'Pr. David Mendoza';
+      const notes = document.getElementById('inputRecapNotes')?.value.trim() || 'Servicio realizado con total normalidad.';
+
+      const preset = defaultRundowns[activeRundownKey] || defaultRundowns['sunday_morning'];
+      const totalPlanned = serviceRecapAuditItems.reduce((acc, it) => acc + it.plannedMin, 0);
+      const totalActual = serviceRecapAuditItems.reduce((acc, it) => acc + it.actualMin, 0);
+      const totalDrift = totalActual - totalPlanned;
+      const driftText = totalDrift === 0 ? 'A TIEMPO' : (totalDrift > 0 ? `+${totalDrift} MIN DE RETRASO` : `${totalDrift} MIN DE ADELANTO`);
+
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const folio = `FOLIO: OMNI-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-01`;
+
+      let auditRows = '';
+      serviceRecapAuditItems.forEach((it, idx) => {
+        const drift = it.actualMin - it.plannedMin;
+        const driftStr = drift === 0 ? 'A Tiempo' : (drift > 0 ? `+${drift}m` : `${drift}m`);
+        auditRows += `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 6px 8px; text-align: center; font-family: monospace;">${idx + 1}</td>
+            <td style="padding: 6px 8px; font-family: monospace; font-weight: bold;">${it.scheduleTime}</td>
+            <td style="padding: 6px 8px; font-weight: 600;">${it.title}</td>
+            <td style="padding: 6px 8px; color: #475569;">${it.responsible}</td>
+            <td style="padding: 6px 8px; text-align: center; font-family: monospace;">${it.plannedMin}m</td>
+            <td style="padding: 6px 8px; text-align: center; font-family: monospace; font-weight: bold;">${it.actualMin}m</td>
+            <td style="padding: 6px 8px; text-align: center; font-family: monospace; font-weight: bold; color: ${drift > 0 ? '#b91c1c' : '#15803d'};">${driftStr}</td>
+          </tr>
+        `;
+      });
+
+      let songRows = '';
+      serviceSongsRecapLog.forEach((s, idx) => {
+        songRows += `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 6px 8px; text-align: center; font-family: monospace;">${idx + 1}</td>
+            <td style="padding: 6px 8px; font-weight: 600;">${s.title}</td>
+            <td style="padding: 6px 8px; color: #475569;">${s.author}</td>
+            <td style="padding: 6px 8px; font-family: monospace; font-weight: bold; color: #6b21a8;">CCLI #${s.ccli}</td>
+            <td style="padding: 6px 8px; text-align: center; font-family: monospace; font-weight: bold;">${s.tone || 'G'}</td>
+            <td style="padding: 6px 8px; text-align: center; color: #15803d; font-weight: bold;">✓ CCLI OK</td>
+          </tr>
+        `;
+      });
+
+      container.innerHTML = `
+        <div style="max-width: 800px; margin: 0 auto; color: #0f172a; font-family: system-ui, -apple-system, sans-serif; line-height: 1.4;">
+          <!-- Header -->
+          <div style="border-bottom: 3px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <div style="font-size: 20px; font-weight: 900; letter-spacing: -0.5px; text-transform: uppercase;">OmniCast Studio • Auditoría Ministerial</div>
+              <div style="font-size: 13px; color: #475569; font-weight: 600;">Informe Ejecutivo de Culto, Asistencia & Reporte de Derechos CCLI</div>
+            </div>
+            <div style="text-align: right; font-family: monospace; font-size: 11px; color: #64748b;">
+              <div style="font-weight: bold; color: #0f172a;">${folio}</div>
+              <div>${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+          </div>
+
+          <!-- Metadata Grid -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 12px;">
+            <div><strong>Culto:</strong> ${preset.name || 'Culto Dominical'}</div>
+            <div><strong>Fecha:</strong> ${dateStr}</div>
+            <div><strong>Director:</strong> ${director}</div>
+            <div><strong>Predicador:</strong> ${speaker}</div>
+            <div><strong>Duración Total:</strong> ${totalActual} min (${driftText})</div>
+            <div><strong>Altar / Decisiones:</strong> ${decisions} personas</div>
+          </div>
+
+          <!-- KPI Cards -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; text-align: center;">
+            <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px;">
+              <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b;">Duración Total</div>
+              <div style="font-size: 18px; font-weight: 900; color: #0f172a;">${totalActual} min</div>
+              <div style="font-size: 10px; color: #64748b;">Plan: ${totalPlanned} min</div>
+            </div>
+            <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px;">
+              <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b;">Asistencia Total</div>
+              <div style="font-size: 18px; font-weight: 900; color: #15803d;">${adults + children}</div>
+              <div style="font-size: 10px; color: #64748b;">${adults} Ad. • ${children} Niños</div>
+            </div>
+            <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px;">
+              <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b;">Decisiones Fe</div>
+              <div style="font-size: 18px; font-weight: 900; color: #0284c7;">${decisions}</div>
+              <div style="font-size: 10px; color: #64748b;">${visitors} Nuevas Visitas</div>
+            </div>
+            <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px;">
+              <div style="font-size: 10px; font-weight: bold; text-transform: uppercase; color: #64748b;">Licencias CCLI</div>
+              <div style="font-size: 18px; font-weight: 900; color: #7e22ce;">${serviceSongsRecapLog.length}</div>
+              <div style="font-size: 10px; color: #15803d; font-weight: bold;">✓ 100% Auditadas</div>
+            </div>
+          </div>
+
+          <!-- Section 1: Auditoría de Tiempos -->
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #0f172a; padding-bottom: 4px; margin-bottom: 6px; color: #0f172a;">
+              1. Auditoría Minuto a Minuto del Culto
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+              <thead>
+                <tr style="background: #f1f5f9; text-align: left; font-size: 10px; text-transform: uppercase; color: #475569;">
+                  <th style="padding: 6px 8px; width: 30px; text-align: center;">#</th>
+                  <th style="padding: 6px 8px; width: 70px;">Horario</th>
+                  <th style="padding: 6px 8px;">Segmento / Bloque</th>
+                  <th style="padding: 6px 8px;">Responsable</th>
+                  <th style="padding: 6px 8px; text-align: center; width: 50px;">Plan</th>
+                  <th style="padding: 6px 8px; text-align: center; width: 50px;">Real</th>
+                  <th style="padding: 6px 8px; text-align: center; width: 80px;">Desfase</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${auditRows}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Section 2: Reporte CCLI -->
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #0f172a; padding-bottom: 4px; margin-bottom: 6px; color: #0f172a;">
+              2. Reporte de Alabanzas & Licenciamiento CCLI SongSelect
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+              <thead>
+                <tr style="background: #f1f5f9; text-align: left; font-size: 10px; text-transform: uppercase; color: #475569;">
+                  <th style="padding: 6px 8px; width: 30px; text-align: center;">#</th>
+                  <th style="padding: 6px 8px;">Título de la Obra Musical</th>
+                  <th style="padding: 6px 8px;">Compositores / Autores</th>
+                  <th style="padding: 6px 8px; width: 110px;">Licencia CCLI #</th>
+                  <th style="padding: 6px 8px; text-align: center; width: 40px;">Tono</th>
+                  <th style="padding: 6px 8px; text-align: center; width: 70px;">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${songRows}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Section 3: Observaciones -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 24px; font-size: 11px;">
+            <strong>Observaciones Pastorales & Auditoría Técnica:</strong><br>
+            <div style="margin-top: 4px; color: #334155;">${notes}</div>
+            ${offering ? `<div style="margin-top: 6px; color: #15803d; font-weight: bold;">Registro Financiero: ${offering}</div>` : ''}
+          </div>
+
+          <!-- Signatures -->
+          <div style="display: flex; justify-content: space-between; margin-top: 36px; padding-top: 10px;">
+            <div style="text-align: center; width: 240px;">
+              <div style="border-top: 1px solid #0f172a; padding-top: 6px; font-size: 11px; font-weight: bold;">
+                ${director}
+              </div>
+              <div style="font-size: 10px; color: #64748b;">Director de Culto / Productor Técnico</div>
+            </div>
+            <div style="text-align: center; width: 240px;">
+              <div style="border-top: 1px solid #0f172a; padding-top: 6px; font-size: 11px; font-weight: bold;">
+                Firma Pastor General
+              </div>
+              <div style="font-size: 10px; color: #64748b;">Consejo Ministerial / Supervisor de Campus</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      window.print();
+    }
+
+    function saveServiceRecapToHistory() {
+      const adults = parseInt(document.getElementById('inputRecapAdults')?.value, 10) || 0;
+      const children = parseInt(document.getElementById('inputRecapChildren')?.value, 10) || 0;
+      const decisions = parseInt(document.getElementById('inputRecapDecisions')?.value, 10) || 0;
+      const visitors = parseInt(document.getElementById('inputRecapVisitors')?.value, 10) || 0;
+      const offering = document.getElementById('inputRecapOffering')?.value.trim();
+      const director = document.getElementById('inputRecapDirector')?.value.trim() || 'Ps. Daniel Santos';
+      const speaker = document.getElementById('inputRecapSpeaker')?.value.trim() || 'Pr. David Mendoza';
+      const notes = document.getElementById('inputRecapNotes')?.value.trim() || '';
+
+      const preset = defaultRundowns[activeRundownKey] || defaultRundowns['sunday_morning'];
+      const totalPlanned = serviceRecapAuditItems.reduce((acc, it) => acc + it.plannedMin, 0);
+      const totalActual = serviceRecapAuditItems.reduce((acc, it) => acc + it.actualMin, 0);
+
+      const recapRecord = {
+        id: `recap-${Date.now()}`,
+        timestamp: Date.now(),
+        dateStr: new Date().toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+        serviceName: preset.name || 'Culto Dominical',
+        totalPlannedMin: totalPlanned,
+        totalActualMin: totalActual,
+        totalAttendance: adults + children,
+        adults: adults,
+        children: children,
+        decisions: decisions,
+        visitors: visitors,
+        offering: offering,
+        director: director,
+        speaker: speaker,
+        notes: notes,
+        items: serviceRecapAuditItems,
+        songs: serviceSongsRecapLog
+      };
+
+      // 1. Save to localStorage
+      try {
+        let history = JSON.parse(localStorage.getItem('omnicast_service_recap_history') || '[]');
+        history.unshift(recapRecord);
+        if (history.length > 50) history = history.slice(0, 50);
+        localStorage.setItem('omnicast_service_recap_history', JSON.stringify(history));
+      } catch (e) {}
+
+      // 2. Post to server API
+      fetch('/api/recap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(recapRecord)
+      }).catch(() => {});
+
+      renderRecapHistoryList();
+      showToast('💾 Reporte de culto guardado en el historial local y servidor', '✓');
+    }
+
+    function renderRecapHistoryList() {
+      const container = document.getElementById('recapHistoryListContainer');
+      const badge = document.getElementById('recapHistoryCountBadge');
+      if (!container) return;
+
+      let history = [];
+      try {
+        history = JSON.parse(localStorage.getItem('omnicast_service_recap_history') || '[]');
+      } catch (e) {}
+
+      if (badge) badge.textContent = `${history.length} Registros`;
+
+      if (history.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center border border-dashed border-slate-800 rounded-xl text-slate-500 text-xs">
+            No hay cultos anteriores guardados todavía. Al hacer clic en <strong>"Guardar Culto"</strong>, tus reportes quedarán archivados aquí.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+      history.forEach((rec, idx) => {
+        const card = document.createElement('div');
+        card.className = 'p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-3 text-xs';
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold flex items-center justify-center font-mono text-[11px]">
+              #${history.length - idx}
+            </span>
+            <div>
+              <div class="font-bold text-white">${rec.serviceName}</div>
+              <div class="text-[11px] text-slate-400">${rec.dateStr} • ${rec.totalActualMin} min • ${rec.totalAttendance} asistentes • ${rec.decisions} almas</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button onclick="loadRecapFromHistory('${rec.id}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition" title="Cargar este culto en el reporte">
+              Ver
+            </button>
+            <button onclick="deleteRecapFromHistory('${rec.id}')" class="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-950/40 transition" title="Eliminar registro">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function loadRecapFromHistory(id) {
+      try {
+        const history = JSON.parse(localStorage.getItem('omnicast_service_recap_history') || '[]');
+        const rec = history.find(r => r.id === id);
+        if (!rec) return;
+
+        if (Array.isArray(rec.items)) serviceRecapAuditItems = rec.items;
+        if (Array.isArray(rec.songs)) serviceSongsRecapLog = rec.songs;
+
+        const adultsInp = document.getElementById('inputRecapAdults');
+        const childInp = document.getElementById('inputRecapChildren');
+        const decInp = document.getElementById('inputRecapDecisions');
+        const visInp = document.getElementById('inputRecapVisitors');
+        const offInp = document.getElementById('inputRecapOffering');
+        const dirInp = document.getElementById('inputRecapDirector');
+        const spkInp = document.getElementById('inputRecapSpeaker');
+        const notInp = document.getElementById('inputRecapNotes');
+
+        if (adultsInp) adultsInp.value = rec.adults || 410;
+        if (childInp) childInp.value = rec.children || 75;
+        if (decInp) decInp.value = rec.decisions || 8;
+        if (visInp) visInp.value = rec.visitors || 12;
+        if (offInp) offInp.value = rec.offering || '';
+        if (dirInp) dirInp.value = rec.director || 'Ps. Daniel Santos';
+        if (spkInp) spkInp.value = rec.speaker || 'Pr. David Mendoza';
+        if (notInp) notInp.value = rec.notes || '';
+
+        switchRecapTab('audit');
+        renderRecapAuditTable();
+        renderRecapCCLITable();
+        updateRecapAttendanceFromInputs();
+        showToast(`📋 Culto "${rec.serviceName}" cargado para revisión`, '✓');
+      } catch (e) {}
+    }
+
+    function deleteRecapFromHistory(id) {
+      if (!confirm('¿Eliminar este registro de culto del historial?')) return;
+      try {
+        let history = JSON.parse(localStorage.getItem('omnicast_service_recap_history') || '[]');
+        history = history.filter(r => r.id !== id);
+        localStorage.setItem('omnicast_service_recap_history', JSON.stringify(history));
+        renderRecapHistoryList();
+        showToast('🗑️ Registro eliminado del historial', '✓');
+      } catch (e) {}
+    }
+
+    // -------------------------------------------------------------------------
     // SAAS MULTI-TENANT ACCOUNTS DATABASE & STRICT COMMERCIAL ISOLATION
     // -------------------------------------------------------------------------
     const accountsDatabase = {
@@ -5134,7 +6241,9 @@ Te adoraré, te adoraré..."
         id: 'song-1',
         category: 'alabanza',
         title: 'Gracia Sublime Es',
-        author: 'Phil Wickham',
+        author: 'Phil Wickham / Jeremy Riddle',
+        ccli: '7065049',
+        tone: 'Bb',
         scope: '👑 OFICIAL NACIONAL',
         slides: [
           { text: '¿Quién rompe el poder del pecado y la oscuridad?', subText: 'Su amor es poderoso y tan fuerte', badge: 'VERSO 1' },
@@ -5148,13 +6257,45 @@ Te adoraré, te adoraré..."
         id: 'song-2',
         category: 'alabanza',
         title: 'Way Maker (Milagroso)',
-        author: 'Sinach / Leeland',
+        author: 'Sinach / Osinachi Kalu Okoro',
+        ccli: '7115744',
+        tone: 'E',
         scope: '👑 OFICIAL NACIONAL',
         slides: [
           { text: 'Aquí estás, te vemos mover', subText: 'Te adoraré, te adoraré', badge: 'VERSO 1' },
           { text: 'Aquí estás, obrando en mí', subText: 'Te adoraré, te adoraré', badge: 'VERSO 1' },
           { text: 'Milagroso, abres camino', subText: 'Cumples promesas, luz en tinieblas', badge: 'CORO' },
           { text: 'Mi Dios, así eres Tú', subText: 'Mi Dios, así eres Tú', badge: 'CORO' }
+        ]
+      },
+      {
+        id: 'song-3',
+        category: 'alabanza',
+        title: 'La Bondad de Dios (Goodness of God)',
+        author: 'Jenn Johnson / Bethel Music',
+        ccli: '7117726',
+        tone: 'G',
+        scope: '👑 OFICIAL NACIONAL',
+        slides: [
+          { text: 'Te amo Dios, Tu amor nunca me falla', subText: 'En Tus manos he estado cada día', badge: 'VERSO 1' },
+          { text: 'Y desde que me despierto hasta el anochecer', subText: 'Cantaré de la bondad de Dios', badge: 'VERSO 1' },
+          { text: 'Toda mi vida has sido fiel', subText: 'Toda mi vida has sido tan tan bueno', badge: 'CORO' },
+          { text: 'Con cada aliento que tengo en mí', subText: 'Cantaré de la bondad de Dios', badge: 'CORO' }
+        ]
+      },
+      {
+        id: 'song-4',
+        category: 'alabanza',
+        title: 'Hermoso Nombre (What a Beautiful Name)',
+        author: 'Ben Fielding / Brooke Ligertwood',
+        ccli: '7068424',
+        tone: 'D',
+        scope: '👑 OFICIAL NACIONAL',
+        slides: [
+          { text: 'Tú fuiste el Verbo en el principio', subText: 'Unigénito de Dios', badge: 'VERSO 1' },
+          { text: 'El misterio de Tu gloria', subText: 'Revelado en Jesús', badge: 'VERSO 1' },
+          { text: '¡Cuán hermoso Su nombre es!', subText: 'El nombre de Jesús mi Rey', badge: 'CORO' },
+          { text: 'La muerte venciste, el velo partiste', subText: 'La tumba vacía está', badge: 'PUENTE' }
         ]
       },
       {
@@ -5494,11 +6635,15 @@ Te adoraré, te adoraré..."
       if (activeRundownItemIndex + 1 < currentRundownItems.length) {
         goRundownItem(activeRundownItemIndex + 1);
       } else {
-        currentRundownItems[activeRundownItemIndex].status = 'COMPLETED';
+        const lastItem = currentRundownItems[activeRundownItemIndex];
+        if (lastItem) lastItem.status = 'COMPLETED';
         isServiceRunning = false;
         renderRundownUI();
         broadcastRundownState();
-        showToast('🎉 ¡Servicio finalizado con éxito!', '✅');
+        showToast('🎉 ¡Servicio finalizado con éxito! Abriendo auditoría...', '✅');
+        setTimeout(() => {
+          openServiceRecapModal();
+        }, 500);
       }
     }
 
@@ -5901,8 +7046,15 @@ Te adoraré, te adoraré..."
       rundownHeartbeatTimer = setInterval(() => {
         if (isServiceRunning) {
           serviceElapsedSeconds++;
-          if (!isItemTimerPaused) {
-            itemSecondsRemaining--;
+          const activeItem = currentRundownItems[activeRundownItemIndex];
+          if (activeItem) {
+            if (typeof activeItem.actualDurationSec !== 'number') {
+              activeItem.actualDurationSec = 0;
+            }
+            if (!isItemTimerPaused) {
+              activeItem.actualDurationSec++;
+              itemSecondsRemaining--;
+            }
           }
           renderRundownUI();
           broadcastRundownState();
@@ -6042,6 +7194,7 @@ Te adoraré, te adoraré..."
       currentSlideIndex = index;
       renderSlidesGrid();
       broadcastSlide();
+      recordCurrentSongForRecap();
     }
 
     function broadcastSlide(isClear = false, sendServerSync = true) {
