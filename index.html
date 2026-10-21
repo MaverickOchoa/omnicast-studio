@@ -3181,31 +3181,42 @@ Te adoraré, te adoraré..."
               </div>
               <select id="hwDeviceSelect-1" onchange="handleDeviceSelectChange(1)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:border-emerald-500 outline-none">
                 <option value="sim_1">✨ Simulación: Púlpito con luces dinámicas</option>
-                <option value="ninja">🥷 OBS Ninja / VDO.Ninja (URL Remota Celular/Laptop)</option>
+                <option value="mobile">📱 OmniCast Mobile Cam (WiFi Local + Tally + QR)</option>
                 <option value="screen">🖥️ Compartir Pantalla / Diapositivas</option>
               </select>
-              <!-- OBS Ninja Input Group 1 -->
-              <div id="ninjaInputGroup-1" class="hidden flex flex-col gap-1.5 p-2.5 rounded-lg bg-slate-950/90 border border-sky-500/40">
-                <div class="flex items-center justify-between text-[11px]">
-                  <span class="text-sky-300 font-bold flex items-center gap-1">
-                    <i data-lucide="link" class="w-3 h-3"></i> Enlace OBS Ninja / VDO.Ninja (CAM 1)
-                  </span>
-                  <a href="https://vdo.ninja" target="_blank" class="text-slate-400 hover:text-sky-400 flex items-center gap-0.5 text-[10px]">
-                    Abrir vdo.ninja <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
-                  </a>
+              <!-- OmniCast Mobile Cam Group 1 -->
+              <div id="mobileCamGroup-1" class="hidden flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/40 shadow-lg">
+                <!-- QR Code Box -->
+                <div class="bg-white p-1 rounded-lg shrink-0 shadow flex items-center justify-center">
+                  <canvas id="mobileCamQrCanvas-1" width="100" height="100" class="w-24 h-24 block"></canvas>
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <input type="text" id="ninjaUrlInput-1" placeholder="Ej: https://vdo.ninja/?view=XXXXX o sólo ID 'camara1'"
-                         class="flex-1 bg-slate-900 border border-slate-700 focus:border-sky-500 rounded px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none font-mono">
-                  <button onclick="applyNinjaUrl(1)" class="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shrink-0 transition shadow flex items-center gap-1 active:scale-95">
-                    <i data-lucide="plug" class="w-3 h-3"></i> Conectar
-                  </button>
+                <!-- Details & Actions -->
+                <div class="flex-1 flex flex-col gap-1.5 w-full">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <i data-lucide="smartphone" class="w-3.5 h-3.5"></i> OmniCast Mobile Cam (CAM 1)
+                    </span>
+                    <span id="mobileCamStatusBadge-1" class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-bold">
+                      ⚪ Esperando Celular
+                    </span>
+                  </div>
+                  <p class="text-[10px] text-slate-400">
+                    Escanea este código con cualquier iPhone o Android en la misma red WiFi para transmitir en vivo con luz Tally.
+                  </p>
+                  <div class="flex items-center gap-1.5 pt-0.5">
+                    <input type="text" id="mobileCamUrlInput-1" readonly
+                           class="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[10px] text-slate-300 font-mono select-all">
+                    <button onclick="copyMobileCamUrl(1)" title="Copiar enlace"
+                            class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold border border-slate-700 shrink-0 transition active:scale-95">
+                      Copiar
+                    </button>
+                    <a id="mobileCamTestLink-1" href="/cam.html?id=1" target="_blank"
+                       class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold shrink-0 transition flex items-center gap-1 active:scale-95 shadow">
+                      <i data-lucide="external-link" class="w-3 h-3"></i> Probar
+                    </a>
+                  </div>
                 </div>
-                <span class="text-[9.5px] text-slate-400">
-                  💡 Abre <b>vdo.ninja</b> en el celular &gt; <i>"Share your Camera"</i> &gt; copia el enlace <b>view</b> o el ID aquí.
-                </span>
               </div>
-            </div>
 
             <!-- CAM 2 -->
             <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition space-y-2">
@@ -3221,31 +3232,42 @@ Te adoraré, te adoraré..."
               </div>
               <select id="hwDeviceSelect-2" onchange="handleDeviceSelectChange(2)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:border-emerald-500 outline-none">
                 <option value="sim_2">✨ Simulación: Altar y Cruz Iluminada</option>
-                <option value="ninja">🥷 OBS Ninja / VDO.Ninja (URL Remota Celular/Laptop)</option>
+                <option value="mobile">📱 OmniCast Mobile Cam (WiFi Local + Tally + QR)</option>
                 <option value="screen">🖥️ Compartir Pantalla / Diapositivas</option>
               </select>
-              <!-- OBS Ninja Input Group 2 -->
-              <div id="ninjaInputGroup-2" class="hidden flex flex-col gap-1.5 p-2.5 rounded-lg bg-slate-950/90 border border-sky-500/40">
-                <div class="flex items-center justify-between text-[11px]">
-                  <span class="text-sky-300 font-bold flex items-center gap-1">
-                    <i data-lucide="link" class="w-3 h-3"></i> Enlace OBS Ninja / VDO.Ninja (CAM 2)
-                  </span>
-                  <a href="https://vdo.ninja" target="_blank" class="text-slate-400 hover:text-sky-400 flex items-center gap-0.5 text-[10px]">
-                    Abrir vdo.ninja <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
-                  </a>
+              <!-- OmniCast Mobile Cam Group 2 -->
+              <div id="mobileCamGroup-2" class="hidden flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/40 shadow-lg">
+                <!-- QR Code Box -->
+                <div class="bg-white p-1 rounded-lg shrink-0 shadow flex items-center justify-center">
+                  <canvas id="mobileCamQrCanvas-2" width="100" height="100" class="w-24 h-24 block"></canvas>
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <input type="text" id="ninjaUrlInput-2" placeholder="Ej: https://vdo.ninja/?view=XXXXX o sólo ID 'camara2'"
-                         class="flex-1 bg-slate-900 border border-slate-700 focus:border-sky-500 rounded px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none font-mono">
-                  <button onclick="applyNinjaUrl(2)" class="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shrink-0 transition shadow flex items-center gap-1 active:scale-95">
-                    <i data-lucide="plug" class="w-3 h-3"></i> Conectar
-                  </button>
+                <!-- Details & Actions -->
+                <div class="flex-1 flex flex-col gap-1.5 w-full">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <i data-lucide="smartphone" class="w-3.5 h-3.5"></i> OmniCast Mobile Cam (CAM 2)
+                    </span>
+                    <span id="mobileCamStatusBadge-2" class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-bold">
+                      ⚪ Esperando Celular
+                    </span>
+                  </div>
+                  <p class="text-[10px] text-slate-400">
+                    Escanea este código con cualquier iPhone o Android en la misma red WiFi para transmitir en vivo con luz Tally.
+                  </p>
+                  <div class="flex items-center gap-1.5 pt-0.5">
+                    <input type="text" id="mobileCamUrlInput-2" readonly
+                           class="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[10px] text-slate-300 font-mono select-all">
+                    <button onclick="copyMobileCamUrl(2)" title="Copiar enlace"
+                            class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold border border-slate-700 shrink-0 transition active:scale-95">
+                      Copiar
+                    </button>
+                    <a id="mobileCamTestLink-2" href="/cam.html?id=2" target="_blank"
+                       class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold shrink-0 transition flex items-center gap-1 active:scale-95 shadow">
+                      <i data-lucide="external-link" class="w-3 h-3"></i> Probar
+                    </a>
+                  </div>
                 </div>
-                <span class="text-[9.5px] text-slate-400">
-                  💡 Abre <b>vdo.ninja</b> en el celular &gt; <i>"Share your Camera"</i> &gt; copia el enlace <b>view</b> o el ID aquí.
-                </span>
               </div>
-            </div>
 
             <!-- CAM 3 -->
             <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition space-y-2">
@@ -3261,31 +3283,42 @@ Te adoraré, te adoraré..."
               </div>
               <select id="hwDeviceSelect-3" onchange="handleDeviceSelectChange(3)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:border-emerald-500 outline-none">
                 <option value="sim_3">✨ Simulación: Banda de Músicos</option>
-                <option value="ninja">🥷 OBS Ninja / VDO.Ninja (URL Remota Celular/Laptop)</option>
+                <option value="mobile">📱 OmniCast Mobile Cam (WiFi Local + Tally + QR)</option>
                 <option value="screen">🖥️ Compartir Pantalla / Diapositivas</option>
               </select>
-              <!-- OBS Ninja Input Group 3 -->
-              <div id="ninjaInputGroup-3" class="hidden flex flex-col gap-1.5 p-2.5 rounded-lg bg-slate-950/90 border border-sky-500/40">
-                <div class="flex items-center justify-between text-[11px]">
-                  <span class="text-sky-300 font-bold flex items-center gap-1">
-                    <i data-lucide="link" class="w-3 h-3"></i> Enlace OBS Ninja / VDO.Ninja (CAM 3)
-                  </span>
-                  <a href="https://vdo.ninja" target="_blank" class="text-slate-400 hover:text-sky-400 flex items-center gap-0.5 text-[10px]">
-                    Abrir vdo.ninja <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
-                  </a>
+              <!-- OmniCast Mobile Cam Group 3 -->
+              <div id="mobileCamGroup-3" class="hidden flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/40 shadow-lg">
+                <!-- QR Code Box -->
+                <div class="bg-white p-1 rounded-lg shrink-0 shadow flex items-center justify-center">
+                  <canvas id="mobileCamQrCanvas-3" width="100" height="100" class="w-24 h-24 block"></canvas>
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <input type="text" id="ninjaUrlInput-3" placeholder="Ej: https://vdo.ninja/?view=XXXXX o sólo ID 'camara3'"
-                         class="flex-1 bg-slate-900 border border-slate-700 focus:border-sky-500 rounded px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none font-mono">
-                  <button onclick="applyNinjaUrl(3)" class="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shrink-0 transition shadow flex items-center gap-1 active:scale-95">
-                    <i data-lucide="plug" class="w-3 h-3"></i> Conectar
-                  </button>
+                <!-- Details & Actions -->
+                <div class="flex-1 flex flex-col gap-1.5 w-full">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <i data-lucide="smartphone" class="w-3.5 h-3.5"></i> OmniCast Mobile Cam (CAM 3)
+                    </span>
+                    <span id="mobileCamStatusBadge-3" class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-bold">
+                      ⚪ Esperando Celular
+                    </span>
+                  </div>
+                  <p class="text-[10px] text-slate-400">
+                    Escanea este código con cualquier iPhone o Android en la misma red WiFi para transmitir en vivo con luz Tally.
+                  </p>
+                  <div class="flex items-center gap-1.5 pt-0.5">
+                    <input type="text" id="mobileCamUrlInput-3" readonly
+                           class="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[10px] text-slate-300 font-mono select-all">
+                    <button onclick="copyMobileCamUrl(3)" title="Copiar enlace"
+                            class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold border border-slate-700 shrink-0 transition active:scale-95">
+                      Copiar
+                    </button>
+                    <a id="mobileCamTestLink-3" href="/cam.html?id=3" target="_blank"
+                       class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold shrink-0 transition flex items-center gap-1 active:scale-95 shadow">
+                      <i data-lucide="external-link" class="w-3 h-3"></i> Probar
+                    </a>
+                  </div>
                 </div>
-                <span class="text-[9.5px] text-slate-400">
-                  💡 Abre <b>vdo.ninja</b> en el celular &gt; <i>"Share your Camera"</i> &gt; copia el enlace <b>view</b> o el ID aquí.
-                </span>
               </div>
-            </div>
 
             <!-- CAM 4 -->
             <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition space-y-2">
@@ -3301,31 +3334,42 @@ Te adoraré, te adoraré..."
               </div>
               <select id="hwDeviceSelect-4" onchange="handleDeviceSelectChange(4)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-slate-200 focus:border-emerald-500 outline-none">
                 <option value="sim_4">✨ Simulación: Compositor PiP 70/30 (Pastor + Diapositivas)</option>
-                <option value="ninja">🥷 OBS Ninja / VDO.Ninja (URL Remota Celular/Laptop)</option>
+                <option value="mobile">📱 OmniCast Mobile Cam (WiFi Local + Tally + QR)</option>
                 <option value="screen">🖥️ Compartir Pantalla / Diapositivas</option>
               </select>
-              <!-- OBS Ninja Input Group 4 -->
-              <div id="ninjaInputGroup-4" class="hidden flex flex-col gap-1.5 p-2.5 rounded-lg bg-slate-950/90 border border-sky-500/40">
-                <div class="flex items-center justify-between text-[11px]">
-                  <span class="text-sky-300 font-bold flex items-center gap-1">
-                    <i data-lucide="link" class="w-3 h-3"></i> Enlace OBS Ninja / VDO.Ninja (CAM 4)
-                  </span>
-                  <a href="https://vdo.ninja" target="_blank" class="text-slate-400 hover:text-sky-400 flex items-center gap-0.5 text-[10px]">
-                    Abrir vdo.ninja <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
-                  </a>
+              <!-- OmniCast Mobile Cam Group 4 -->
+              <div id="mobileCamGroup-4" class="hidden flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/40 shadow-lg">
+                <!-- QR Code Box -->
+                <div class="bg-white p-1 rounded-lg shrink-0 shadow flex items-center justify-center">
+                  <canvas id="mobileCamQrCanvas-4" width="100" height="100" class="w-24 h-24 block"></canvas>
                 </div>
-                <div class="flex items-center gap-1.5">
-                  <input type="text" id="ninjaUrlInput-4" placeholder="Ej: https://vdo.ninja/?view=XXXXX o sólo ID 'camara4'"
-                         class="flex-1 bg-slate-900 border border-slate-700 focus:border-sky-500 rounded px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none font-mono">
-                  <button onclick="applyNinjaUrl(4)" class="px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shrink-0 transition shadow flex items-center gap-1 active:scale-95">
-                    <i data-lucide="plug" class="w-3 h-3"></i> Conectar
-                  </button>
+                <!-- Details & Actions -->
+                <div class="flex-1 flex flex-col gap-1.5 w-full">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <i data-lucide="smartphone" class="w-3.5 h-3.5"></i> OmniCast Mobile Cam (CAM 4)
+                    </span>
+                    <span id="mobileCamStatusBadge-4" class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-bold">
+                      ⚪ Esperando Celular
+                    </span>
+                  </div>
+                  <p class="text-[10px] text-slate-400">
+                    Escanea este código con cualquier iPhone o Android en la misma red WiFi para transmitir en vivo con luz Tally.
+                  </p>
+                  <div class="flex items-center gap-1.5 pt-0.5">
+                    <input type="text" id="mobileCamUrlInput-4" readonly
+                           class="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[10px] text-slate-300 font-mono select-all">
+                    <button onclick="copyMobileCamUrl(4)" title="Copiar enlace"
+                            class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold border border-slate-700 shrink-0 transition active:scale-95">
+                      Copiar
+                    </button>
+                    <a id="mobileCamTestLink-4" href="/cam.html?id=4" target="_blank"
+                       class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold shrink-0 transition flex items-center gap-1 active:scale-95 shadow">
+                      <i data-lucide="external-link" class="w-3 h-3"></i> Probar
+                    </a>
+                  </div>
                 </div>
-                <span class="text-[9.5px] text-slate-400">
-                  💡 Abre <b>vdo.ninja</b> en el celular &gt; <i>"Share your Camera"</i> &gt; copia el enlace <b>view</b> o el ID aquí.
-                </span>
               </div>
-            </div>
 
             <!-- AUDIO MASTER INPUT (Capa 5) -->
             <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition space-y-2">
@@ -8800,7 +8844,7 @@ Pues resucitaste, Rey`
         if (!select) continue;
 
         const cfg = hardwareConfig.channels[ch] || {};
-        const currentVal = cfg.type === 'ninja' ? 'ninja' : (cfg.deviceId || (cfg.type === 'screen' ? 'screen' : `sim_${ch}`));
+        const currentVal = (cfg.type === 'mobile' || cfg.type === 'ninja') ? 'mobile' : (cfg.deviceId || (cfg.type === 'screen' ? 'screen' : `sim_${ch}`));
         select.innerHTML = '';
 
         const simNames = {
@@ -8814,10 +8858,10 @@ Pues resucitaste, Rey`
         optSim.textContent = simNames[ch];
         select.appendChild(optSim);
 
-        const optNinja = document.createElement('option');
-        optNinja.value = 'ninja';
-        optNinja.textContent = '🥷 OBS Ninja / VDO.Ninja (URL Remota Celular/Laptop)';
-        select.appendChild(optNinja);
+        const optMobile = document.createElement('option');
+        optMobile.value = 'mobile';
+        optMobile.textContent = '📱 OmniCast Mobile Cam (WiFi Local + Tally + QR)';
+        select.appendChild(optMobile);
 
         const optScreen = document.createElement('option');
         optScreen.value = 'screen';
@@ -8906,32 +8950,23 @@ Pues resucitaste, Rey`
       const val = select.value;
       const ninjaGroup = document.getElementById(`ninjaInputGroup-${ch}`);
 
-      if (val === 'ninja') {
-        if (ninjaGroup) ninjaGroup.classList.remove('hidden');
-        const input = document.getElementById(`ninjaUrlInput-${ch}`);
-        const existingUrl = hardwareConfig.channels[ch].ninjaUrl || '';
-        const existingRaw = hardwareConfig.channels[ch].ninjaRawUrl || '';
-        if (input && !input.value && (existingRaw || existingUrl)) {
-          input.value = existingRaw || existingUrl;
-        }
-        const raw = (input && input.value) ? input.value : (existingRaw || existingUrl || 'camara' + ch);
-        const cleanUrl = normalizeNinjaUrl(raw);
-        const streamId = extractNinjaStreamId(raw);
+      if (val === 'mobile' || val === 'ninja') {
+        const mobileGroup = document.getElementById(`mobileCamGroup-${ch}`);
+        if (mobileGroup) mobileGroup.classList.remove('hidden');
 
         hardwareConfig.channels[ch] = {
-          type: 'ninja',
-          deviceId: 'ninja',
-          ninjaUrl: cleanUrl,
-          ninjaRawUrl: raw,
-          ninjaStreamId: streamId,
-          label: `Ninja: ${streamId}`,
-          sourceDesc: '🥷 OBS Ninja WebRTC'
+          type: 'mobile',
+          deviceId: `mobile_${ch}`,
+          label: `Celular CAM ${ch}`,
+          sourceDesc: '📱 OmniCast Mobile Cam'
         };
         stopChannelStream(ch);
+        generateMobileCamQR(ch);
+        initStudioWebRTCForChannel(ch);
         previewTestChannel(ch);
 
       } else {
-        if (ninjaGroup) ninjaGroup.classList.add('hidden');
+        const mobileGroup = document.getElementById(`mobileCamGroup-${ch}`); if (mobileGroup) mobileGroup.classList.add('hidden');
 
         if (val === `sim_${ch}`) {
           hardwareConfig.channels[ch] = {
@@ -9386,6 +9421,7 @@ Pues resucitaste, Rey`
 
     // CUT Transition: Transfers Preview to Program instantly!
     function executeCutTransition() {
+      setTimeout(syncMobileCamTally, 50);
       for (let l = 1; l <= 5; l++) {
         wirecastState.program[l] = wirecastState.preview[l];
       }
@@ -9400,9 +9436,11 @@ Pues resucitaste, Rey`
     }
 
     function executeDissolveTransition() {
+      setTimeout(syncMobileCamTally, 50);
       executeCutTransition();
     }
     function executeSmoothTransition() {
+      setTimeout(syncMobileCamTally, 50);
       executeCutTransition();
     }
 
@@ -9435,7 +9473,7 @@ Pues resucitaste, Rey`
       // Check if camera shot is OBS Ninja
       const camShot = state[4];
       const camCfg = hardwareConfig.channels[camShot];
-      const isNinja = Boolean(layerPower[4] && camCfg && camCfg.type === 'ninja' && camCfg.ninjaUrl);
+      const isNinja = false; // OmniCast Mobile Cam draws natively via Canvas without iframes
 
       const ninjaLayer = isProgram ? document.getElementById('ninjaProgramLayer') : document.getElementById('ninjaPreviewLayer');
       const ninjaIframe = isProgram ? document.getElementById('ninjaProgramIframe') : document.getElementById('ninjaPreviewIframe');
@@ -10092,6 +10130,229 @@ Pues resucitaste, Rey`
       requestAnimationFrame(renderCompositor);
     }
     requestAnimationFrame(renderCompositor);
+
+    
+    // =========================================================================
+    // OMNICAST MOBILE CAM ENGINE (LOCAL WEBRTC, DYNAMIC QR & LIVE TALLY)
+    // =========================================================================
+    const studioPeerConnections = {};
+    let cachedLocalServerInfo = null;
+
+    async function fetchServerNetworkInfo() {
+      if (cachedLocalServerInfo) return cachedLocalServerInfo;
+      try {
+        const res = await fetch('/api/info');
+        if (res.ok) {
+          cachedLocalServerInfo = await res.json();
+          return cachedLocalServerInfo;
+        }
+      } catch (e) {
+        console.warn('Could not fetch /api/info:', e);
+      }
+      return {
+        primaryIp: window.location.hostname || 'localhost',
+        port: window.location.port || '3000',
+        httpsPort: '3443'
+      };
+    }
+
+    async function generateMobileCamQR(ch) {
+      const canvas = document.getElementById(`mobileCamQrCanvas-${ch}`);
+      const input = document.getElementById(`mobileCamUrlInput-${ch}`);
+      const link = document.getElementById(`mobileCamTestLink-${ch}`);
+      const info = await fetchServerNetworkInfo();
+
+      // Prefer HTTPS port for mobile camera secure context (or fall back to current protocol)
+      const ip = info.primaryIp || window.location.hostname;
+      const port = info.httpsPort || '3443';
+      const camUrl = `https://${ip}:${port}/cam.html?id=${ch}`;
+
+      if (input) input.value = camUrl;
+      if (link) link.href = `/cam.html?id=${ch}`;
+
+      if (window.QRCode && canvas) {
+        QRCode.toCanvas(canvas, camUrl, {
+          width: 96,
+          margin: 1,
+          color: { dark: '#020617', light: '#ffffff' }
+        }, (err) => {
+          if (err) console.warn('QR error:', err);
+        });
+      }
+    }
+
+    function copyMobileCamUrl(ch) {
+      const input = document.getElementById(`mobileCamUrlInput-${ch}`);
+      if (!input || !input.value) return;
+      navigator.clipboard.writeText(input.value).then(() => {
+        showToast(`✓ Enlace de Cámara Móvil CAM ${ch} copiado`);
+      }).catch(() => {
+        alert(input.value);
+      });
+    }
+
+    function initStudioWebRTCForChannel(ch) {
+      // Connect signaling listener if not already connected
+      connectStudioCamSignaling();
+    }
+
+    let studioCamEventsConnected = false;
+    function connectStudioCamSignaling() {
+      if (studioCamEventsConnected) return;
+      studioCamEventsConnected = true;
+
+      const evtSource = new EventSource('/api/events');
+      
+      evtSource.addEventListener('cam_signal', async (e) => {
+        try {
+          const sig = JSON.parse(e.data);
+          if (sig.from === 'phone') {
+            handleIncomingPhoneSignal(sig);
+          }
+        } catch (err) {}
+      });
+
+      evtSource.addEventListener('cam_status', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          updateMobileCamTelemetryUI(data.camId, data.status);
+        } catch (err) {}
+      });
+
+      // Polling fallback
+      setInterval(async () => {
+        try {
+          const res = await fetch('/api/cam/poll?from=studio');
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.signals)) {
+              for (const sig of data.signals) {
+                if (sig.from === 'phone') {
+                  handleIncomingPhoneSignal(sig);
+                }
+              }
+            }
+          }
+        } catch (e) {}
+      }, 1500);
+    }
+
+    async function handleIncomingPhoneSignal(sig) {
+      const ch = sig.camId;
+      if (!ch) return;
+
+      const rtcConfig = {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      };
+
+      if (sig.type === 'offer') {
+        if (studioPeerConnections[ch]) {
+          try { studioPeerConnections[ch].close(); } catch(e) {}
+        }
+
+        const pc = new RTCPeerConnection(rtcConfig);
+        studioPeerConnections[ch] = pc;
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            sendStudioSignal(ch, {
+              camId: ch,
+              from: 'studio',
+              type: 'candidate',
+              candidate: event.candidate
+            });
+          }
+        };
+
+        pc.ontrack = (event) => {
+          const stream = event.streams[0];
+          activeHardwareStreams[ch] = stream;
+          const hwVid = document.getElementById(`hwVideo-${ch}`);
+          if (hwVid) {
+            hwVid.srcObject = stream;
+            hwVid.play().catch(() => {});
+          }
+          updateMobileCamStatusBadge(ch, true);
+          updateChannelBadge(ch);
+          updateRackChannelLabels(ch);
+          showToast(`📱 Cámara Móvil CAM ${ch} conectada`);
+          syncMobileCamTally();
+        };
+
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(sig.sdp));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+
+          sendStudioSignal(ch, {
+            camId: ch,
+            from: 'studio',
+            type: 'answer',
+            sdp: answer
+          });
+        } catch (err) {
+          console.error(`Error handling offer for Cam ${ch}:`, err);
+        }
+
+      } else if (sig.type === 'candidate' && sig.candidate) {
+        const pc = studioPeerConnections[ch];
+        if (pc) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(sig.candidate));
+          } catch (e) {
+            console.warn('ICE add error:', e);
+          }
+        }
+      }
+    }
+
+    async function sendStudioSignal(ch, msg) {
+      try {
+        await fetch('/api/cam/signal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(msg)
+        });
+      } catch (e) {}
+    }
+
+    function updateMobileCamStatusBadge(ch, isConnected) {
+      const badge = document.getElementById(`mobileCamStatusBadge-${ch}`);
+      if (!badge) return;
+      if (isConnected) {
+        badge.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold';
+        badge.textContent = '🟢 Celular Conectado';
+      } else {
+        badge.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-bold';
+        badge.textContent = '⚪ Esperando Celular';
+      }
+    }
+
+    function updateMobileCamTelemetryUI(ch, status) {
+      if (!status) return;
+      const badge = document.getElementById(`mobileCamStatusBadge-${ch}`);
+      if (badge && status.connected) {
+        const batt = (status.battery !== null && status.battery !== undefined) ? ` | 🔋 ${status.battery}%` : '';
+        badge.className = 'text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold';
+        badge.textContent = `🟢 En Línea${batt}`;
+      }
+    }
+
+    // Sync Live Tally with Connected Mobile Cameras
+    function syncMobileCamTally() {
+      const programCam = (layerPower[4] ? wirecastState.program[4] : 0);
+      const previewCam = (layerPower[4] ? wirecastState.preview[4] : 0);
+
+      fetch('/api/cam/tally', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ programCam, previewCam })
+      }).catch(() => {});
+    }
+
 
     // -------------------------------------------------------------------------
     // MULTI-DESTINATION STREAMING CREDENTIALS

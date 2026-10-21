@@ -1,9 +1,11 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 const PORT = process.env.PORT || 3000;
+const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 const MIME_TYPES = {
@@ -31,6 +33,18 @@ let studioState = {
   lastServiceRecap: null,
   libraryItems: []
 };
+
+// Mobile Cameras & WebRTC State (OmniCast Mobile Cam)
+let mobileCamsState = {
+  1: { connected: false, name: 'Cámara 1 (Púlpito)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
+  2: { connected: false, name: 'Cámara 2 (Altar)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
+  3: { connected: false, name: 'Cámara 3 (Músicos)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
+  4: { connected: false, name: 'Cámara 4 (Móvil)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 }
+};
+
+let currentTallyState = { programCam: 0, previewCam: 0 };
+const camSignalsForStudio = []; // Signals from phones for studio
+const camSignalsForPhones = { 1: [], 2: [], 3: [], 4: [] }; // Signals from studio for phones
 
 // Connected SSE clients (phones, iPads, stage monitors, studio)
 const sseClients = new Set();
@@ -71,7 +85,8 @@ function getLocalIpAddresses() {
   return addresses;
 }
 
-const server = http.createServer((req, res) => {
+// Master Request Handler (shared by both HTTP and HTTPS listeners)
+const requestHandler = (req, res) => {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -93,16 +108,29 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({
       primaryIp,
       port: PORT,
+      httpsPort: HTTPS_PORT,
       allIps: ips,
       remoteUrl: `http://${primaryIp}:${PORT}/remote.html`,
       stageUrl: `http://${primaryIp}:${PORT}/stage.html`,
       projectorUrl: `http://${primaryIp}:${PORT}/projector.html`,
-      tvUrl: `http://${primaryIp}:${PORT}/tv.html`
+      tvUrl: `http://${primaryIp}:${PORT}/tv.html`,
+      camUrls: {
+        1: `http://${primaryIp}:${PORT}/cam.html?id=1`,
+        2: `http://${primaryIp}:${PORT}/cam.html?id=2`,
+        3: `http://${primaryIp}:${PORT}/cam.html?id=3`,
+        4: `http://${primaryIp}:${PORT}/cam.html?id=4`
+      },
+      camHttpsUrls: {
+        1: `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=1`,
+        2: `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=2`,
+        3: `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=3`,
+        4: `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=4`
+      }
     }));
     return;
   }
 
-  // API 2: Server-Sent Events (Live WiFi Push to phones/iPads)
+  // API 2: Server-Sent Events (Live WiFi Push to phones/iPads/Studio)
   if (parsedUrl === '/api/events') {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -112,6 +140,7 @@ const server = http.createServer((req, res) => {
     sseClients.add(res);
     // Send immediate current state
     res.write(`event: state\ndata: ${JSON.stringify(studioState)}\n\n`);
+    res.write(`event: cam_tally\ndata: ${JSON.stringify(currentTallyState)}\n\n`);
 
     req.on('close', () => {
       sseClients.delete(res);
@@ -214,6 +243,107 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // =========================================================================
+  // OMNICAST MOBILE CAM: WEBRTC SIGNALING & TALLY ENDPOINTS
+  // =========================================================================
+
+  // Endpoint: Exchange WebRTC Signal (Offer / Answer / ICE Candidate)
+  if (parsedUrl === '/api/cam/signal' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const sig = JSON.parse(body);
+        const camId = parseInt(sig.camId || 1, 10);
+        if (sig.from === 'phone') {
+          camSignalsForStudio.push(sig);
+          broadcastSSE('cam_signal', sig);
+        } else if (sig.from === 'studio') {
+          if (!camSignalsForPhones[camId]) camSignalsForPhones[camId] = [];
+          camSignalsForPhones[camId].push(sig);
+          broadcastSSE('cam_signal', sig);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // Endpoint: Poll WebRTC Signals & Tally Status
+  if (parsedUrl === '/api/cam/poll' && req.method === 'GET') {
+    const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const camId = parseInt(fullUrl.searchParams.get('id') || '1', 10);
+    const from = fullUrl.searchParams.get('from') || 'phone';
+
+    let signals = [];
+    if (from === 'phone') {
+      // Phone is asking for signals from studio
+      signals = camSignalsForPhones[camId] || [];
+      camSignalsForPhones[camId] = [];
+    } else {
+      // Studio is asking for signals from phones
+      signals = camSignalsForStudio.splice(0, camSignalsForStudio.length);
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      signals,
+      tally: currentTallyState,
+      cams: mobileCamsState
+    }));
+    return;
+  }
+
+  // Endpoint: Update Mobile Camera Telemetry (Battery, Device Name, etc.)
+  if (parsedUrl === '/api/cam/status' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const status = JSON.parse(body);
+        const camId = parseInt(status.camId || 1, 10);
+        if (mobileCamsState[camId]) {
+          mobileCamsState[camId].connected = true;
+          mobileCamsState[camId].lastPing = Date.now();
+          if (status.battery !== undefined) mobileCamsState[camId].battery = status.battery;
+          if (status.facingMode) mobileCamsState[camId].facingMode = status.facingMode;
+          if (status.userAgent) mobileCamsState[camId].userAgent = status.userAgent;
+        }
+        broadcastSSE('cam_status', { camId, status: mobileCamsState[camId] });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // Endpoint: Update Live Tally from Studio
+  if (parsedUrl === '/api/cam/tally' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const tally = JSON.parse(body);
+        currentTallyState.programCam = parseInt(tally.programCam || 0, 10);
+        currentTallyState.previewCam = parseInt(tally.previewCam || 0, 10);
+        broadcastSSE('cam_tally', currentTallyState);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, tally: currentTallyState }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
   // API 6: Service Recap (Post-Culto & CCLI Licensing Audit)
   if (parsedUrl === '/api/recap') {
     if (req.method === 'GET') {
@@ -268,9 +398,11 @@ const server = http.createServer((req, res) => {
     const readStream = fs.createReadStream(filePath);
     readStream.pipe(res);
   });
-});
+};
 
-server.listen(PORT, '0.0.0.0', () => {
+// Start Standard HTTP Server (Port 3000)
+const httpServer = http.createServer(requestHandler);
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log('\n========================================================');
   console.log('       📡 OMNICAST STUDIO - SERVIDOR LOCAL ACTIVO       ');
   console.log('========================================================');
@@ -284,6 +416,32 @@ server.listen(PORT, '0.0.0.0', () => {
     });
     console.log(`\n  ► Control Remoto Celular / iPad:`);
     console.log(`     http://${localIps[0]}:${PORT}/remote.html`);
+    console.log(`\n  ► OmniCast Mobile Cam (Cámaras de Celular):`);
+    console.log(`     http://${localIps[0]}:${PORT}/cam.html?id=1`);
   }
   console.log('\n========================================================\n');
 });
+
+// Start Secure HTTPS Server (Port 3443 for Mobile Cameras Secure Context)
+const keyPath = path.join(__dirname, 'server.key');
+const certPath = path.join(__dirname, 'server.crt');
+
+if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+  try {
+    const sslOptions = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath)
+    };
+    const httpsServer = https.createServer(sslOptions, requestHandler);
+    httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+      console.log(`  🔒 HTTPS Seguro Activo para Cámaras Móviles:`);
+      const localIps = getLocalIpAddresses();
+      if (localIps.length > 0) {
+        console.log(`     https://${localIps[0]}:${HTTPS_PORT}/cam.html?id=1`);
+      }
+      console.log('========================================================\n');
+    });
+  } catch (e) {
+    console.warn('Advertencia: No se pudo iniciar el servidor HTTPS:', e.message);
+  }
+}

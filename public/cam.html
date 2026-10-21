@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>OmniCast Mobile Cam</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .tally-program-glow {
+      box-shadow: inset 0 0 60px rgba(239, 68, 68, 0.8), 0 0 40px rgba(239, 68, 68, 0.6);
+      border-color: #ef4444 !important;
+      animation: pulseProgram 2s infinite ease-in-out;
+    }
+    .tally-preview-glow {
+      box-shadow: inset 0 0 60px rgba(16, 185, 129, 0.8), 0 0 40px rgba(16, 185, 129, 0.6);
+      border-color: #10b981 !important;
+    }
+    @keyframes pulseProgram {
+      0%, 100% { border-color: #ef4444; }
+      50% { border-color: #f87171; }
+    }
+  </style>
+</head>
+<body class="bg-black text-white h-screen w-screen overflow-hidden flex flex-col justify-between">
+
+  <!-- ========================================================================= -->
+  <!-- TOP TALLY BAR & HEADER                                                    -->
+  <!-- ========================================================================= -->
+  <header id="topTallyHeader" class="z-20 bg-slate-950/90 backdrop-blur border-b border-slate-800 px-3 py-2 flex items-center justify-between transition-all duration-300">
+    <div class="flex items-center gap-2">
+      <!-- Status Beacon -->
+      <span id="tallyBeacon" class="w-3 h-3 rounded-full bg-slate-600"></span>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <span id="camIdBadge" class="text-xs font-black tracking-wider uppercase text-amber-400 font-mono">CAM 1</span>
+          <span id="tallyStatusText" class="text-[11px] font-bold text-slate-300 uppercase tracking-wide">⚪ En Espera</span>
+        </div>
+        <p id="tallySubText" class="text-[9px] text-slate-400 font-mono leading-tight">Conectando a OmniCast Studio...</p>
+      </div>
+    </div>
+
+    <!-- Battery & FPS badge -->
+    <div class="flex items-center gap-2">
+      <div id="batteryPill" class="flex items-center gap-1 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-[10px] font-mono text-slate-300">
+        <i data-lucide="battery" class="w-3 h-3 text-emerald-400"></i>
+        <span id="batteryText">--%</span>
+      </div>
+      <div id="resPill" class="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded text-[10px] font-mono text-sky-400 font-bold">
+        1080p
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- CENTER VIEWFINDER & TALLY GLOW FRAME                                      -->
+  <!-- ========================================================================= -->
+  <main id="tallyContainer" class="relative flex-1 bg-black overflow-hidden flex items-center justify-center border-4 border-slate-800 transition-all duration-300 m-1 rounded-2xl">
+    
+    <!-- Live Viewfinder Video -->
+    <video id="viewfinderVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
+
+    <!-- Center Tally Overlay Notification (When Live on Program) -->
+    <div id="liveAlertBanner" class="hidden absolute top-4 inset-x-4 bg-red-600/95 backdrop-blur text-white px-4 py-2 rounded-xl shadow-2xl flex items-center justify-center gap-2 text-center animate-bounce z-10 border border-red-400">
+      <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
+      <span class="text-xs font-black tracking-widest uppercase">¡AL AIRE! MANTÉN LA TOMA FIRME</span>
+    </div>
+
+    <!-- Center Preview Overlay Notification -->
+    <div id="previewAlertBanner" class="hidden absolute top-4 inset-x-4 bg-emerald-600/95 backdrop-blur text-white px-4 py-2 rounded-xl shadow-2xl flex items-center justify-center gap-2 text-center z-10 border border-emerald-400">
+      <i data-lucide="eye" class="w-4 h-4 text-white"></i>
+      <span class="text-xs font-black tracking-widest uppercase">EN PREVIEW - PREPÁRATE PARA SALIR</span>
+    </div>
+
+    <!-- Connection Overlay (If disconnected) -->
+    <div id="connectingOverlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 p-6 text-center z-20">
+      <div class="w-12 h-12 rounded-full border-4 border-amber-500 border-t-transparent animate-spin"></div>
+      <div>
+        <h3 class="text-sm font-bold text-white tracking-wide">Iniciando Cámara Móvil</h3>
+        <p class="text-xs text-slate-400 mt-1">Conectando a la cabina de OmniCast Studio...</p>
+      </div>
+      <button onclick="startCamera()" class="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg active:scale-95 transition">
+        Permitir Cámara y Conectar
+      </button>
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- BOTTOM CONTROLS DOCK                                                      -->
+  <!-- ========================================================================= -->
+  <footer class="z-20 bg-slate-950/95 border-t border-slate-800 p-3 pb-6 flex flex-col gap-2">
+    
+    <!-- Row 1: Channel Selector Chips -->
+    <div class="flex items-center justify-between gap-1.5 overflow-x-auto pb-1 text-xs">
+      <span class="text-[10px] font-mono text-slate-400 uppercase font-bold shrink-0">CANAL:</span>
+      <button onclick="switchChannel(1)" id="chanBtn-1" class="chan-btn flex-1 py-1 px-2 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold text-[11px] truncate text-center">
+        1. Púlpito
+      </button>
+      <button onclick="switchChannel(2)" id="chanBtn-2" class="chan-btn flex-1 py-1 px-2 rounded-lg bg-slate-900 text-slate-400 border border-slate-800 font-semibold text-[11px] truncate text-center">
+        2. Altar
+      </button>
+      <button onclick="switchChannel(3)" id="chanBtn-3" class="chan-btn flex-1 py-1 px-2 rounded-lg bg-slate-900 text-slate-400 border border-slate-800 font-semibold text-[11px] truncate text-center">
+        3. Músicos
+      </button>
+      <button onclick="switchChannel(4)" id="chanBtn-4" class="chan-btn flex-1 py-1 px-2 rounded-lg bg-slate-900 text-slate-400 border border-slate-800 font-semibold text-[11px] truncate text-center">
+        4. Móvil
+      </button>
+    </div>
+
+    <!-- Row 2: Tactile Camera Action Buttons -->
+    <div class="grid grid-cols-4 gap-2 pt-1">
+      
+      <!-- Flip Camera (Front / Back) -->
+      <button onclick="flipCamera()" id="btnFlipCam" class="py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-200">
+        <i data-lucide="refresh-cw" class="w-4 h-4 text-sky-400"></i>
+        <span class="text-[9px] font-bold">Girar</span>
+      </button>
+
+      <!-- Torch / Flashlight -->
+      <button onclick="toggleTorch()" id="btnTorch" class="py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-200">
+        <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+        <span class="text-[9px] font-bold">Flash</span>
+      </button>
+
+      <!-- Mute Audio -->
+      <button onclick="toggleAudioMute()" id="btnAudioMute" class="py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-200">
+        <i data-lucide="mic" class="w-4 h-4 text-emerald-400"></i>
+        <span id="audioMuteLabel" class="text-[9px] font-bold">Mic ON</span>
+      </button>
+
+      <!-- Reconnect / Help -->
+      <button onclick="reconnectWebRTC()" id="btnReconnect" class="py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-200">
+        <i data-lucide="wifi" class="w-4 h-4 text-indigo-400"></i>
+        <span class="text-[9px] font-bold">Reconectar</span>
+      </button>
+
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- WEBRTC & CAMERA ENGINE JAVASCRIPT                                         -->
+  <!-- ========================================================================= -->
+  <script>
+    // URL Parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentCamId = parseInt(urlParams.get('id') || urlParams.get('cam') || '1', 10);
+    if (![1, 2, 3, 4].includes(currentCamId)) currentCamId = 1;
+
+    let localStream = null;
+    let peerConnection = null;
+    let currentFacingMode = 'environment'; // Default rear camera
+    let isTorchOn = false;
+    let isAudioMuted = false;
+    let isConnectedToStudio = false;
+    let currentTally = 'IDLE'; // 'PROGRAM' | 'PREVIEW' | 'IDLE'
+    let sseEventSource = null;
+    let pollInterval = null;
+
+    const rtcConfig = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+
+    // Initialize UI on Load
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      updateChannelButtonsUI();
+      initBatteryTracking();
+      startCamera();
+      connectSignaling();
+    });
+
+    // Switch active channel (1 to 4)
+    function switchChannel(ch) {
+      if (currentCamId === ch) return;
+      currentCamId = ch;
+      updateChannelButtonsUI();
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('id', ch);
+      window.history.replaceState({}, '', newUrl.toString());
+      reconnectWebRTC();
+    }
+
+    function updateChannelButtonsUI() {
+      document.getElementById('camIdBadge').textContent = `CAM ${currentCamId}`;
+      const channelNames = {
+        1: 'Púlpito',
+        2: 'Altar',
+        3: 'Músicos',
+        4: 'Móvil'
+      };
+      for (let i = 1; i <= 4; i++) {
+        const btn = document.getElementById(`chanBtn-${i}`);
+        if (!btn) continue;
+        if (i === currentCamId) {
+          btn.className = 'chan-btn flex-1 py-1 px-2 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/60 font-bold text-[11px] truncate text-center shadow-sm';
+        } else {
+          btn.className = 'chan-btn flex-1 py-1 px-2 rounded-lg bg-slate-900 text-slate-400 border border-slate-800 font-semibold text-[11px] truncate text-center';
+        }
+      }
+    }
+
+    // Start mobile camera
+    async function startCamera() {
+      const overlay = document.getElementById('connectingOverlay');
+      try {
+        if (localStream) {
+          localStream.getTracks().forEach(t => t.stop());
+        }
+
+        const constraints = {
+          video: {
+            facingMode: currentFacingMode,
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+            frameRate: { ideal: 30, min: 24 }
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true
+          }
+        };
+
+        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const vid = document.getElementById('viewfinderVideo');
+        vid.srcObject = localStream;
+        await vid.play().catch(() => {});
+
+        if (overlay) overlay.classList.add('hidden');
+
+        // Track resolution
+        const vTrack = localStream.getVideoTracks()[0];
+        if (vTrack) {
+          const settings = vTrack.getSettings();
+          const resEl = document.getElementById('resPill');
+          if (resEl && settings.width && settings.height) {
+            resEl.textContent = `${settings.height}p`;
+          }
+        }
+
+        initWebRTC();
+
+      } catch (err) {
+        console.error('Error starting camera:', err);
+        if (overlay) {
+          overlay.classList.remove('hidden');
+          overlay.querySelector('h3').textContent = 'Acceso a Cámara Denegado';
+          overlay.querySelector('p').textContent = 'Acepta los permisos de cámara en tu navegador para transmitir.';
+        }
+      }
+    }
+
+    // Flip front/back camera
+    async function flipCamera() {
+      currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+      isTorchOn = false;
+      await startCamera();
+    }
+
+    // Toggle flashlight/torch on mobile
+    async function toggleTorch() {
+      if (!localStream) return;
+      const track = localStream.getVideoTracks()[0];
+      if (!track) return;
+      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+      if (!capabilities.torch) {
+        alert('Este dispositivo no tiene flash de linterna en esta cámara.');
+        return;
+      }
+      try {
+        isTorchOn = !isTorchOn;
+        await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+        const btn = document.getElementById('btnTorch');
+        if (isTorchOn) {
+          btn.className = 'py-2.5 bg-amber-500 text-black font-black active:scale-95 rounded-xl flex flex-col items-center justify-center gap-1 shadow-lg shadow-amber-500/40';
+        } else {
+          btn.className = 'py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-200';
+        }
+      } catch (e) {
+        console.warn('Torch error:', e);
+      }
+    }
+
+    // Toggle audio mute
+    function toggleAudioMute() {
+      if (!localStream) return;
+      const aTrack = localStream.getAudioTracks()[0];
+      if (!aTrack) return;
+      isAudioMuted = !isAudioMuted;
+      aTrack.enabled = !isAudioMuted;
+      const lbl = document.getElementById('audioMuteLabel');
+      const btn = document.getElementById('btnAudioMute');
+      if (isAudioMuted) {
+        lbl.textContent = 'Mic OFF';
+        btn.className = 'py-2.5 bg-rose-600/30 text-rose-300 border border-rose-500/50 rounded-xl flex flex-col items-center justify-center gap-1';
+      } else {
+        lbl.textContent = 'Mic ON';
+        btn.className = 'py-2.5 bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 text-slate-200';
+      }
+    }
+
+    // Battery telemetry
+    function initBatteryTracking() {
+      if (navigator.getBattery) {
+        navigator.getBattery().then(battery => {
+          const update = () => {
+            const pct = Math.round(battery.level * 100);
+            const text = document.getElementById('batteryText');
+            if (text) text.textContent = `${pct}%${battery.charging ? '⚡' : ''}`;
+            sendTelemetry({ battery: pct, charging: battery.charging });
+          };
+          update();
+          battery.addEventListener('levelchange', update);
+          battery.addEventListener('chargingchange', update);
+        });
+      } else {
+        document.getElementById('batteryText').textContent = '100%';
+      }
+    }
+
+    // =========================================================================
+    // WEBRTC PEER CONNECTION & SIGNALING ENGINE                                
+    // =========================================================================
+    async function initWebRTC() {
+      if (!localStream) return;
+      if (peerConnection) {
+        try { peerConnection.close(); } catch (e) {}
+      }
+
+      peerConnection = new RTCPeerConnection(rtcConfig);
+
+      // Add local media tracks
+      localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+      });
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          sendSignal({
+            camId: currentCamId,
+            from: 'phone',
+            type: 'candidate',
+            candidate: event.candidate
+          });
+        }
+      };
+
+      peerConnection.onconnectionstatechange = () => {
+        console.log('WebRTC Connection state:', peerConnection.connectionState);
+        if (peerConnection.connectionState === 'connected') {
+          isConnectedToStudio = true;
+          setTallyState(currentTally);
+        } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
+          isConnectedToStudio = false;
+          setTallyState('DISCONNECTED');
+        }
+      };
+
+      // Create Offer
+      try {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        sendSignal({
+          camId: currentCamId,
+          from: 'phone',
+          type: 'offer',
+          sdp: offer
+        });
+      } catch (err) {
+        console.error('Failed to create offer:', err);
+      }
+    }
+
+    // Send signal message to studio via server
+    async function sendSignal(msg) {
+      try {
+        await fetch('/api/cam/signal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(msg)
+        });
+      } catch (e) {
+        console.warn('Signaling send error:', e);
+      }
+    }
+
+    // Send telemetry to studio (device, battery, etc.)
+    async function sendTelemetry(extra = {}) {
+      try {
+        const payload = {
+          camId: currentCamId,
+          userAgent: navigator.userAgent,
+          facingMode: currentFacingMode,
+          ...extra
+        };
+        await fetch('/api/cam/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {}
+    }
+
+    // Connect to Signaling (SSE + HTTP fallback)
+    function connectSignaling() {
+      if (sseEventSource) {
+        try { sseEventSource.close(); } catch(e) {}
+      }
+
+      sseEventSource = new EventSource('/api/events');
+      
+      sseEventSource.addEventListener('cam_signal', async (e) => {
+        try {
+          const signal = JSON.parse(e.data);
+          if (signal.camId === currentCamId && signal.from === 'studio') {
+            handleIncomingSignal(signal);
+          }
+        } catch (err) {}
+      });
+
+      sseEventSource.addEventListener('cam_tally', (e) => {
+        try {
+          const tallyData = JSON.parse(e.data);
+          handleTallyUpdate(tallyData);
+        } catch (err) {}
+      });
+
+      // Polling fallback every 1.5 seconds in case SSE drops
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/cam/poll?id=${currentCamId}&from=phone`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data.signals)) {
+              for (const sig of data.signals) {
+                handleIncomingSignal(sig);
+              }
+            }
+            if (data.tally) {
+              handleTallyUpdate(data.tally);
+            }
+          }
+        } catch (e) {}
+      }, 1500);
+    }
+
+    async function handleIncomingSignal(signal) {
+      if (!peerConnection) return;
+      if (signal.type === 'answer') {
+        try {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+        } catch (err) {
+          console.warn('Error setting remote answer:', err);
+        }
+      } else if (signal.type === 'candidate' && signal.candidate) {
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        } catch (err) {
+          console.warn('Error adding ice candidate:', err);
+        }
+      }
+    }
+
+    function handleTallyUpdate(tallyData) {
+      // tallyData = { programCam: 1, previewCam: 2 }
+      if (tallyData.programCam === currentCamId) {
+        setTallyState('PROGRAM');
+      } else if (tallyData.previewCam === currentCamId) {
+        setTallyState('PREVIEW');
+      } else {
+        setTallyState('IDLE');
+      }
+    }
+
+    // Set Live Tally Visual State on Phone
+    function setTallyState(tally) {
+      currentTally = tally;
+      const container = document.getElementById('tallyContainer');
+      const beacon = document.getElementById('tallyBeacon');
+      const statusText = document.getElementById('tallyStatusText');
+      const subText = document.getElementById('tallySubText');
+      const liveBanner = document.getElementById('liveAlertBanner');
+      const previewBanner = document.getElementById('previewAlertBanner');
+
+      // Reset
+      container.classList.remove('tally-program-glow', 'tally-preview-glow', 'border-red-500', 'border-emerald-500');
+      liveBanner.classList.add('hidden');
+      previewBanner.classList.add('hidden');
+
+      if (tally === 'PROGRAM') {
+        container.classList.add('tally-program-glow', 'border-red-500');
+        beacon.className = 'w-3 h-3 rounded-full bg-red-500 animate-ping';
+        statusText.textContent = '🔴 EN VIVO (PROGRAM)';
+        statusText.className = 'text-[11px] font-black text-red-400 uppercase tracking-widest';
+        subText.textContent = 'AL AIRE: Mantén la toma fija y no te muevas.';
+        liveBanner.classList.remove('hidden');
+
+        // Tactile Haptic Vibration on Phone
+        if (navigator.vibrate) {
+          navigator.vibrate([250, 100, 250]);
+        }
+
+      } else if (tally === 'PREVIEW') {
+        container.classList.add('tally-preview-glow', 'border-emerald-500');
+        beacon.className = 'w-3 h-3 rounded-full bg-emerald-400';
+        statusText.textContent = '🟢 EN PREVIEW';
+        statusText.className = 'text-[11px] font-bold text-emerald-400 uppercase tracking-wide';
+        subText.textContent = 'Siguiente en salir. Encuadra y prepárate.';
+        previewBanner.classList.remove('hidden');
+
+      } else if (tally === 'DISCONNECTED') {
+        beacon.className = 'w-3 h-3 rounded-full bg-amber-500';
+        statusText.textContent = '⚠️ Reconectando...';
+        statusText.className = 'text-[11px] font-bold text-amber-400 uppercase tracking-wide';
+        subText.textContent = 'Esperando conexión con OmniCast Studio.';
+
+      } else {
+        // IDLE
+        beacon.className = 'w-3 h-3 rounded-full bg-slate-500';
+        statusText.textContent = '⚪ EN ESPERA';
+        statusText.className = 'text-[11px] font-semibold text-slate-300 uppercase tracking-wide';
+        subText.textContent = 'Cámara conectada y lista en cabina.';
+      }
+    }
+
+    function reconnectWebRTC() {
+      setTallyState('DISCONNECTED');
+      initWebRTC();
+    }
+  </script>
+</body>
+</html>
