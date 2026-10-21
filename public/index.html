@@ -125,7 +125,7 @@
       }
     }
     /* ------------------------------------------------------------------------- */
-    /* UI THEMES: 1. ONYX (ULTRA DARK) | 2. TITANIO PLATA (MODO CLARO) | 3. SANTUARIO AZUL */
+    /* UI THEMES: 1. ONYX (ULTRA OSCURO) | 2. TITANIO PRO (SLATE) | 3. SANTUARIO (AZUL NOCHE) */
     /* ------------------------------------------------------------------------- */
     /* 1. ONYX: PITCH BLACK STEALTH CONTROL ROOM */
     body.theme-onyx {
@@ -153,82 +153,77 @@
       border-color: #101622 !important;
     }
 
-    /* 2. TITANIO PLATA: REAL LIGHT STUDIO MODE (BRIGHT WHITE/SILVER WITH CRISP CONTRAST) */
+    /* 2. TITANIO PRO: SLATE BROADCAST (ELEGANTE, OSCURO SUAVE, ESTILO VMix / RESOLVE) */
     body.theme-titanium {
-      background-color: #eef2f6 !important;
-      color: #0f172a !important;
+      background-color: #0b0f19 !important;
+      color: #f1f5f9 !important;
     }
     body.theme-titanium header,
     body.theme-titanium footer {
-      background-color: #ffffff !important;
-      border-color: #cbd5e1 !important;
+      background-color: #111827 !important;
+      border-color: #1f293d !important;
     }
     body.theme-titanium .bg-\[\#0d131f\],
-    body.theme-titanium .bg-\[\#0a0e17\],
+    body.theme-titanium .bg-\[\#0a0e17\] {
+      background-color: #111827 !important;
+      border-color: #1e293b !important;
+    }
     body.theme-titanium .bg-slate-900\/80,
     body.theme-titanium .bg-slate-900\/70,
     body.theme-titanium .bg-slate-900\/90,
     body.theme-titanium .bg-slate-900 {
-      background-color: #ffffff !important;
-      border-color: #cbd5e1 !important;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+      background-color: #182234 !important;
+      border-color: #243247 !important;
     }
     body.theme-titanium .bg-slate-950,
     body.theme-titanium .bg-slate-950\/60,
     body.theme-titanium .bg-slate-950\/80 {
-      background-color: #f8fafc !important;
-      border-color: #cbd5e1 !important;
-    }
-    body.theme-titanium .text-white,
-    body.theme-titanium .text-slate-100,
-    body.theme-titanium .text-slate-200,
-    body.theme-titanium .text-slate-300 {
-      color: #0f172a !important;
-    }
-    body.theme-titanium .text-slate-400,
-    body.theme-titanium .text-slate-500 {
-      color: #475569 !important;
+      background-color: #0d1422 !important;
+      border-color: #1a2538 !important;
     }
     body.theme-titanium .border-slate-800,
     body.theme-titanium .border-slate-800\/80,
     body.theme-titanium .border-slate-700 {
-      border-color: #cbd5e1 !important;
+      border-color: #243247 !important;
     }
     body.theme-titanium .wirecast-shot,
     body.theme-titanium .layer-row {
-      background-color: #f8fafc !important;
-      border-color: #cbd5e1 !important;
+      background-color: #111827 !important;
+      border-color: #243247 !important;
     }
 
-    /* 3. SANTUARIO AZUL: VIBRANT ROYAL BLUE & SAPPHIRE GLOW */
+    /* 3. SANTUARIO: ROYAL MIDNIGHT BLUE & SAPPHIRE GLOW */
     body.theme-navy {
-      background-color: #050f26 !important;
-      color: #e2e8f0 !important;
+      background-color: #050e24 !important;
+      color: #f0f9ff !important;
     }
     body.theme-navy header,
     body.theme-navy footer {
-      background-color: #0a1b42 !important;
-      border-color: #1e3a7a !important;
+      background-color: #0a1a42 !important;
+      border-color: #1d3d82 !important;
     }
     body.theme-navy .bg-\[\#0d131f\],
-    body.theme-navy .bg-\[\#0a0e17\],
+    body.theme-navy .bg-\[\#0a0e17\] {
+      background-color: #0c2052 !important;
+      border-color: #1e4699 !important;
+    }
     body.theme-navy .bg-slate-900\/80,
     body.theme-navy .bg-slate-900\/70,
     body.theme-navy .bg-slate-900\/90,
     body.theme-navy .bg-slate-900 {
       background-color: #0e245c !important;
-      border-color: #204596 !important;
+      border-color: #204da6 !important;
     }
     body.theme-navy .bg-slate-950,
     body.theme-navy .bg-slate-950\/60,
     body.theme-navy .bg-slate-950\/80 {
-      background-color: #081638 !important;
-      border-color: #1b387a !important;
+      background-color: #071536 !important;
+      border-color: #183a7c !important;
     }
     body.theme-navy .border-slate-800,
     body.theme-navy .border-slate-800\/80,
     body.theme-navy .border-slate-700 {
-      border-color: #1f428c !important;
+      border-color: #1e4699 !important;
     }
   </style>
 </head>
@@ -286,6 +281,13 @@
               class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-amber-500/30 transition active:scale-95 shadow">
         <i data-lucide="tv" class="w-3.5 h-3.5 text-amber-400"></i>
         <span>Retorno Escenario</span>
+      </button>
+
+      <!-- Remoto (QR) Exclusivo para Operador de Letras / Músicos -->
+      <button onclick="openRemoteModal()" title="Abrir código QR para conectar Celular o iPad por WiFi"
+              class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-emerald-300 hover:text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-emerald-500/30 transition active:scale-95 shadow">
+        <i data-lucide="smartphone" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span>Remoto (QR)</span>
       </button>
 
       
@@ -394,11 +396,11 @@
             <span id="themeCheck-onyx" class="text-sky-400 font-bold">✓</span>
           </button>
           <button onclick="setAppTheme('titanium')" class="px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold hover:bg-slate-800 text-slate-200 flex items-center justify-between transition">
-            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-slate-200 border border-slate-400"></span> ☀️ Titanio (Modo Claro)</span>
+            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-slate-700 border border-slate-500"></span> 🪨 Titanio (Slate Pro)</span>
             <span id="themeCheck-titanium" class="text-sky-400 font-bold hidden">✓</span>
           </button>
           <button onclick="setAppTheme('navy')" class="px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold hover:bg-slate-800 text-slate-200 flex items-center justify-between transition">
-            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#102d6b] border border-sky-400"></span> 🌌 Santuario (Azul Real)</span>
+            <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-[#0e245c] border border-sky-400"></span> 🌌 Santuario (Azul Noche)</span>
             <span id="themeCheck-navy" class="text-sky-400 font-bold hidden">✓</span>
           </button>
         </div>
@@ -849,15 +851,11 @@
             </div>
             
             <div class="flex items-center gap-2 shrink-0">
-              <!-- Audio VU Tower moved beside Program screen -->
-                <div class="w-2 h-4 bg-slate-800 rounded-sm overflow-hidden flex flex-col justify-end">
-                  <div id="vuRight" class="w-full bg-emerald-400 transition-all duration-75" style="height: 65%;"></div>
-                </div>
-              </div>
-              <span id="programShotName" class="text-[11px] font-mono text-slate-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-800 truncate max-w-[150px]">Cam 1: Púlpito</span>
+              <span id="programShotName" class="text-[11px] font-mono text-slate-300 bg-slate-950 px-2 py-0.5 rounded border border-slate-800 truncate max-w-[160px]">Cam 1: Púlpito</span>
             </div>
           </div>
-          <!-- Strict 16:9 Aspect Video Container - 100% CLEAN BROADCAST SCREEN -->
+
+          <!-- Strict 16:9 Aspect Video Container with Tall VU Tower beside Screen -->
           <div class="flex-1 flex items-center justify-center p-2 bg-black/95 min-h-0 overflow-hidden gap-2.5">
             <div class="aspect-video h-full max-h-full max-w-full bg-black relative flex items-center justify-center overflow-hidden tally-program rounded-lg shadow-2xl border border-slate-800">
               <!-- OBS Ninja Program Under-Canvas Layer -->
@@ -867,16 +865,16 @@
               <canvas id="programCanvas" width="1920" height="1080" class="w-full h-full object-contain block relative z-10"></canvas>
             </div>
 
-            <!-- TALL PROFESSIONAL BROADCAST AUDIO VU TOWER (Right beside Program screen) -->
-            <div class="h-full py-1.5 px-2 bg-slate-950/90 border border-slate-800 rounded-lg flex flex-col items-center justify-between shrink-0 select-none shadow min-w-[36px]">
+            <!-- TALL PROFESSIONAL BROADCAST AUDIO VU TOWER -->
+            <div class="h-full py-2 px-2 bg-slate-950/90 border border-slate-800 rounded-lg flex flex-col items-center justify-between shrink-0 select-none shadow min-w-[38px]">
               <span class="text-[9px] font-mono font-bold text-slate-400">PGM</span>
               <div class="flex-1 flex items-stretch gap-1 my-1 w-full justify-center">
                 <!-- L Channel -->
-                <div class="w-2 h-full bg-slate-900 rounded-sm overflow-hidden flex flex-col justify-end p-0.5 border border-slate-800/80">
+                <div class="w-2.5 h-full bg-slate-900 rounded-sm overflow-hidden flex flex-col justify-end p-0.5 border border-slate-800/80">
                   <div id="vuLeft" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-rose-500 transition-all duration-75 rounded-sm" style="height: 70%;"></div>
                 </div>
                 <!-- R Channel -->
-                <div class="w-2 h-full bg-slate-900 rounded-sm overflow-hidden flex flex-col justify-end p-0.5 border border-slate-800/80">
+                <div class="w-2.5 h-full bg-slate-900 rounded-sm overflow-hidden flex flex-col justify-end p-0.5 border border-slate-800/80">
                   <div id="vuRight" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-rose-500 transition-all duration-75 rounded-sm" style="height: 65%;"></div>
                 </div>
               </div>
@@ -4887,9 +4885,9 @@ Te adoraré, te adoraré..."
       } catch (e) {}
 
             const themeLabels = {
-        onyx: 'Onyx (Oscuro)',
-        titanium: 'Titanio (Claro)',
-        navy: 'Santuario (Azul)'
+        onyx: 'Onyx',
+        titanium: 'Titanio Pro',
+        navy: 'Santuario'
       };
 
       const activeLabel = document.getElementById('activeThemeNameLabel');
