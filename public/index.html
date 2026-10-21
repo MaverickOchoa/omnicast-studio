@@ -288,11 +288,7 @@
         <span>Retorno Escenario</span>
       </button>
 
-      <button onclick="openRemoteModal()" title="Abrir código QR para conectar Celular o iPad por WiFi"
-              class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-emerald-300 hover:text-white text-xs font-bold px-3 py-1.5 rounded-lg border border-emerald-500/30 transition active:scale-95 shadow">
-        <i data-lucide="smartphone" class="w-3.5 h-3.5 text-emerald-400"></i>
-        <span>Remoto (QR)</span>
-      </button>
+      
     </div>
 
     <!-- 2. CONTEXT: SWITCHER WIRECAST (Streaming Mode - Minimalist Broadcast Bar) -->
@@ -333,17 +329,9 @@
           <span id="topHwStatusBadge">Cámaras</span>
         </button>
 
-        <button onclick="openStreamingConfigModal()" title="Destinos de Transmisión (YouTube / Facebook)"
-                class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-800 transition active:scale-95 shadow">
-          <i data-lucide="settings-2" class="w-3.5 h-3.5 text-sky-400"></i>
-          <span>Destinos</span>
-        </button>
+        
 
-        <button onclick="openRemoteModal()" title="Conectar Celular o iPad por WiFi"
-                class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-800 transition active:scale-95 shadow">
-          <i data-lucide="smartphone" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span class="hidden xl:inline">Remoto</span>
-        </button>
+        
       </div>
     </div>
 
@@ -380,19 +368,13 @@
     <!-- Operator Avatar, Settings Button & SaaS Logout -->
     <div class="flex items-center gap-2">
       <!-- Matriz de Pantallas & Smart TVs Button -->
-      <button onclick="openDisplayMatrixModal()" title="Matriz de Pantallas, Smart TVs y Salidas Inalámbricas" 
-              class="flex items-center gap-1.5 bg-gradient-to-r from-sky-950/80 to-indigo-950/80 hover:from-sky-900 hover:to-indigo-900 text-sky-200 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-sky-500/40 transition active:scale-95 shadow group">
+      <button onclick="openDisplayMatrixModal()" id="topBtnPantallas" title="Matriz de Pantallas, Smart TVs y Salidas Inalámbricas" class="flex items-center gap-1.5 bg-gradient-to-r from-sky-950/80 to-indigo-950/80 hover:from-sky-900 hover:to-indigo-900 text-sky-200 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-sky-500/40 transition active:scale-95 shadow group">
         <i data-lucide="tv-2" class="w-3.5 h-3.5 text-sky-400 group-hover:scale-110 transition-transform"></i>
         <span class="hidden sm:inline">Pantallas & TVs</span>
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
       </button>
 
-      <!-- Auditoría Ministerial & Reporte Post-Culto Button -->
-      <button onclick="openServiceRecapModal()" title="Auditoría Ministerial, Asistencia y Reporte CCLI Post-Culto" 
-              class="flex items-center gap-1.5 bg-gradient-to-r from-emerald-950/80 to-teal-950/80 hover:from-emerald-900 hover:to-teal-900 text-emerald-200 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-emerald-500/40 transition active:scale-95 shadow group">
-        <i data-lucide="clipboard-check" class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform"></i>
-        <span class="hidden sm:inline">Reporte de Culto</span>
-      </button>
+      
 
       <!-- Selector de Estilo / Tema Visual de la Interfaz -->
       <div class="relative">
@@ -837,11 +819,7 @@
             SMOOTH (0.5s)
           </button>
 
-          <button onclick="openStreamingConfigModal()" 
-                  class="w-full py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-sky-400 hover:text-sky-300 text-[11px] font-semibold border border-slate-700 flex items-center justify-center gap-1.5 shadow transition">
-            <i data-lucide="settings-2" class="w-3.5 h-3.5"></i>
-            <span>Destinos (YT / FB)</span>
-          </button>
+          
 
           <!-- MASTER RECORD (MP4 FULL HD 1080p60) -->
           <button id="btnMasterRecord" onclick="toggleMasterRecord()" 
@@ -871,12 +849,7 @@
             </div>
             
             <div class="flex items-center gap-2 shrink-0">
-              <!-- Audio VU Meter with dB readout OUTSIDE the video -->
-              <div class="flex items-center gap-1.5 bg-slate-950 px-2 py-1 rounded border border-slate-800">
-                <span id="audioLabelMute" class="text-[9px] font-mono text-slate-400">CH 1-2</span>
-                <div class="w-2 h-4 bg-slate-800 rounded-sm overflow-hidden flex flex-col justify-end">
-                  <div id="vuLeft" class="w-full bg-emerald-400 transition-all duration-75" style="height: 70%;"></div>
-                </div>
+              <!-- Audio VU Tower moved beside Program screen -->
                 <div class="w-2 h-4 bg-slate-800 rounded-sm overflow-hidden flex flex-col justify-end">
                   <div id="vuRight" class="w-full bg-emerald-400 transition-all duration-75" style="height: 65%;"></div>
                 </div>
@@ -885,13 +858,29 @@
             </div>
           </div>
           <!-- Strict 16:9 Aspect Video Container - 100% CLEAN BROADCAST SCREEN -->
-          <div class="flex-1 flex items-center justify-center p-2 bg-black/95 min-h-0 overflow-hidden">
+          <div class="flex-1 flex items-center justify-center p-2 bg-black/95 min-h-0 overflow-hidden gap-2.5">
             <div class="aspect-video h-full max-h-full max-w-full bg-black relative flex items-center justify-center overflow-hidden tally-program rounded-lg shadow-2xl border border-slate-800">
               <!-- OBS Ninja Program Under-Canvas Layer -->
               <div id="ninjaProgramLayer" class="absolute inset-0 w-full h-full pointer-events-none hidden z-0 overflow-hidden">
                 <iframe id="ninjaProgramIframe" class="w-full h-full border-0 pointer-events-auto" allow="autoplay; camera; microphone; display-capture"></iframe>
               </div>
               <canvas id="programCanvas" width="1920" height="1080" class="w-full h-full object-contain block relative z-10"></canvas>
+            </div>
+
+            <!-- TALL PROFESSIONAL BROADCAST AUDIO VU TOWER (Right beside Program screen) -->
+            <div class="h-full py-1.5 px-2 bg-slate-950/90 border border-slate-800 rounded-lg flex flex-col items-center justify-between shrink-0 select-none shadow min-w-[36px]">
+              <span class="text-[9px] font-mono font-bold text-slate-400">PGM</span>
+              <div class="flex-1 flex items-stretch gap-1 my-1 w-full justify-center">
+                <!-- L Channel -->
+                <div class="w-2 h-full bg-slate-900 rounded-sm overflow-hidden flex flex-col justify-end p-0.5 border border-slate-800/80">
+                  <div id="vuLeft" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-rose-500 transition-all duration-75 rounded-sm" style="height: 70%;"></div>
+                </div>
+                <!-- R Channel -->
+                <div class="w-2 h-full bg-slate-900 rounded-sm overflow-hidden flex flex-col justify-end p-0.5 border border-slate-800/80">
+                  <div id="vuRight" class="w-full bg-gradient-to-t from-emerald-500 via-amber-400 to-rose-500 transition-all duration-75 rounded-sm" style="height: 65%;"></div>
+                </div>
+              </div>
+              <span id="audioLabelMute" class="text-[8px] font-mono text-emerald-400 font-bold">L/R</span>
             </div>
           </div>
         </div>
@@ -923,17 +912,6 @@
           <span class="text-[11px] text-slate-400 hidden sm:inline">
             Haz clic en <strong>[CAPA X]</strong> para activar/apagar o en <strong>[▾ / ▴]</strong> para minimizar.
           </span>
-        </div>
-          <!-- Status pill & didactic guide -->
-          <div class="flex items-center gap-2">
-            <span class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-950 text-slate-300 text-[10px] font-mono border border-slate-800">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              MODO DIDÁCTICO ACTIVO
-            </span>
-            <span class="text-[11px] text-slate-400 hidden xl:inline">
-              Filtra una sola capa para vista despejada o dispara una escena en 1 clic.
-            </span>
-          </div>
         </div>
 
         <div class="flex-1 overflow-y-auto p-3 space-y-2.5">
@@ -4409,6 +4387,11 @@ Te adoraré, te adoraré..."
                 class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 transition flex items-center gap-1.5">
           <i data-lucide="building" class="w-3.5 h-3.5"></i>
           <span>1. Identidad de Sede</span>
+        </button>
+        <button onclick="switchSettingsTab('destinos')" id="setTabBtnDestinos" 
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
+          <i data-lucide="radio" class="w-3.5 h-3.5 text-sky-400"></i>
+          <span>3. Destinos de Transmisión</span>
         </button>
         <button onclick="switchSettingsTab('video')" id="setTabBtnVideo" 
                 class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
@@ -10583,6 +10566,14 @@ Pues resucitaste, Rey`
     // DOCK NAVIGATION
     // -------------------------------------------------------------------------
     function switchAtemTab(tabName) {
+      const topBtnPantallas = document.getElementById('topBtnPantallas');
+      if (topBtnPantallas) {
+        if (tabName === 'letras' || tabName === 'rundown') {
+          topBtnPantallas.classList.remove('hidden');
+        } else {
+          topBtnPantallas.classList.add('hidden');
+        }
+      }
       document.getElementById('viewLetras').classList.add('hidden');
       document.getElementById('viewWirecast').classList.add('hidden');
       const viewRundown = document.getElementById('viewRundown');
@@ -11254,6 +11245,26 @@ Resucitaste en majestad`;
     }
 
     function switchSettingsTab(tab) {
+      const allTabs = ['identity', 'destinos', 'video', 'backup'];
+      allTabs.forEach(t => {
+        const btn = document.getElementById(`setTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        const content = document.getElementById(`setTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (btn) {
+          if (t === tab) {
+            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 transition flex items-center gap-1.5';
+          } else {
+            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5';
+          }
+        }
+        if (content) {
+          if (t === tab) content.classList.remove('hidden');
+          else content.classList.add('hidden');
+        }
+      });
+      lucide.createIcons();
+      return;
+    }
+    function _legacySwitchSettingsTab(tab) {
       const tabs = ['identity', 'video', 'typography', 'backup'];
       tabs.forEach(t => {
         const btn = document.getElementById(`setTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
