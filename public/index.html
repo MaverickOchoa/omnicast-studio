@@ -3022,7 +3022,7 @@ Te adoraré, te adoraré..."
           </label>
           <div class="relative">
             <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-            <input type="email" id="loginEmailInput" required
+            <input type="text" id="loginEmailInput" autocomplete="username" required
                    placeholder="tu-sede@iglesianacional.org"
                    class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition font-mono">
           </div>
@@ -6984,15 +6984,6 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         switchAtemTab('rundown');
       } else {
         switchAtemTab('letras');
-      }
-    } else {
-        if (btnLib) btnLib.className = 'flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border border-transparent';
-        if (btnRundown) btnRundown.className = 'flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40';
-        if (contentLib) contentLib.classList.add('hidden');
-        if (contentRundown) contentRundown.classList.remove('hidden');
-        if (slidesView) slidesView.classList.add('hidden');
-        if (rundownView) rundownView.classList.remove('hidden');
-        renderRundownUI();
       }
       lucide.createIcons();
     }
