@@ -886,29 +886,60 @@
 
       <!-- Bottom Section: 5 MASTER LAYERS RACK (Wirecast Style with Tactile Backlit ON/OFF Toggles) -->
       <section class="flex-1 bg-[#0d131f] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shadow-lg min-h-0">
-        <div class="px-4 py-2 border-b border-slate-800 flex items-center justify-between bg-slate-900/70 shrink-0">
-          <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2">
+        <div class="px-3 py-1.5 border-b border-slate-800 flex flex-wrap items-center justify-between bg-slate-900/70 shrink-0 gap-2">
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <div class="flex items-center gap-1.5">
               <i data-lucide="layers" class="w-4 h-4 text-sky-400"></i>
-              <span class="text-xs font-bold tracking-wider uppercase text-slate-200">
+              <span class="text-xs font-bold tracking-wider uppercase text-slate-200 shrink-0">
                 Rack de Capas Maestras (Wirecast)
               </span>
             </div>
-            <div class="flex items-center gap-1.5 ml-2">
+            <div class="flex items-center gap-1.5">
               <button onclick="collapseAllLayers(true)" title="Minimizar todas las capas"
-                      class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] font-semibold border border-slate-700 flex items-center gap-1 transition">
+                      class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] font-semibold border border-slate-700 flex items-center gap-1 transition">
                 <i data-lucide="chevrons-up-down" class="w-3 h-3 text-sky-400"></i>
                 <span>Minimizar</span>
               </button>
               <button onclick="collapseAllLayers(false)" title="Expandir todas las capas"
-                      class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] font-semibold border border-slate-700 flex items-center gap-1 transition">
+                      class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] font-semibold border border-slate-700 flex items-center gap-1 transition">
                 <i data-lucide="maximize" class="w-3 h-3 text-emerald-400"></i>
                 <span>Expandir</span>
               </button>
             </div>
+
+            <!-- Separador vertical sutil -->
+            <div class="h-4 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+
+            <!-- ⚡ ESCENAS DE CULTO EN 1-CLIC (A prueba de voluntarios) -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1 shrink-0 hidden md:flex">
+                <i data-lucide="sparkles" class="w-3 h-3 text-amber-400"></i> Escenas:
+              </span>
+              <button onclick="triggerChurchScene('worship')" title="Alabanza: Músicos + Letras en Vivo + Logo"
+                      class="px-2.5 py-1 rounded-lg bg-indigo-950/80 hover:bg-indigo-900 active:scale-95 text-indigo-200 hover:text-white border border-indigo-700/60 font-semibold text-[11px] flex items-center gap-1.5 transition shadow-sm shrink-0">
+                <span>🎵</span> <span>Alabanza</span>
+              </button>
+              <button onclick="triggerChurchScene('sermon')" title="Sermón: Cámara Púlpito + Lower Third Pastor + Logo"
+                      class="px-2.5 py-1 rounded-lg bg-sky-950/80 hover:bg-sky-900 active:scale-95 text-sky-200 hover:text-white border border-sky-700/60 font-semibold text-[11px] flex items-center gap-1.5 transition shadow-sm shrink-0">
+                <span>📖</span> <span>Sermón</span>
+              </button>
+              <button onclick="triggerChurchScene('video')" title="Video CDN: Activa Capa 3 y reproduce video a pantalla completa"
+                      class="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 active:scale-95 text-emerald-200 hover:text-white border border-emerald-700/60 font-semibold text-[11px] flex items-center gap-1.5 transition shadow-sm shrink-0">
+                <span>🎬</span> <span>Video CDN</span>
+              </button>
+              <button onclick="triggerChurchScene('altar')" title="Altar: Conmuta a toma abierta de altar con cintillo de oración"
+                      class="px-2.5 py-1 rounded-lg bg-purple-950/80 hover:bg-purple-900 active:scale-95 text-purple-200 hover:text-white border border-purple-700/60 font-semibold text-[11px] flex items-center gap-1.5 transition shadow-sm shrink-0">
+                <span>🕊️</span> <span>Altar</span>
+              </button>
+              <button onclick="triggerMasterBlackout()" id="btnMasterBlackoutToggle" title="Blackout: Apaga capas visuales para momento solemne (Audio sigue activo)"
+                      class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-black active:scale-95 text-rose-300 hover:text-rose-200 border border-rose-900/50 font-semibold text-[11px] flex items-center gap-1 transition shadow-sm shrink-0">
+                <span>⬛</span> <span>Blackout</span>
+              </button>
+            </div>
           </div>
-          <span class="text-[11px] text-slate-400 hidden sm:inline">
-            Haz clic en <strong>[CAPA X]</strong> para activar/apagar o en <strong>[▾ / ▴]</strong> para minimizar.
+
+          <span class="text-[11px] text-slate-400 hidden xl:inline">
+            Haz clic en <strong>[CAPA X]</strong> para activar/apagar.
           </span>
         </div>
 
