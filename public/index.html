@@ -7856,6 +7856,24 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           } catch (err) {}
         });
 
+        studioMainEvtSource.addEventListener('stream_error', (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data && data.error) {
+              showToast('⚠️ ' + data.error, '⚠️');
+            }
+          } catch (err) {}
+        });
+
+        studioMainEvtSource.addEventListener('stream_status', (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data && !data.isStreaming && isLiveStreaming) {
+              stopMasterLiveStream();
+            }
+          } catch (err) {}
+        });
+
       } catch (err) {
         console.log('SSE connection fallback:', err);
       }
@@ -10186,7 +10204,13 @@ Pues resucitaste, Rey`
       }
     }
 
+    let lastRenderCompositorTime = 0;
     function renderCompositor() {
+      const now = performance.now();
+      // Cap at ~40 FPS max (24ms delta) to prevent duplicate renders between rAF and Worker ticker
+      if (now - lastRenderCompositorTime < 24) return;
+      lastRenderCompositorTime = now;
+
       try {
         time += 0.02;
 
@@ -10227,11 +10251,38 @@ Pues resucitaste, Rey`
         }
       } catch (renderErr) {
         console.warn('Compositor frame skipped safely:', renderErr);
-      } finally {
-        requestAnimationFrame(renderCompositor);
       }
     }
-    requestAnimationFrame(renderCompositor);
+
+    // Dual-clock compositor: rAF for smooth display in foreground, Worker ticker for constant 30fps in background tabs
+    function compositorRafLoop() {
+      renderCompositor();
+      requestAnimationFrame(compositorRafLoop);
+    }
+    requestAnimationFrame(compositorRafLoop);
+
+    // Background Worker Clock: immune to Chrome tab suspension and 1Hz background throttling
+    try {
+      const compositorWorkerBlob = new Blob([`
+        let timer = null;
+        self.onmessage = function(e) {
+          if (e.data === 'start' && !timer) {
+            timer = setInterval(() => self.postMessage('tick'), 33);
+          } else if (e.data === 'stop' && timer) {
+            clearInterval(timer);
+            timer = null;
+          }
+        };
+      `], { type: 'application/javascript' });
+      const compositorWorker = new Worker(URL.createObjectURL(compositorWorkerBlob));
+      compositorWorker.onmessage = () => {
+        renderCompositor();
+      };
+      compositorWorker.postMessage('start');
+    } catch (workerErr) {
+      console.warn('Background Worker timer not supported, falling back to interval:', workerErr);
+      setInterval(renderCompositor, 33);
+    }
 
     
     // =========================================================================
@@ -11048,9 +11099,18 @@ Pues resucitaste, Rey`
           try {
             const sRes = await fetch('/api/stream/status');
             const sData = await sRes.json();
-            if (sData && sData.stats) {
-              const br = sData.stats.bitrate > 0 ? `${sData.stats.bitrate} kbps` : '4,500 kbps (1080p60)';
-              if (bitrateVal) bitrateVal.textContent = br;
+            if (sData) {
+              if (!sData.isStreaming && isLiveStreaming) {
+                stopMasterLiveStream();
+                if (sData.stats && sData.stats.error) {
+                  showToast('⚠️ ' + sData.stats.error, '⚠️');
+                }
+                return;
+              }
+              if (sData.stats) {
+                const br = sData.stats.bitrate > 0 ? `${sData.stats.bitrate} kbps` : '4,500 kbps (1080p60)';
+                if (bitrateVal) bitrateVal.textContent = br;
+              }
             }
           } catch (e) {}
         }, 2000);
