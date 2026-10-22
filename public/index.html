@@ -2900,53 +2900,6 @@ Te adoraré, te adoraré..."
     </div>
   </div>
 
-  
-        </div>
-
-        <!-- DESTINO 2: FACEBOOK LIVE -->
-        <div class="p-3.5 rounded-xl border border-blue-500/30 bg-blue-950/15 flex flex-col gap-2.5">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-              <h4 class="text-xs font-bold text-white">Canal 2: Facebook Live</h4>
-              <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">RTMPS</span>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="fbStreamEnable" checked class="sr-only peer">
-              <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-          <div class="grid grid-cols-1 gap-2 text-xs">
-            <div>
-              <label class="text-[10px] text-slate-400 font-semibold block mb-1">URL del Servidor</label>
-              <input type="text" id="fbStreamUrl" value="rtmps://live-api-s.facebook.com:443/rtmp/" 
-                     class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:border-blue-500 outline-none">
-            </div>
-            <div>
-              <label class="text-[10px] text-slate-400 font-semibold block mb-1">Clave de Transmisión (Stream Key)</label>
-              <div class="relative">
-                <input type="password" id="fbStreamKey" value="FB-1049284729184712-live" 
-                       class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:border-blue-500 outline-none pr-8">
-                <button onclick="togglePasswordVisibility('fbStreamKey')" class="absolute right-2 top-2 text-slate-400 hover:text-white">
-                  <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
-        <button onclick="closeStreamingConfigModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
-          Cancelar
-        </button>
-        <button onclick="saveStreamingConfig()" class="px-4 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 shadow">
-          <i data-lucide="check" class="w-3.5 h-3.5"></i> Guardar y Aplicar
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- ========================================================================= -->
   <!-- SAAS LOGIN SCREEN (STRICT MULTI-TENANT COMMERCIAL ISOLATION)              -->
   <!-- ========================================================================= -->
@@ -11036,7 +10989,7 @@ Pues resucitaste, Rey`
           }
         };
 
-        liveMediaRecorder.start(1000);
+        liveMediaRecorder.start(500);
         isLiveStreaming = true;
         liveStreamStartTime = Date.now();
 

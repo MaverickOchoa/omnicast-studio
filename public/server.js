@@ -452,7 +452,11 @@ const requestHandler = (req, res) => {
         }
 
         const ffmpegArgs = [
+          '-fflags', '+nobuffer+flush_packets',
+          '-analyzeduration', '1000000',
+          '-probesize', '1000000',
           '-re',
+          '-f', 'webm',
           '-i', 'pipe:0',
           '-c:v', 'libx264',
           '-preset', 'veryfast',
@@ -461,11 +465,12 @@ const requestHandler = (req, res) => {
           '-maxrate', '4500k',
           '-bufsize', '8000k',
           '-pix_fmt', 'yuv420p',
-          '-g', '60',
+          '-g', '30',
           '-keyint_min', '30',
           '-c:a', 'aac',
           '-b:a', '128k',
-          '-ar', '44100'
+          '-ar', '44100',
+          '-flvflags', 'no_duration_filesize'
         ];
 
         if (targets.length === 1) {
@@ -569,17 +574,29 @@ const requestHandler = (req, res) => {
 
   // Endpoint: Stop Live Stream
   if (parsedUrl === '/api/stream/stop' && req.method === 'POST') {
-    if (activeFfmpegProcess) {
-      try { activeFfmpegProcess.stdin.end(); } catch (e) {}
-      setTimeout(() => {
-        if (activeFfmpegProcess) {
-          try { activeFfmpegProcess.kill('SIGINT'); } catch (e) {}
-          activeFfmpegProcess = null;
-        }
-      }, 1000);
-    }
     liveStreamState.isStreaming = false;
     liveStreamState.startTime = null;
+
+    if (activeFfmpegProcess) {
+      const proc = activeFfmpegProcess;
+      activeFfmpegProcess = null;
+
+      try {
+        proc.stdin.end(); // Triggers EOF -> FFmpeg sends RTMP unpublish/close packet cleanly
+      } catch (e) {}
+
+      // Allow FFmpeg up to 4 seconds to gracefully finalize RTMP connection
+      const killTimer = setTimeout(() => {
+        try {
+          proc.kill();
+        } catch (e) {}
+      }, 4000);
+
+      proc.once('close', () => {
+        clearTimeout(killTimer);
+      });
+    }
+
     broadcastSSE('stream_status', { isStreaming: false, stopped: true });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, stopped: true }));
