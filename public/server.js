@@ -452,8 +452,10 @@ const requestHandler = (req, res) => {
         }
 
         const ffmpegArgs = [
-          '-re',
+          '-thread_queue_size', '1024',
           '-i', 'pipe:0',
+          '-map', '0:v:0?',
+          '-map', '0:a:0?',
           '-c:v', 'libx264',
           '-preset', 'veryfast',
           '-tune', 'zerolatency',
@@ -461,18 +463,22 @@ const requestHandler = (req, res) => {
           '-maxrate', '5000k',
           '-bufsize', '9000k',
           '-pix_fmt', 'yuv420p',
+          '-r', '30',
           '-g', '60',
-          '-keyint_min', '30',
+          '-keyint_min', '60',
+          '-sc_threshold', '0',
           '-c:a', 'aac',
           '-b:a', '192k',
-          '-ar', '44100'
+          '-ar', '44100',
+          '-ac', '2',
+          '-max_muxing_queue_size', '4096'
         ];
 
         if (targets.length === 1) {
-          ffmpegArgs.push('-f', 'flv', targets[0].url);
+          ffmpegArgs.push('-flvflags', 'no_duration_filesize', '-f', 'flv', targets[0].url);
         } else {
-          const teeTargets = targets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
-          ffmpegArgs.push('-f', 'tee', '-map', '0:v', '-map', '0:a', teeTargets);
+          const teeTargets = targets.map(t => `[f=flv:flvflags=no_duration_filesize:onfail=ignore]${t.url}`).join('|');
+          ffmpegArgs.push('-f', 'tee', teeTargets);
         }
 
         console.log(`[FFmpeg RTMP] Spawning streaming pipeline for: ${targets.map(t => t.name).join(' & ')}`);
