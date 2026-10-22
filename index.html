@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="/js/qrcode.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=Caveat:wght@700&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -3187,8 +3187,8 @@ Te adoraré, te adoraré..."
               <!-- OmniCast Mobile Cam Group 1 -->
               <div id="mobileCamGroup-1" class="hidden flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/40 shadow-lg">
                 <!-- QR Code Box -->
-                <div class="bg-white p-1 rounded-lg shrink-0 shadow flex items-center justify-center">
-                  <canvas id="mobileCamQrCanvas-1" width="100" height="100" class="w-24 h-24 block"></canvas>
+                <div id="mobileCamQrContainer-1" class="w-24 h-24 bg-white p-1.5 rounded-xl shrink-0 shadow-lg border border-slate-700 flex items-center justify-center overflow-hidden">
+                  <!-- Dynamic QR Code -->
                 </div>
                 <!-- Details & Actions -->
                 <div class="flex-1 flex flex-col gap-1.5 w-full">
@@ -3238,8 +3238,8 @@ Te adoraré, te adoraré..."
               <!-- OmniCast Mobile Cam Group 2 -->
               <div id="mobileCamGroup-2" class="hidden flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/40 shadow-lg">
                 <!-- QR Code Box -->
-                <div class="bg-white p-1 rounded-lg shrink-0 shadow flex items-center justify-center">
-                  <canvas id="mobileCamQrCanvas-2" width="100" height="100" class="w-24 h-24 block"></canvas>
+                <div id="mobileCamQrContainer-2" class="w-24 h-24 bg-white p-1.5 rounded-xl shrink-0 shadow-lg border border-slate-700 flex items-center justify-center overflow-hidden">
+                  <!-- Dynamic QR Code -->
                 </div>
                 <!-- Details & Actions -->
                 <div class="flex-1 flex flex-col gap-1.5 w-full">
@@ -3289,8 +3289,8 @@ Te adoraré, te adoraré..."
               <!-- OmniCast Mobile Cam Group 3 -->
               <div id="mobileCamGroup-3" class="hidden flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/40 shadow-lg">
                 <!-- QR Code Box -->
-                <div class="bg-white p-1 rounded-lg shrink-0 shadow flex items-center justify-center">
-                  <canvas id="mobileCamQrCanvas-3" width="100" height="100" class="w-24 h-24 block"></canvas>
+                <div id="mobileCamQrContainer-3" class="w-24 h-24 bg-white p-1.5 rounded-xl shrink-0 shadow-lg border border-slate-700 flex items-center justify-center overflow-hidden">
+                  <!-- Dynamic QR Code -->
                 </div>
                 <!-- Details & Actions -->
                 <div class="flex-1 flex flex-col gap-1.5 w-full">
@@ -3340,8 +3340,8 @@ Te adoraré, te adoraré..."
               <!-- OmniCast Mobile Cam Group 4 -->
               <div id="mobileCamGroup-4" class="hidden flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl bg-slate-950/90 border border-emerald-500/40 shadow-lg">
                 <!-- QR Code Box -->
-                <div class="bg-white p-1 rounded-lg shrink-0 shadow flex items-center justify-center">
-                  <canvas id="mobileCamQrCanvas-4" width="100" height="100" class="w-24 h-24 block"></canvas>
+                <div id="mobileCamQrContainer-4" class="w-24 h-24 bg-white p-1.5 rounded-xl shrink-0 shadow-lg border border-slate-700 flex items-center justify-center overflow-hidden">
+                  <!-- Dynamic QR Code -->
                 </div>
                 <!-- Details & Actions -->
                 <div class="flex-1 flex flex-col gap-1.5 w-full">
@@ -3490,9 +3490,8 @@ Te adoraré, te adoraré..."
       <!-- Body -->
       <div class="flex flex-col items-center gap-4 py-2">
         <!-- QR Code Display Box -->
-        <div class="p-3 bg-white rounded-2xl shadow-xl flex items-center justify-center border-4 border-slate-800 relative">
-          <canvas id="remoteQrCanvas" width="200" height="200" class="w-48 h-48 block"></canvas>
-          <img id="remoteQrImg" class="hidden w-48 h-48 block" alt="Código QR Control Remoto" />
+        <div id="remoteQrContainer" class="p-3 bg-white rounded-2xl shadow-xl flex items-center justify-center border-4 border-slate-800 relative w-52 h-52 overflow-hidden">
+          <!-- Dynamic QR Code -->
         </div>
 
         <!-- URL pill & actions -->
@@ -7763,24 +7762,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         const urlText = document.getElementById('remoteWifiUrlText');
         if (urlText) urlText.textContent = info.remoteUrl;
 
-        const canvas = document.getElementById('remoteQrCanvas');
-        const img = document.getElementById('remoteQrImg');
-        if (window.QRCode && canvas) {
-          QRCode.toCanvas(canvas, info.remoteUrl, {
-            width: 192,
-            margin: 2,
-            color: { dark: '#020617', light: '#ffffff' }
-          }, (err) => {
-            if (err && img) {
-              canvas.classList.add('hidden');
-              img.classList.remove('hidden');
-              img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(info.remoteUrl)}`;
-            }
-          });
-        } else if (img) {
-          if (canvas) canvas.classList.add('hidden');
-          img.classList.remove('hidden');
-          img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(info.remoteUrl)}`;
+        const remoteContainer = document.getElementById('remoteQrContainer');
+        if (remoteContainer) {
+          renderUniversalQRCode(remoteContainer, info.remoteUrl, 180, 180);
         }
       } catch (e) {
         console.error('Error fetching remote info:', e);
@@ -10184,8 +10168,38 @@ Pues resucitaste, Rey`
       };
     }
 
+    function renderUniversalQRCode(container, textToEncode, width = 88, height = 88) {
+      if (!container) return;
+      container.innerHTML = '';
+      let success = false;
+
+      if (typeof QRCode === 'function') {
+        try {
+          new QRCode(container, {
+            text: textToEncode,
+            width: width,
+            height: height,
+            colorDark: '#020617',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+          success = true;
+        } catch (e) {
+          console.warn('Local QRCode generator error:', e);
+        }
+      }
+
+      if (!success) {
+        const img = document.createElement('img');
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${width}x${height}&margin=1&data=${encodeURIComponent(textToEncode)}`;
+        img.className = 'w-full h-full object-contain block rounded';
+        img.alt = 'QR Code';
+        container.appendChild(img);
+      }
+    }
+
     async function generateMobileCamQR(ch) {
-      const canvas = document.getElementById(`mobileCamQrCanvas-${ch}`);
+      const container = document.getElementById(`mobileCamQrContainer-${ch}`);
       const input = document.getElementById(`mobileCamUrlInput-${ch}`);
       const link = document.getElementById(`mobileCamTestLink-${ch}`);
       const info = await fetchServerNetworkInfo();
@@ -10198,14 +10212,8 @@ Pues resucitaste, Rey`
       if (input) input.value = camUrl;
       if (link) link.href = `/cam.html?id=${ch}`;
 
-      if (window.QRCode && canvas) {
-        QRCode.toCanvas(canvas, camUrl, {
-          width: 96,
-          margin: 1,
-          color: { dark: '#020617', light: '#ffffff' }
-        }, (err) => {
-          if (err) console.warn('QR error:', err);
-        });
+      if (container) {
+        renderUniversalQRCode(container, camUrl, 84, 84);
       }
     }
 
