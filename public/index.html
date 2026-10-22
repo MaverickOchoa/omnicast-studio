@@ -9600,55 +9600,50 @@ Pues resucitaste, Rey`
           // Ninja WebRTC stream displays directly from iframe layer beneath canvas - 100% Clean feed
         } else {
           const hwVid = document.getElementById(`hwVideo-${camShot}`);
-          const isHwActive = hwVid && hwVid.readyState >= 2 && !hwVid.paused && activeHardwareStreams[camShot];
+          const isHwActive = hwVid && hwVid.readyState >= 2 && !hwVid.paused && hwVid.videoWidth > 0 && hwVid.videoHeight > 0 && activeHardwareStreams[camShot];
 
           if (isHwActive) {
-            // ===================================================================
-            // REAL HARDWARE INGEST (OBSBOT VIRTUAL CAMERA / HDMI / SCREEN SHARE)
-            // ===================================================================
-            if (camShot === 4 && hardwareConfig.channels[4].type === 'screen') {
-              // Live PiP Split Screen (Left = Cam 1 / OBSBOT, Right = Screen Share)
-              ctx.fillStyle = '#090d16';
-              ctx.fillRect(0, 0, w, h);
+            try {
+              if (camShot === 4 && hardwareConfig.channels[4].type === 'screen') {
+                ctx.fillStyle = '#090d16';
+                ctx.fillRect(0, 0, w, h);
 
-              // Left Camera Box (Cam 1 / OBSBOT)
-              const cam1Vid = document.getElementById('hwVideo-1');
-              const isCam1Active = cam1Vid && cam1Vid.readyState >= 2 && !cam1Vid.paused && activeHardwareStreams[1];
-              ctx.save();
-              ctx.beginPath();
-              ctx.rect(60, 90, 1140, 900);
-              ctx.clip();
-              if (isCam1Active) {
-                ctx.drawImage(cam1Vid, 60, 90, 1140, 900);
-              } else {
-                ctx.fillStyle = '#1e1b4b';
-                ctx.fillRect(60, 90, 1140, 900);
-                ctx.fillStyle = '#02040a';
+                const cam1Vid = document.getElementById('hwVideo-1');
+                const isCam1Active = cam1Vid && cam1Vid.readyState >= 2 && !cam1Vid.paused && cam1Vid.videoWidth > 0 && cam1Vid.videoHeight > 0 && activeHardwareStreams[1];
+                ctx.save();
                 ctx.beginPath();
-                ctx.arc(630, 600, 180, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.rect(60, 90, 1140, 900);
+                ctx.clip();
+                if (isCam1Active) {
+                  ctx.drawImage(cam1Vid, 60, 90, 1140, 900);
+                } else {
+                  ctx.fillStyle = '#1e1b4b';
+                  ctx.fillRect(60, 90, 1140, 900);
+                  ctx.fillStyle = '#02040a';
+                  ctx.beginPath();
+                  ctx.arc(630, 600, 180, 0, Math.PI * 2);
+                  ctx.fill();
+                }
+                ctx.restore();
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(60, 90, 1140, 900);
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(1240, 180, 620, 720);
+                ctx.clip();
+                ctx.drawImage(hwVid, 1240, 180, 620, 720);
+                ctx.restore();
+                ctx.strokeStyle = '#a855f7';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(1240, 180, 620, 720);
+              } else {
+                ctx.drawImage(hwVid, 0, 0, w, h);
               }
-              ctx.restore();
-              ctx.strokeStyle = '#38bdf8';
-              ctx.lineWidth = 4;
-              ctx.strokeRect(60, 90, 1140, 900);
-
-              // Right Slide / Presentation Box
-              ctx.save();
-              ctx.beginPath();
-              ctx.rect(1240, 180, 620, 720);
-              ctx.clip();
-              ctx.drawImage(hwVid, 1240, 180, 620, 720);
-              ctx.restore();
-              ctx.strokeStyle = '#a855f7';
-              ctx.lineWidth = 3;
-              ctx.strokeRect(1240, 180, 620, 720);
-
-            } else {
-              // Full 1920x1080 Real Camera Frame - 100% Clean feed
-              ctx.drawImage(hwVid, 0, 0, w, h);
+            } catch (drawErr) {
+              console.warn(`Error drawing camera frame ${camShot}:`, drawErr);
             }
-
           } else if (camShot === 1) {
             // Cam 1: Púlpito Principal (Pastor podium + lights)
             const grad = ctx.createLinearGradient(0, 0, w, h);
@@ -10184,45 +10179,49 @@ Pues resucitaste, Rey`
     }
 
     function renderCompositor() {
-      time += 0.02;
+      try {
+        time += 0.02;
 
-      // Render Program Canvas
-      drawComposedFrame(progCtx, wirecastState.program, true);
+        // Render Program Canvas
+        drawComposedFrame(progCtx, wirecastState.program, true);
 
-      // Render Preview Canvas
-      drawComposedFrame(prevCtx, wirecastState.preview, false);
+        // Render Preview Canvas
+        drawComposedFrame(prevCtx, wirecastState.preview, false);
 
-      // VU meters (Driven by real Web Audio analyser when connected, or smooth simulation)
-      const vuL = document.getElementById('vuLeft');
-      const vuR = document.getElementById('vuRight');
-      const modalMeter = document.getElementById('hwModalAudioMeter');
+        // VU meters
+        const vuL = document.getElementById('vuLeft');
+        const vuR = document.getElementById('vuRight');
+        const modalMeter = document.getElementById('hwModalAudioMeter');
 
-      if (layerPower[5]) {
-        if (audioAnalyser && audioDataArray) {
-          audioAnalyser.getByteFrequencyData(audioDataArray);
-          let sum = 0;
-          for (let i = 0; i < audioDataArray.length; i++) {
-            sum += audioDataArray[i];
+        if (layerPower[5]) {
+          if (audioAnalyser && audioDataArray) {
+            audioAnalyser.getByteFrequencyData(audioDataArray);
+            let sum = 0;
+            for (let i = 0; i < audioDataArray.length; i++) {
+              sum += audioDataArray[i];
+            }
+            const avg = sum / audioDataArray.length;
+            const levelPct = Math.min(100, (avg / 120) * 100);
+            if (vuL) vuL.style.height = `${levelPct}%`;
+            if (vuR) vuR.style.height = `${Math.max(0, levelPct - 2)}%`;
+            if (modalMeter) modalMeter.style.width = `${levelPct}%`;
+          } else {
+            const simPctL = 35 + Math.random() * 50;
+            const simPctR = 32 + Math.random() * 50;
+            if (vuL) vuL.style.height = `${simPctL}%`;
+            if (vuR) vuR.style.height = `${simPctR}%`;
+            if (modalMeter) modalMeter.style.width = `${simPctL}%`;
           }
-          const avg = sum / audioDataArray.length;
-          const levelPct = Math.min(100, (avg / 120) * 100);
-          if (vuL) vuL.style.height = `${levelPct}%`;
-          if (vuR) vuR.style.height = `${Math.max(0, levelPct - 2)}%`;
-          if (modalMeter) modalMeter.style.width = `${levelPct}%`;
         } else {
-          const simPctL = 35 + Math.random() * 50;
-          const simPctR = 32 + Math.random() * 50;
-          if (vuL) vuL.style.height = `${simPctL}%`;
-          if (vuR) vuR.style.height = `${simPctR}%`;
-          if (modalMeter) modalMeter.style.width = `${simPctL}%`;
+          if (vuL) vuL.style.height = '0%';
+          if (vuR) vuR.style.height = '0%';
+          if (modalMeter) modalMeter.style.width = '0%';
         }
-      } else {
-        if (vuL) vuL.style.height = '0%';
-        if (vuR) vuR.style.height = '0%';
-        if (modalMeter) modalMeter.style.width = '0%';
+      } catch (renderErr) {
+        console.warn('Compositor frame skipped safely:', renderErr);
+      } finally {
+        requestAnimationFrame(renderCompositor);
       }
-
-      requestAnimationFrame(renderCompositor);
     }
     requestAnimationFrame(renderCompositor);
 
@@ -10514,26 +10513,32 @@ Pues resucitaste, Rey`
     // MASTER LOCAL RECORDING (MEDIARECORDER -> MP4 FULL HD 1080p60)
     // -------------------------------------------------------------------------
     let masterMediaRecorder = null;
-    let masterRecordedChunks = [];
-    let isMasterRecording = false;
-    let masterRecordStartTime = null;
-    let masterRecordTimerInterval = null;
-    let masterRecordedBytes = 0;
+    let masterAudioContext = null;
+    let masterAudioTrack = null;
 
     function getMasterAudioTrack() {
       if (activeHardwareStreams.audio && activeHardwareStreams.audio.getAudioTracks().length > 0) {
-        return activeHardwareStreams.audio.getAudioTracks()[0];
+        const liveTrack = activeHardwareStreams.audio.getAudioTracks()[0];
+        if (liveTrack && liveTrack.readyState === 'live') return liveTrack;
       }
       try {
-        const actx = new (window.AudioContext || window.webkitAudioContext)();
-        const dest = actx.createMediaStreamDestination();
-        const osc = actx.createOscillator();
-        const gain = actx.createGain();
-        gain.gain.value = 0.00001;
-        osc.connect(gain);
-        gain.connect(dest);
-        osc.start();
-        return dest.stream.getAudioTracks()[0];
+        if (!masterAudioContext || masterAudioContext.state === 'closed') {
+          masterAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+        }
+        if (masterAudioContext.state === 'suspended') {
+          masterAudioContext.resume().catch(() => {});
+        }
+        if (!masterAudioTrack || masterAudioTrack.readyState !== 'live') {
+          const dest = masterAudioContext.createMediaStreamDestination();
+          const osc = masterAudioContext.createOscillator();
+          const gain = masterAudioContext.createGain();
+          gain.gain.value = 0.0001; // Pristine inaudible reference tone to guarantee continuous AAC clock
+          osc.connect(gain);
+          gain.connect(dest);
+          osc.start();
+          masterAudioTrack = dest.stream.getAudioTracks()[0];
+        }
+        return masterAudioTrack;
       } catch (e) {
         return null;
       }
@@ -10885,6 +10890,31 @@ Pues resucitaste, Rey`
     let liveStreamStartTime = null;
     const btnMasterStream = document.getElementById('btnMasterStream');
 
+    // Strict Sequential FIFO Upload Queue to guarantee zero packet out-of-order jitter
+    const streamChunkQueue = [];
+    let isUploadingStreamChunk = false;
+
+    async function processStreamChunkQueue() {
+      if (isUploadingStreamChunk || streamChunkQueue.length === 0 || !isLiveStreaming) return;
+      isUploadingStreamChunk = true;
+      const chunk = streamChunkQueue.shift();
+
+      try {
+        await fetch('/api/stream/chunk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/octet-stream' },
+          body: chunk
+        });
+      } catch (chunkErr) {
+        console.warn('[Stream Chunk Upload Warning]:', chunkErr.message);
+      } finally {
+        isUploadingStreamChunk = false;
+        if (streamChunkQueue.length > 0 && isLiveStreaming) {
+          processStreamChunkQueue();
+        }
+      }
+    }
+
     async function toggleMasterLiveStream() {
       if (isLiveStreaming) {
         await stopMasterLiveStream();
@@ -10906,7 +10936,6 @@ Pues resucitaste, Rey`
       let fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://live-api-s.facebook.com:443/rtmp/';
       let fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
 
-      // Check localStorage for saved keys
       try {
         const saved = localStorage.getItem('omnicast_streaming_config');
         if (saved) {
@@ -10922,7 +10951,6 @@ Pues resucitaste, Rey`
         }
       } catch (e) {}
 
-      // Validate
       const hasYt = ytEnabled && ytKey && ytKey !== 'yt-live-9382-7712-4412-omni';
       const hasFb = fbEnabled && fbKey && fbKey !== 'FB-1049284729184712-live';
 
@@ -10975,17 +11003,13 @@ Pues resucitaste, Rey`
           videoBitsPerSecond: 4500000
         });
 
-        liveMediaRecorder.ondataavailable = async (e) => {
+        streamChunkQueue.length = 0;
+        isUploadingStreamChunk = false;
+
+        liveMediaRecorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0 && isLiveStreaming) {
-            try {
-              await fetch('/api/stream/chunk', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/octet-stream' },
-                body: e.data
-              });
-            } catch (chunkErr) {
-              console.warn('[Stream Chunk Upload Warning]:', chunkErr.message);
-            }
+            streamChunkQueue.push(e.data);
+            processStreamChunkQueue();
           }
         };
 

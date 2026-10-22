@@ -561,7 +561,7 @@ const requestHandler = (req, res) => {
           activeFfmpegProcess.stdin.write(buffer);
           liveStreamState.stats.totalBytes += buffer.length;
         } catch (err) {
-          console.warn('Error writing chunk to FFmpeg stdin:', err.message);
+          console.warn('[FFmpeg stdin write error]:', err.message);
         }
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
