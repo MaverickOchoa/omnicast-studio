@@ -10220,6 +10220,11 @@ Pues resucitaste, Rey`
         // Render Preview Canvas
         drawComposedFrame(prevCtx, wirecastState.preview, false);
 
+        // Force frame capture on demand if requestFrame is available
+        if (typeof activeBroadcastVideoTrack !== 'undefined' && activeBroadcastVideoTrack && typeof activeBroadcastVideoTrack.requestFrame === 'function') {
+          try { activeBroadcastVideoTrack.requestFrame(); } catch (rfErr) {}
+        }
+
         // VU meters
         const vuL = document.getElementById('vuLeft');
         const vuR = document.getElementById('vuRight');
@@ -10594,6 +10599,13 @@ Pues resucitaste, Rey`
           gain.gain.value = 0.0001; // Pristine inaudible reference tone to guarantee continuous AAC clock
           osc.connect(gain);
           gain.connect(dest);
+          // Connect ultra-quiet inaudible tap to destination so Chrome tags tab as active audio-playing media tab
+          try {
+            const silentSpeaker = masterAudioContext.createGain();
+            silentSpeaker.gain.value = 0.000001;
+            gain.connect(silentSpeaker);
+            silentSpeaker.connect(masterAudioContext.destination);
+          } catch (e) {}
           osc.start();
           masterAudioTrack = dest.stream.getAudioTracks()[0];
         }
@@ -10944,6 +10956,7 @@ Pues resucitaste, Rey`
     // MASTER LIVE STREAMING ENGINE (REAL RTMP / RTMPS TO FACEBOOK & YOUTUBE)
     // -------------------------------------------------------------------------
     let isLiveStreaming = false;
+    let activeBroadcastVideoTrack = null;
     let liveMediaRecorder = null;
     let liveTelemetryInterval = null;
     let liveStreamStartTime = null;
@@ -11044,6 +11057,7 @@ Pues resucitaste, Rey`
         if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
 
         const canvasStream = progCanvas.captureStream(30);
+        activeBroadcastVideoTrack = canvasStream.getVideoTracks()[0];
         const audioTrack = getMasterAudioTrack();
         const broadcastStream = new MediaStream();
         canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));

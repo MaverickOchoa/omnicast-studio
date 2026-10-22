@@ -552,6 +552,7 @@ const requestHandler = (req, res) => {
   }
 
   // Endpoint: Ingest Live Binary Stream Chunks from Canvas MediaRecorder
+  let liveChunkCounter = 0;
   if (parsedUrl === '/api/stream/chunk' && req.method === 'POST') {
     if (!activeFfmpegProcess || !liveStreamState.isStreaming) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -563,6 +564,10 @@ const requestHandler = (req, res) => {
     req.on('data', c => chunks.push(c));
     req.on('end', () => {
       const buffer = Buffer.concat(chunks);
+      liveChunkCounter++;
+      if (liveChunkCounter <= 5 || liveChunkCounter % 10 === 0) {
+        console.log(`[RTMP Ingest] Chunk #${liveChunkCounter}: ${buffer.length} bytes | Total: ${(liveStreamState.stats.totalBytes / 1024 / 1024).toFixed(2)} MB`);
+      }
       if (buffer.length > 0 && activeFfmpegProcess && activeFfmpegProcess.stdin && activeFfmpegProcess.stdin.writable) {
         try {
           activeFfmpegProcess.stdin.write(buffer);
