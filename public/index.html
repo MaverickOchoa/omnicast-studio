@@ -7808,11 +7808,15 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       window.open('remote.html', 'OmniCastRemoteWindow', 'width=420,height=820,menubar=no,toolbar=no,location=no');
     }
 
-    // Connect to Server-Sent Events to receive remote commands from mobile phones / iPads
+    // Single Unified EventSource Connection for Remote, Stage and Mobile Cam Signals
+    let studioMainEvtSource = null;
+
     function initStudioRemoteEvents() {
+      if (studioMainEvtSource) return;
       try {
-        const studioEvtSource = new EventSource('/api/events');
-        studioEvtSource.addEventListener('state', (e) => {
+        studioMainEvtSource = new EventSource('/api/events');
+
+        studioMainEvtSource.addEventListener('state', (e) => {
           try {
             const state = JSON.parse(e.data);
             if (typeof state.itemIndex === 'number' && typeof state.slideIndex === 'number') {
@@ -7826,10 +7830,34 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             }
           } catch (err) {}
         });
+
+        studioMainEvtSource.addEventListener('cam_signal', async (e) => {
+          try {
+            const sig = JSON.parse(e.data);
+            if (sig.from === 'phone') {
+              handleIncomingPhoneSignal(sig);
+            }
+          } catch (err) {}
+        });
+
+        studioMainEvtSource.addEventListener('cam_status', (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            updateMobileCamTelemetryUI(data.camId, data.status);
+          } catch (err) {}
+        });
+
       } catch (err) {
         console.log('SSE connection fallback:', err);
       }
     }
+
+    // Clean up SSE connection immediately on beforeunload to prevent browser socket locking on reload
+    window.addEventListener('beforeunload', () => {
+      if (studioMainEvtSource) {
+        try { studioMainEvtSource.close(); } catch(e) {}
+      }
+    });
 
     function updateMonitors(isClear = false) {
       const item = libraryItems[currentItemIndex];
@@ -10196,45 +10224,8 @@ Pues resucitaste, Rey`
       connectStudioCamSignaling();
     }
 
-    let studioCamEventsConnected = false;
     function connectStudioCamSignaling() {
-      if (studioCamEventsConnected) return;
-      studioCamEventsConnected = true;
-
-      const evtSource = new EventSource('/api/events');
-      
-      evtSource.addEventListener('cam_signal', async (e) => {
-        try {
-          const sig = JSON.parse(e.data);
-          if (sig.from === 'phone') {
-            handleIncomingPhoneSignal(sig);
-          }
-        } catch (err) {}
-      });
-
-      evtSource.addEventListener('cam_status', (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          updateMobileCamTelemetryUI(data.camId, data.status);
-        } catch (err) {}
-      });
-
-      // Polling fallback
-      setInterval(async () => {
-        try {
-          const res = await fetch('/api/cam/poll?from=studio');
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data.signals)) {
-              for (const sig of data.signals) {
-                if (sig.from === 'phone') {
-                  handleIncomingPhoneSignal(sig);
-                }
-              }
-            }
-          }
-        } catch (e) {}
-      }, 1500);
+      initStudioRemoteEvents();
     }
 
     async function handleIncomingPhoneSignal(sig) {
