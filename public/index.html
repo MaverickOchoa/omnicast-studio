@@ -4458,31 +4458,31 @@ Te adoraré, te adoraré..."
       </div>
 
       <!-- Navigation Tabs inside Modal -->
-      <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+      <div class="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
         <button onclick="switchSettingsTab('identity')" id="setTabBtnIdentity" 
-                class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 transition flex items-center gap-1.5">
+                class="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 transition flex items-center gap-1.5 shrink-0">
           <i data-lucide="building" class="w-3.5 h-3.5"></i>
           <span>1. Identidad de Sede</span>
         </button>
         <button onclick="switchSettingsTab('destinos')" id="setTabBtnDestinos" 
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
-          <i data-lucide="radio" class="w-3.5 h-3.5 text-sky-400"></i>
-          <span>3. Destinos de Transmisión</span>
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 shrink-0">
+          <i data-lucide="radio" class="w-3.5 h-3.5 text-red-400"></i>
+          <span>2. Destinos de Transmisión</span>
         </button>
         <button onclick="switchSettingsTab('video')" id="setTabBtnVideo" 
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
-          <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
-          <span>2. Pantallas HDMI & Retorno</span>
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 shrink-0">
+          <i data-lucide="monitor" class="w-3.5 h-3.5 text-sky-400"></i>
+          <span>3. Pantallas HDMI & Retorno</span>
         </button>
         <button onclick="switchSettingsTab('typography')" id="setTabBtnTypography" 
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
-          <i data-lucide="type" class="w-3.5 h-3.5"></i>
-          <span>3. Tipografía de Letras</span>
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 shrink-0">
+          <i data-lucide="type" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>4. Tipografía de Letras</span>
         </button>
         <button onclick="switchSettingsTab('backup')" id="setTabBtnBackup" 
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5">
-          <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i>
-          <span>4. Respaldo & Backup (.json)</span>
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 shrink-0">
+          <i data-lucide="hard-drive" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>5. Respaldo & Backup (.json)</span>
         </button>
       </div>
 
@@ -4522,6 +4522,111 @@ Te adoraré, te adoraré..."
             <input type="email" id="settingCampusEmail" value="gdl@iglesianacional.org" disabled
                    class="w-full bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-400 font-mono">
             <p class="text-[10px] text-slate-500 mt-1">Para cambiar de cuenta institucional utiliza el botón de sede en la barra superior.</p>
+          </div>
+        </div>
+
+        <!-- TAB 2: DESTINOS DE TRANSMISIÓN (YOUTUBE & FACEBOOK LIVE MULTI-DESTINO) -->
+        <div id="setTabContentDestinos" class="space-y-4 hidden">
+          <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+            <div>
+              <h4 class="text-xs font-bold text-white flex items-center gap-2">
+                <i data-lucide="radio" class="w-4 h-4 text-red-400"></i>
+                <span>Destinos Multi-Transmisión en Vivo</span>
+              </h4>
+              <p class="text-[11px] text-slate-400">Transmite en simultáneo a YouTube Live y Facebook Live sin depender de servicios externos.</p>
+            </div>
+            <div id="destinationsLiveBadge" class="flex items-center gap-1.5">
+              <!-- Dynamically populated badges -->
+            </div>
+          </div>
+
+          <!-- DESTINO 1: YOUTUBE LIVE -->
+          <div class="p-4 rounded-xl border border-red-500/30 bg-red-950/20 flex flex-col gap-3 shadow-lg">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-lg bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 font-black text-xs">
+                  YT
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h5 class="text-xs font-bold text-white">Canal 1: YouTube Live</h5>
+                    <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 border border-red-500/30 font-bold">RTMP 1080p</span>
+                  </div>
+                  <p class="text-[10px] text-slate-400">Transmisión oficial para congregación y miembros online</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="ytStreamEnable" checked onchange="updateDestinationsLiveBadge()" class="sr-only peer">
+                <div class="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+              </label>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
+              <div>
+                <label class="text-[10px] text-slate-300 font-semibold block mb-1">URL del Servidor Ingest:</label>
+                <input type="text" id="ytStreamUrl" value="rtmp://a.rtmp.youtube.com/live2" 
+                       class="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none shadow-inner">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-300 font-semibold block mb-1">Clave de Transmisión (Stream Key):</label>
+                <div class="relative">
+                  <input type="password" id="ytStreamKey" value="yt-live-9382-7712-4412-omni" 
+                         class="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none pr-9 shadow-inner">
+                  <button type="button" onclick="togglePasswordVisibility('ytStreamKey')" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DESTINO 2: FACEBOOK LIVE -->
+          <div class="p-4 rounded-xl border border-blue-500/30 bg-blue-950/20 flex flex-col gap-3 shadow-lg">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-black text-xs">
+                  FB
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h5 class="text-xs font-bold text-white">Canal 2: Facebook Live</h5>
+                    <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold">RTMPS SSL</span>
+                  </div>
+                  <p class="text-[10px] text-slate-400">Página oficial de la iglesia / Redes sociales</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="fbStreamEnable" checked onchange="updateDestinationsLiveBadge()" class="sr-only peer">
+                <div class="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
+              <div>
+                <label class="text-[10px] text-slate-300 font-semibold block mb-1">URL del Servidor Ingest:</label>
+                <input type="text" id="fbStreamUrl" value="rtmps://live-api-s.facebook.com:443/rtmp/" 
+                       class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none shadow-inner">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-300 font-semibold block mb-1">Clave de Transmisión (Stream Key):</label>
+                <div class="relative">
+                  <input type="password" id="fbStreamKey" value="FB-1049284729184712-live" 
+                         class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none pr-9 shadow-inner">
+                  <button type="button" onclick="togglePasswordVisibility('fbStreamKey')" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition">
+                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Multi-Destino Status Banner -->
+          <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+              <span class="text-slate-300 font-semibold">Transmisión Multi-Destino Simultánea Activa</span>
+            </div>
+            <span class="text-[11px] font-mono text-emerald-400 font-bold">1080p60 FHD Ingest</span>
           </div>
         </div>
 
@@ -10372,23 +10477,28 @@ Pues resucitaste, Rey`
       if (el) el.type = el.type === 'password' ? 'text' : 'password';
     }
 
-    function saveStreamingConfig() {
+    function saveStreamingConfig(showAlert = true) {
+      const ytEnable = document.getElementById('ytStreamEnable')?.checked ?? true;
+      const ytUrl = document.getElementById('ytStreamUrl')?.value.trim() || 'rtmp://a.rtmp.youtube.com/live2';
+      const ytKey = document.getElementById('ytStreamKey')?.value.trim() || '';
+
+      const fbEnable = document.getElementById('fbStreamEnable')?.checked ?? true;
+      const fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://live-api-s.facebook.com:443/rtmp/';
+      const fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
+
       const config = {
-        youtube: {
-          enabled: document.getElementById('ytStreamEnable').checked,
-          url: document.getElementById('ytStreamUrl').value,
-          key: document.getElementById('ytStreamKey').value
-        },
-        facebook: {
-          enabled: document.getElementById('fbStreamEnable').checked,
-          url: document.getElementById('fbStreamUrl').value,
-          key: document.getElementById('fbStreamKey').value
-        }
+        youtube: { enabled: ytEnable, url: ytUrl, key: ytKey },
+        facebook: { enabled: fbEnable, url: fbUrl, key: fbKey }
       };
-      localStorage.setItem('omnicast_streaming_config', JSON.stringify(config));
+
+      try {
+        localStorage.setItem('omnicast_streaming_config', JSON.stringify(config));
+      } catch (e) {}
+
       updateDestinationsLiveBadge();
-      closeStreamingConfigModal();
-      alert('✓ Configuración multi-destino guardada. Transmisión simultánea habilitada para YouTube y Facebook.');
+      if (showAlert) {
+        showToast('✓ Destinos de transmisión guardados (YouTube y Facebook)');
+      }
     }
 
     function updateDestinationsLiveBadge() {
@@ -11538,15 +11648,15 @@ Resucitaste en majestad`;
     }
 
     function switchSettingsTab(tab) {
-      const allTabs = ['identity', 'destinos', 'video', 'backup'];
+      const allTabs = ['identity', 'destinos', 'video', 'typography', 'backup'];
       allTabs.forEach(t => {
         const btn = document.getElementById(`setTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
         const content = document.getElementById(`setTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
         if (btn) {
           if (t === tab) {
-            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 transition flex items-center gap-1.5';
+            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 transition flex items-center gap-1.5 shadow-sm shrink-0';
           } else {
-            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5';
+            btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 shrink-0';
           }
         }
         if (content) {
@@ -11555,7 +11665,6 @@ Resucitaste en majestad`;
         }
       });
       lucide.createIcons();
-      return;
     }
     function _legacySwitchSettingsTab(tab) {
       const tabs = ['identity', 'video', 'typography', 'backup'];
@@ -11611,6 +11720,8 @@ Resucitaste en majestad`;
         localStorage.setItem('omnicast_campus_settings', JSON.stringify(settings));
       } catch (e) {}
 
+      saveStreamingConfig(false);
+
       // Apply to UI
       const nameEl = document.getElementById('activeTenantName');
       if (nameEl && currentTenantKey !== 'hq') {
@@ -11636,6 +11747,24 @@ Resucitaste en majestad`;
         if (s.fontSize && document.getElementById('settingFontSize')) document.getElementById('settingFontSize').value = s.fontSize;
         if (s.fontFamily && document.getElementById('settingFontFamily')) document.getElementById('settingFontFamily').value = s.fontFamily;
         updateTypographyPreview();
+      } catch (e) {}
+
+      try {
+        const streamRaw = localStorage.getItem('omnicast_streaming_config');
+        if (streamRaw) {
+          const cfg = JSON.parse(streamRaw);
+          if (cfg.youtube) {
+            if (document.getElementById('ytStreamEnable')) document.getElementById('ytStreamEnable').checked = cfg.youtube.enabled;
+            if (document.getElementById('ytStreamUrl')) document.getElementById('ytStreamUrl').value = cfg.youtube.url;
+            if (document.getElementById('ytStreamKey')) document.getElementById('ytStreamKey').value = cfg.youtube.key;
+          }
+          if (cfg.facebook) {
+            if (document.getElementById('fbStreamEnable')) document.getElementById('fbStreamEnable').checked = cfg.facebook.enabled;
+            if (document.getElementById('fbStreamUrl')) document.getElementById('fbStreamUrl').value = cfg.facebook.url;
+            if (document.getElementById('fbStreamKey')) document.getElementById('fbStreamKey').value = cfg.facebook.key;
+          }
+          updateDestinationsLiveBadge();
+        }
       } catch (e) {}
     }
 
