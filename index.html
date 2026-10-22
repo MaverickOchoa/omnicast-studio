@@ -4478,7 +4478,7 @@ Te adoraré, te adoraré..."
               <div>
                 <label class="text-[10px] text-slate-300 font-semibold block mb-1">Clave de Transmisión (Stream Key):</label>
                 <div class="relative">
-                  <input type="password" id="ytStreamKey" value="yt-live-9382-7712-4412-omni" 
+                  <input type="password" id="ytStreamKey" placeholder="Pega aquí tu clave de YouTube Live" 
                          class="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none pr-9 shadow-inner">
                   <button type="button" onclick="togglePasswordVisibility('ytStreamKey')" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition">
                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
@@ -4490,6 +4490,14 @@ Te adoraré, te adoraré..."
 
           <!-- DESTINO 2: FACEBOOK LIVE -->
           <div class="p-4 rounded-xl border border-blue-500/30 bg-blue-950/20 flex flex-col gap-3 shadow-lg">
+            <!-- Facebook Live Pro Tip Banner -->
+            <div class="p-2.5 rounded-lg bg-blue-950/90 border border-blue-500/40 flex items-start gap-2.5">
+              <i data-lucide="info" class="w-4 h-4 text-sky-400 shrink-0 mt-0.5"></i>
+              <div class="text-[11px] text-blue-200 leading-snug">
+                <span class="font-bold text-white block mb-0.5">💡 Para que tu clave de Facebook nunca caduque y se corte en automático:</span>
+                En Facebook Live Producer $\rightarrow$ columna izquierda $\rightarrow$ <strong>Configuración del stream</strong> $\rightarrow$ <strong>Configuración avanzada</strong>, activa <strong>"Clave de stream persistente"</strong> y <strong>"Finalizar el video en vivo cuando se detenga el stream"</strong>.
+              </div>
+            </div>
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2.5">
                 <div class="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-black text-xs">
@@ -4518,7 +4526,7 @@ Te adoraré, te adoraré..."
               <div>
                 <label class="text-[10px] text-slate-300 font-semibold block mb-1">Clave de Transmisión (Stream Key):</label>
                 <div class="relative">
-                  <input type="password" id="fbStreamKey" value="FB-1049284729184712-live" 
+                  <input type="password" id="fbStreamKey" placeholder="Pega aquí tu clave de Facebook Live" 
                          class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none pr-9 shadow-inner">
                   <button type="button" onclick="togglePasswordVisibility('fbStreamKey')" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition">
                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>

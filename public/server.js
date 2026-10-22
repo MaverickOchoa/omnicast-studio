@@ -457,14 +457,14 @@ const requestHandler = (req, res) => {
           '-c:v', 'libx264',
           '-preset', 'veryfast',
           '-tune', 'zerolatency',
-          '-b:v', '4000k',
-          '-maxrate', '4500k',
-          '-bufsize', '8000k',
+          '-b:v', '4500k',
+          '-maxrate', '5000k',
+          '-bufsize', '9000k',
           '-pix_fmt', 'yuv420p',
           '-g', '60',
           '-keyint_min', '30',
           '-c:a', 'aac',
-          '-b:a', '128k',
+          '-b:a', '192k',
           '-ar', '44100'
         ];
 
@@ -506,9 +506,10 @@ const requestHandler = (req, res) => {
             broadcastSSE('stream_telemetry', liveStreamState.stats);
           }
 
-          if (/error in the pull function|connection refused|handshake failed/i.test(text)) {
+          if (/error in the pull function|connection refused|handshake failed|i\/o error|invalid session|session has been invalidated/i.test(text)) {
             console.warn('[FFmpeg RTMP Warning]:', text.trim());
-            liveStreamState.stats.error = text.trim();
+            liveStreamState.stats.error = 'La plataforma rechazó la conexión RTMP (clave caducada o no válida). Verifica tu clave en Facebook Live Producer o activa "Clave de stream persistente".';
+            broadcastSSE('stream_error', { error: liveStreamState.stats.error });
           }
         });
 
