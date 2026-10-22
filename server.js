@@ -452,11 +452,7 @@ const requestHandler = (req, res) => {
         }
 
         const ffmpegArgs = [
-          '-fflags', '+nobuffer+flush_packets',
-          '-analyzeduration', '1000000',
-          '-probesize', '1000000',
           '-re',
-          '-f', 'webm',
           '-i', 'pipe:0',
           '-c:v', 'libx264',
           '-preset', 'veryfast',
@@ -465,12 +461,11 @@ const requestHandler = (req, res) => {
           '-maxrate', '4500k',
           '-bufsize', '8000k',
           '-pix_fmt', 'yuv420p',
-          '-g', '30',
+          '-g', '60',
           '-keyint_min', '30',
           '-c:a', 'aac',
           '-b:a', '128k',
-          '-ar', '44100',
-          '-flvflags', 'no_duration_filesize'
+          '-ar', '44100'
         ];
 
         if (targets.length === 1) {
@@ -494,6 +489,9 @@ const requestHandler = (req, res) => {
 
         activeFfmpegProcess.stderr.on('data', (data) => {
           const text = data.toString();
+          if (!text.includes('frame=')) {
+            console.log('[FFmpeg]:', text.trim());
+          }
           const fpsMatch = text.match(/fps=\s*([\d\.]+)/);
           const brMatch = text.match(/bitrate=\s*([\d\.]+)kbits\/s/);
           const spMatch = text.match(/speed=\s*([\d\.]+x)/);
