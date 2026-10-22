@@ -3,6 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { spawn } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
@@ -42,6 +43,24 @@ let mobileCamsState = {
   4: { connected: false, name: 'Cámara 4 (Móvil)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 }
 };
 
+// Master RTMP / RTMPS Live Streaming State (Facebook Live & YouTube Live Multi-Destination)
+let liveStreamState = {
+  isStreaming: false,
+  startTime: null,
+  destinations: {
+    youtube: { enabled: false, url: '', key: '' },
+    facebook: { enabled: false, url: '', key: '' }
+  },
+  stats: {
+    fps: 0,
+    bitrate: 0,
+    speed: '1x',
+    totalBytes: 0,
+    droppedFrames: 0,
+    error: null
+  }
+};
+let activeFfmpegProcess = null;
 let currentTallyState = { programCam: 0, previewCam: 0 };
 const camSignalsForStudio = []; // Signals from phones for studio
 const camSignalsForPhones = { 1: [], 2: [], 3: [], 4: [] }; // Signals from studio for phones
@@ -369,6 +388,204 @@ const requestHandler = (req, res) => {
       return;
     }
   }
+  // =========================================================================
+  // MASTER RTMP / RTMPS LIVE STREAMING PIPELINE (FACEBOOK LIVE & YOUTUBE LIVE)
+  // =========================================================================
+
+  // Endpoint: Get Live Streaming Status & Real Telemetry
+  if (parsedUrl === '/api/stream/status' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      isStreaming: liveStreamState.isStreaming,
+      startTime: liveStreamState.startTime,
+      stats: liveStreamState.stats,
+      destinations: liveStreamState.destinations
+    }));
+    return;
+  }
+
+  // Endpoint: Start Live RTMP/RTMPS Stream via FFmpeg
+  if (parsedUrl === '/api/stream/start' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const dest = JSON.parse(body || '{}');
+        const yt = dest.youtube || {};
+        const fb = dest.facebook || {};
+
+        const targets = [];
+        if (fb.enabled && fb.key && fb.key.trim()) {
+          const rawUrl = (fb.url || 'rtmps://live-api-s.facebook.com:443/rtmp/').trim();
+          const cleanKey = fb.key.trim();
+          const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;
+          targets.push({ name: 'Facebook Live', url: targetUrl });
+        }
+
+        if (yt.enabled && yt.key && yt.key.trim()) {
+          const rawUrl = (yt.url || 'rtmp://a.rtmp.youtube.com/live2').trim();
+          const cleanKey = yt.key.trim();
+          const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;
+          targets.push({ name: 'YouTube Live', url: targetUrl });
+        }
+
+        if (targets.length === 0) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: 'No hay destinos de transmisión con clave válida configurada. Por favor ingresa tu clave en Destinos de Transmisión.'
+          }));
+          return;
+        }
+
+        // Clean up any existing stream process
+        if (activeFfmpegProcess) {
+          try { activeFfmpegProcess.stdin.end(); } catch (e) {}
+          try { activeFfmpegProcess.kill('SIGINT'); } catch (e) {}
+          activeFfmpegProcess = null;
+        }
+
+        const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
+        if (!fs.existsSync(ffmpegPath)) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: `Binario FFmpeg no encontrado en ${ffmpegPath}` }));
+          return;
+        }
+
+        const ffmpegArgs = [
+          '-re',
+          '-i', 'pipe:0',
+          '-c:v', 'libx264',
+          '-preset', 'veryfast',
+          '-tune', 'zerolatency',
+          '-b:v', '4000k',
+          '-maxrate', '4500k',
+          '-bufsize', '8000k',
+          '-pix_fmt', 'yuv420p',
+          '-g', '60',
+          '-keyint_min', '30',
+          '-c:a', 'aac',
+          '-b:a', '128k',
+          '-ar', '44100'
+        ];
+
+        if (targets.length === 1) {
+          ffmpegArgs.push('-f', 'flv', targets[0].url);
+        } else {
+          const teeTargets = targets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
+          ffmpegArgs.push('-f', 'tee', '-map', '0:v', '-map', '0:a', teeTargets);
+        }
+
+        console.log(`[FFmpeg RTMP] Spawning streaming pipeline for: ${targets.map(t => t.name).join(' & ')}`);
+        activeFfmpegProcess = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe'] });
+
+        liveStreamState.isStreaming = true;
+        liveStreamState.startTime = Date.now();
+        liveStreamState.destinations = dest;
+        liveStreamState.stats = { fps: 0, bitrate: 0, speed: '1x', totalBytes: 0, droppedFrames: 0, error: null };
+
+        activeFfmpegProcess.stdin.on('error', (err) => {
+          console.warn('[FFmpeg stdin error]:', err.message);
+        });
+
+        activeFfmpegProcess.stderr.on('data', (data) => {
+          const text = data.toString();
+          const fpsMatch = text.match(/fps=\s*([\d\.]+)/);
+          const brMatch = text.match(/bitrate=\s*([\d\.]+)kbits\/s/);
+          const spMatch = text.match(/speed=\s*([\d\.]+x)/);
+          const dropMatch = text.match(/drop=\s*([\d]+)/);
+
+          if (fpsMatch) liveStreamState.stats.fps = parseFloat(fpsMatch[1]);
+          if (brMatch) liveStreamState.stats.bitrate = parseFloat(brMatch[1]);
+          if (spMatch) liveStreamState.stats.speed = spMatch[1];
+          if (dropMatch) liveStreamState.stats.droppedFrames = parseInt(dropMatch[1], 10);
+
+          if (fpsMatch || brMatch) {
+            broadcastSSE('stream_telemetry', liveStreamState.stats);
+          }
+
+          if (/error in the pull function|connection refused|handshake failed/i.test(text)) {
+            console.warn('[FFmpeg RTMP Warning]:', text.trim());
+            liveStreamState.stats.error = text.trim();
+          }
+        });
+
+        activeFfmpegProcess.on('close', (code) => {
+          console.log(`[FFmpeg RTMP] Stream ended with exit code ${code}`);
+          activeFfmpegProcess = null;
+          liveStreamState.isStreaming = false;
+          broadcastSSE('stream_status', { isStreaming: false, code });
+        });
+
+        activeFfmpegProcess.on('error', (err) => {
+          console.error('[FFmpeg RTMP Process Error]:', err);
+          liveStreamState.stats.error = err.message;
+          activeFfmpegProcess = null;
+          liveStreamState.isStreaming = false;
+          broadcastSSE('stream_status', { isStreaming: false, error: err.message });
+        });
+
+        broadcastSSE('stream_status', { isStreaming: true, destinations: targets.map(t => t.name) });
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          message: `Transmisión iniciada exitosamente a ${targets.map(t => t.name).join(' y ')}`,
+          destinations: targets.map(t => t.name)
+        }));
+      } catch (err) {
+        console.error('Error starting live stream:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // Endpoint: Ingest Live Binary Stream Chunks from Canvas MediaRecorder
+  if (parsedUrl === '/api/stream/chunk' && req.method === 'POST') {
+    if (!activeFfmpegProcess || !liveStreamState.isStreaming) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, message: 'Stream is not active' }));
+      return;
+    }
+
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => {
+      const buffer = Buffer.concat(chunks);
+      if (buffer.length > 0 && activeFfmpegProcess && activeFfmpegProcess.stdin && activeFfmpegProcess.stdin.writable) {
+        try {
+          activeFfmpegProcess.stdin.write(buffer);
+          liveStreamState.stats.totalBytes += buffer.length;
+        } catch (err) {
+          console.warn('Error writing chunk to FFmpeg stdin:', err.message);
+        }
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, bytes: liveStreamState.stats.totalBytes }));
+    });
+    return;
+  }
+
+  // Endpoint: Stop Live Stream
+  if (parsedUrl === '/api/stream/stop' && req.method === 'POST') {
+    if (activeFfmpegProcess) {
+      try { activeFfmpegProcess.stdin.end(); } catch (e) {}
+      setTimeout(() => {
+        if (activeFfmpegProcess) {
+          try { activeFfmpegProcess.kill('SIGINT'); } catch (e) {}
+          activeFfmpegProcess = null;
+        }
+      }, 1000);
+    }
+    liveStreamState.isStreaming = false;
+    liveStreamState.startTime = null;
+    broadcastSSE('stream_status', { isStreaming: false, stopped: true });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, stopped: true }));
+    return;
+  }
+
 
   // Static File Serving
   let reqPath = parsedUrl;

@@ -2900,52 +2900,7 @@ Te adoraré, te adoraré..."
     </div>
   </div>
 
-  <div id="streamingConfigModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-[#0d131f] border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl flex flex-col gap-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div class="flex items-center gap-2.5">
-          <div class="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
-            <i data-lucide="radio" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <h3 class="text-sm font-bold text-white">Configuración de Salida Multi-Destino (Restream)</h3>
-            <p class="text-[11px] text-slate-400">Transmite en simultáneo a YouTube y Facebook Live</p>
-          </div>
-        </div>
-        <button onclick="closeStreamingConfigModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
-      </div>
-
-      <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-        <!-- DESTINO 1: YOUTUBE LIVE -->
-        <div class="p-3.5 rounded-xl border border-red-500/30 bg-red-950/15 flex flex-col gap-2.5">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-              <h4 class="text-xs font-bold text-white">Canal 1: YouTube Live</h4>
-              <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 border border-red-500/30">RTMP</span>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="ytStreamEnable" checked class="sr-only peer">
-              <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
-            </label>
-          </div>
-          <div class="grid grid-cols-1 gap-2 text-xs">
-            <div>
-              <label class="text-[10px] text-slate-400 font-semibold block mb-1">URL del Servidor</label>
-              <input type="text" id="ytStreamUrl" value="rtmp://a.rtmp.youtube.com/live2" 
-                     class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:border-red-500 outline-none">
-            </div>
-            <div>
-              <label class="text-[10px] text-slate-400 font-semibold block mb-1">Clave de Transmisión (Stream Key)</label>
-              <div class="relative">
-                <input type="password" id="ytStreamKey" value="yt-live-9382-7712-4412-omni" 
-                       class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:border-red-500 outline-none pr-8">
-                <button onclick="togglePasswordVisibility('ytStreamKey')" class="absolute right-2 top-2 text-slate-400 hover:text-white">
-                  <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
-            </div>
-          </div>
+  
         </div>
 
         <!-- DESTINO 2: FACEBOOK LIVE -->
@@ -9087,7 +9042,8 @@ Pues resucitaste, Rey`
         previewTestChannel(ch);
 
       } else {
-        const mobileGroup = document.getElementById(`mobileCamGroup-${ch}`); if (mobileGroup) mobileGroup.classList.add('hidden');
+        const mobileGroup = document.getElementById(`mobileCamGroup-${ch}`);
+        if (mobileGroup) mobileGroup.classList.add('hidden');
 
         if (val === `sim_${ch}`) {
           hardwareConfig.channels[ch] = {
@@ -9097,6 +9053,7 @@ Pues resucitaste, Rey`
             sourceDesc: ch === 4 ? 'Compositor 70/30' : `HDMI Ingest ${ch}`
           };
           stopChannelStream(ch);
+          previewTestChannel(ch);
         } else if (val === 'screen') {
           hardwareConfig.channels[ch] = {
             type: 'screen',
@@ -9104,6 +9061,8 @@ Pues resucitaste, Rey`
             label: 'Pantalla / Diapositivas',
             sourceDesc: 'Screen Share 1080p'
           };
+          await connectChannelStream(ch);
+          previewTestChannel(ch);
         } else {
           const dev = detectedVideoDevices.find(d => d.deviceId === val);
           const lbl = dev ? dev.label : `Cámara ${ch}`;
@@ -9114,6 +9073,8 @@ Pues resucitaste, Rey`
             label: isObsbot ? 'OBSBOT Virtual Camera' : lbl,
             sourceDesc: isObsbot ? '🤖 OBSBOT 1080p' : 'USB / HDMI Ingest'
           };
+          await connectChannelStream(ch);
+          previewTestChannel(ch);
         }
       }
 
@@ -9165,6 +9126,7 @@ Pues resucitaste, Rey`
 
     async function connectChannelStream(ch) {
       const cfg = hardwareConfig.channels[ch];
+      if (!cfg) return;
       stopChannelStream(ch);
 
       const videoEl = document.getElementById(`hwVideo-${ch}`);
@@ -9173,15 +9135,30 @@ Pues resucitaste, Rey`
       try {
         if (cfg.type === 'ninja') {
           console.log(`Channel ${ch} mapped to OBS Ninja URL: ${cfg.ninjaUrl}`);
+        } else if (cfg.type === 'mobile') {
+          if (activeHardwareStreams[ch]) {
+            videoEl.srcObject = activeHardwareStreams[ch];
+            await videoEl.play().catch(() => {});
+          } else {
+            initStudioWebRTCForChannel(ch);
+          }
         } else if (cfg.type === 'hardware' && cfg.deviceId) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              deviceId: { exact: cfg.deviceId },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
-              frameRate: { ideal: 60, min: 30 }
-            }
-          });
+          let stream = null;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                deviceId: cfg.deviceId ? { ideal: cfg.deviceId } : undefined,
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                frameRate: { ideal: 60, min: 30 }
+              }
+            });
+          } catch (e1) {
+            console.warn(`Retrying camera ${ch} with fallback constraints:`, e1);
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: cfg.deviceId ? { deviceId: { ideal: cfg.deviceId } } : true
+            });
+          }
           activeHardwareStreams[ch] = stream;
           videoEl.srcObject = stream;
           await videoEl.play().catch(e => console.log('Video play error:', e));
@@ -9277,9 +9254,34 @@ Pues resucitaste, Rey`
       stopTestPreview();
 
       const cfg = hardwareConfig.channels[ch];
+      if (!cfg) return;
       if (label) label.textContent = `CAM ${ch}: ${cfg.label}`;
 
-      if (cfg.type === 'ninja') {
+      if (cfg.type === 'mobile') {
+        if (testNinjaLayer) testNinjaLayer.classList.add('hidden');
+        if (testNinjaIframe) testNinjaIframe.src = '';
+        if (activeHardwareStreams[ch]) {
+          if (testVid) {
+            testVid.classList.remove('hidden');
+            testVid.srcObject = activeHardwareStreams[ch];
+            await testVid.play().catch(() => {});
+          }
+          if (placeholder) placeholder.classList.add('hidden');
+        } else {
+          if (testVid) testVid.classList.add('hidden');
+          if (placeholder) {
+            placeholder.classList.remove('hidden');
+            placeholder.innerHTML = `
+              <div class="flex flex-col items-center justify-center p-4 text-center">
+                <i data-lucide="smartphone" class="w-8 h-8 text-emerald-400 mb-2"></i>
+                <span class="text-xs font-bold text-white">OmniCast Mobile Cam (CAM ${ch})</span>
+                <span class="text-[10px] text-slate-400 mt-1">Escanea el código QR desde tu celular para transmitir video HD y recibir Tally en vivo.</span>
+              </div>
+            `;
+            lucide.createIcons();
+          }
+        }
+      } else if (cfg.type === 'ninja') {
         if (testVid) testVid.classList.add('hidden');
         if (placeholder) placeholder.classList.add('hidden');
         if (testNinjaLayer && testNinjaIframe) {
@@ -9289,37 +9291,56 @@ Pues resucitaste, Rey`
       } else if (cfg.type === 'hardware' && cfg.deviceId) {
         if (testNinjaLayer) testNinjaLayer.classList.add('hidden');
         if (testNinjaIframe) testNinjaIframe.src = '';
-        if (testVid) testVid.classList.remove('hidden');
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: { exact: cfg.deviceId } }
-          });
-          activeHardwareStreams.test = stream;
+
+        if (activeHardwareStreams[ch]) {
           if (testVid) {
-            testVid.srcObject = stream;
-            await testVid.play();
-            if (placeholder) placeholder.classList.add('hidden');
+            testVid.classList.remove('hidden');
+            testVid.srcObject = activeHardwareStreams[ch];
+            await testVid.play().catch(() => {});
           }
-        } catch (e) {
-          if (placeholder) {
-            placeholder.classList.remove('hidden');
-            placeholder.innerHTML = '<span class="text-rose-400 font-bold">Error al abrir prueba de señal.</span>';
+          if (placeholder) placeholder.classList.add('hidden');
+        } else {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: { deviceId: { ideal: cfg.deviceId } }
+            });
+            activeHardwareStreams.test = stream;
+            if (testVid) {
+              testVid.classList.remove('hidden');
+              testVid.srcObject = stream;
+              await testVid.play().catch(() => {});
+            }
+            if (placeholder) placeholder.classList.add('hidden');
+          } catch (e) {
+            if (placeholder) {
+              placeholder.classList.remove('hidden');
+              placeholder.innerHTML = '<span class="text-rose-400 font-bold">Error al abrir prueba de señal. Permiso de cámara requerido.</span>';
+            }
           }
         }
       } else if (cfg.type === 'screen') {
         if (testNinjaLayer) testNinjaLayer.classList.add('hidden');
         if (testNinjaIframe) testNinjaIframe.src = '';
-        if (testVid) testVid.classList.remove('hidden');
-        try {
-          const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-          activeHardwareStreams.test = stream;
+        if (activeHardwareStreams[ch]) {
           if (testVid) {
-            testVid.srcObject = stream;
-            await testVid.play();
-            if (placeholder) placeholder.classList.add('hidden');
+            testVid.classList.remove('hidden');
+            testVid.srcObject = activeHardwareStreams[ch];
+            await testVid.play().catch(() => {});
           }
-        } catch (e) {
-          if (placeholder) placeholder.classList.remove('hidden');
+          if (placeholder) placeholder.classList.add('hidden');
+        } else {
+          try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            activeHardwareStreams.test = stream;
+            if (testVid) {
+              testVid.classList.remove('hidden');
+              testVid.srcObject = stream;
+              await testVid.play().catch(() => {});
+            }
+            if (placeholder) placeholder.classList.add('hidden');
+          } catch (e) {
+            if (placeholder) placeholder.classList.remove('hidden');
+          }
         }
       } else {
         if (testNinjaLayer) testNinjaLayer.classList.add('hidden');
@@ -10466,10 +10487,11 @@ Pues resucitaste, Rey`
     // MULTI-DESTINATION STREAMING CREDENTIALS
     // -------------------------------------------------------------------------
     function openStreamingConfigModal() {
-      document.getElementById('streamingConfigModal').classList.remove('hidden');
+      openCampusSettingsModal();
+      switchSettingsTab('destinos');
     }
     function closeStreamingConfigModal() {
-      document.getElementById('streamingConfigModal').classList.add('hidden');
+      closeCampusSettingsModal();
     }
 
     function togglePasswordVisibility(id) {
@@ -10902,68 +10924,206 @@ Pues resucitaste, Rey`
     }
 
     // -------------------------------------------------------------------------
-    // MASTER LIVE STREAMING ENGINE (YOUTUBE & FACEBOOK MULTI-DESTINATION)
+    // MASTER LIVE STREAMING ENGINE (REAL RTMP / RTMPS TO FACEBOOK & YOUTUBE)
     // -------------------------------------------------------------------------
     let isLiveStreaming = false;
+    let liveMediaRecorder = null;
     let liveTelemetryInterval = null;
+    let liveStreamStartTime = null;
     const btnMasterStream = document.getElementById('btnMasterStream');
 
-    btnMasterStream.onclick = () => {
-      isLiveStreaming = !isLiveStreaming;
-      const livePill = document.getElementById('livePill');
-      const liveDot = document.getElementById('liveDot');
-      const liveText = document.getElementById('liveText');
-      const bitrateBadge = document.getElementById('liveBitrateBadge');
-      const bitrateVal = document.getElementById('liveBitrateVal');
-      const ytEnabled = document.getElementById('ytStreamEnable').checked;
-      const fbEnabled = document.getElementById('fbStreamEnable').checked;
-
+    async function toggleMasterLiveStream() {
       if (isLiveStreaming) {
-        livePill.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-red-950 border border-red-500/60 shadow-lg shadow-red-500/20';
-        liveDot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-ping';
-        
-        let channelsDesc = [];
-        if (ytEnabled) channelsDesc.push('YT');
-        if (fbEnabled) channelsDesc.push('FB');
-        const channelStr = channelsDesc.length > 0 ? channelsDesc.join(' + ') : 'MULTI';
+        await stopMasterLiveStream();
+      } else {
+        await startMasterLiveStream();
+      }
+    }
 
-        liveText.className = 'text-xs font-bold font-mono tracking-widest text-red-400';
-        liveText.textContent = `ON AIR (${channelStr})`;
+    if (btnMasterStream) {
+      btnMasterStream.onclick = toggleMasterLiveStream;
+    }
+
+    async function startMasterLiveStream() {
+      let ytEnabled = document.getElementById('ytStreamEnable')?.checked ?? true;
+      let ytUrl = document.getElementById('ytStreamUrl')?.value.trim() || 'rtmp://a.rtmp.youtube.com/live2';
+      let ytKey = document.getElementById('ytStreamKey')?.value.trim() || '';
+
+      let fbEnabled = document.getElementById('fbStreamEnable')?.checked ?? true;
+      let fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://live-api-s.facebook.com:443/rtmp/';
+      let fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
+
+      // Check localStorage for saved keys
+      try {
+        const saved = localStorage.getItem('omnicast_streaming_config');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (!ytKey && parsed.youtube && parsed.youtube.key) {
+            ytKey = parsed.youtube.key.trim();
+            ytEnabled = parsed.youtube.enabled;
+          }
+          if (!fbKey && parsed.facebook && parsed.facebook.key) {
+            fbKey = parsed.facebook.key.trim();
+            fbEnabled = parsed.facebook.enabled;
+          }
+        }
+      } catch (e) {}
+
+      // Validate
+      const hasYt = ytEnabled && ytKey && ytKey !== 'yt-live-9382-7712-4412-omni';
+      const hasFb = fbEnabled && fbKey && fbKey !== 'FB-1049284729184712-live';
+
+      if (!hasYt && !hasFb) {
+        alert('⚠️ Para iniciar la transmisión en vivo necesitas configurar tu clave de transmisión (Stream Key) de Facebook Live o YouTube Live.\n\nAbriendo panel de Destinos de Transmisión...');
+        openCampusSettingsModal();
+        switchSettingsTab('destinos');
+        return;
+      }
+
+      const streamConfig = {
+        youtube: { enabled: hasYt, url: ytUrl, key: ytKey },
+        facebook: { enabled: hasFb, url: fbUrl, key: fbKey }
+      };
+
+      btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-amber-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition animate-pulse';
+      btnMasterStream.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> <span>CONECTANDO SERVIDORES...</span>';
+      if (window.lucide) lucide.createIcons();
+
+      try {
+        const resp = await fetch('/api/stream/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(streamConfig)
+        });
+        const result = await resp.json();
+        if (!resp.ok || result.error) {
+          throw new Error(result.error || 'Error al iniciar pipeline RTMP en servidor');
+        }
+
+        const progCanvas = document.getElementById('programCanvas');
+        if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
+
+        const canvasStream = progCanvas.captureStream(30);
+        const audioTrack = getMasterAudioTrack();
+        const broadcastStream = new MediaStream();
+        canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));
+        if (audioTrack) broadcastStream.addTrack(audioTrack);
+
+        const candidateMimes = [
+          'video/webm;codecs=vp8,opus',
+          'video/webm;codecs=h264,opus',
+          'video/webm',
+          'video/mp4'
+        ];
+        const mime = candidateMimes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+
+        liveMediaRecorder = new MediaRecorder(broadcastStream, {
+          mimeType: mime,
+          videoBitsPerSecond: 4500000
+        });
+
+        liveMediaRecorder.ondataavailable = async (e) => {
+          if (e.data && e.data.size > 0 && isLiveStreaming) {
+            try {
+              await fetch('/api/stream/chunk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/octet-stream' },
+                body: e.data
+              });
+            } catch (chunkErr) {
+              console.warn('[Stream Chunk Upload Warning]:', chunkErr.message);
+            }
+          }
+        };
+
+        liveMediaRecorder.start(1000);
+        isLiveStreaming = true;
+        liveStreamStartTime = Date.now();
+
+        const livePill = document.getElementById('livePill');
+        const liveDot = document.getElementById('liveDot');
+        const liveText = document.getElementById('liveText');
+        const bitrateBadge = document.getElementById('liveBitrateBadge');
+        const bitrateVal = document.getElementById('liveBitrateVal');
+
+        if (livePill) livePill.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-red-950 border border-red-500/60 shadow-lg shadow-red-500/20';
+        if (liveDot) liveDot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-ping';
+        
+        const destDesc = (result.destinations || []).join(' + ') || 'EN VIVO';
+        if (liveText) {
+          liveText.className = 'text-xs font-bold font-mono tracking-widest text-red-400';
+          liveText.textContent = `ON AIR (${destDesc})`;
+        }
 
         if (bitrateBadge) bitrateBadge.classList.remove('hidden');
 
         if (liveTelemetryInterval) clearInterval(liveTelemetryInterval);
-        liveTelemetryInterval = setInterval(() => {
+        liveTelemetryInterval = setInterval(async () => {
           if (!isLiveStreaming) return;
-          const fluctuation = Math.floor(Math.random() * 80) - 40;
-          const currentKbps = (4520 + fluctuation).toLocaleString();
-          if (bitrateVal) bitrateVal.textContent = `${currentKbps} kbps`;
-        }, 1200);
+          try {
+            const sRes = await fetch('/api/stream/status');
+            const sData = await sRes.json();
+            if (sData && sData.stats) {
+              const br = sData.stats.bitrate > 0 ? `${sData.stats.bitrate} kbps` : '4,500 kbps (1080p60)';
+              if (bitrateVal) bitrateVal.textContent = br;
+            }
+          } catch (e) {}
+        }, 2000);
 
-        btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/30 transition';
+        btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/30 transition active:scale-95';
         btnMasterStream.innerHTML = '<i data-lucide="radio" class="w-3.5 h-3.5"></i> <span>DETENER TRANSMISIÓN</span>';
 
-        showToast(`📡 Transmisión iniciada al aire (${channelStr}) en 1080p60`, '📡');
+        showToast(`📡 Transmisión Full HD iniciada en vivo a ${destDesc}`, '📡');
 
-      } else {
-        livePill.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700/60';
-        liveDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-600';
+      } catch (err) {
+        console.error('Error starting live stream:', err);
+        isLiveStreaming = false;
+        alert('Error al iniciar la transmisión: ' + err.message);
+        stopMasterLiveStream();
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function stopMasterLiveStream() {
+      isLiveStreaming = false;
+      liveStreamStartTime = null;
+
+      if (liveMediaRecorder && liveMediaRecorder.state !== 'inactive') {
+        try { liveMediaRecorder.stop(); } catch (e) {}
+        liveMediaRecorder = null;
+      }
+
+      try {
+        await fetch('/api/stream/stop', { method: 'POST' });
+      } catch (e) {}
+
+      if (liveTelemetryInterval) {
+        clearInterval(liveTelemetryInterval);
+        liveTelemetryInterval = null;
+      }
+
+      const livePill = document.getElementById('livePill');
+      const liveDot = document.getElementById('liveDot');
+      const liveText = document.getElementById('liveText');
+      const bitrateBadge = document.getElementById('liveBitrateBadge');
+
+      if (livePill) livePill.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700/60';
+      if (liveDot) liveDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-600';
+      if (liveText) {
         liveText.className = 'text-xs font-bold font-mono tracking-widest text-slate-400';
         liveText.textContent = 'OFF AIR';
-
-        if (bitrateBadge) bitrateBadge.classList.add('hidden');
-        if (liveTelemetryInterval) {
-          clearInterval(liveTelemetryInterval);
-          liveTelemetryInterval = null;
-        }
-
-        btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition';
-        btnMasterStream.innerHTML = '<i data-lucide="radio" class="w-3.5 h-3.5"></i> <span>INICIAR TRANSMISIÓN</span>';
-
-        showToast('⏹ Transmisión detenida. Señal en descanso.', '⏹');
       }
-      lucide.createIcons();
-    };
+
+      if (bitrateBadge) bitrateBadge.classList.add('hidden');
+
+      if (btnMasterStream) {
+        btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition active:scale-95';
+        btnMasterStream.innerHTML = '<i data-lucide="radio" class="w-3.5 h-3.5"></i> <span>INICIAR TRANSMISIÓN</span>';
+      }
+
+      showToast('⏹ Transmisión detenida. Servidores RTMP liberados.', '⏹');
+      if (window.lucide) lucide.createIcons();
+    }
 
     // -------------------------------------------------------------------------
     // DOCK NAVIGATION
@@ -12066,6 +12226,15 @@ Resucitaste en majestad`;
     loadHardwareConfig();
     for (let ch = 1; ch <= 4; ch++) {
       updateRackChannelLabels(ch);
+      const cfg = hardwareConfig.channels[ch];
+      if (cfg && cfg.type === 'hardware' && cfg.deviceId) {
+        connectChannelStream(ch).catch(e => console.warn('Cam auto-connect:', e));
+      } else if (cfg && cfg.type === 'mobile') {
+        initStudioWebRTCForChannel(ch);
+      }
+    }
+    if (hardwareConfig.audioInput && hardwareConfig.audioInput.type === 'hardware' && hardwareConfig.audioInput.deviceId) {
+      connectAudioStream(hardwareConfig.audioInput.deviceId).catch(() => {});
     }
 
     // Auto-detect connected hardware (OBSBOT / USB Cameras / Audio) silently
