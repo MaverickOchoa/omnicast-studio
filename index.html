@@ -10958,10 +10958,52 @@ Pues resucitaste, Rey`
     let isLiveStreaming = false;
     let liveStreamWs = null;
     let liveMediaRecorder = null;
+    let liveBroadcastAudioCtx = null;
     let liveConnectingTimer = null;
     let liveDestinationsSummary = '';
 
     const btnMasterStream = document.getElementById('btnMasterStream');
+
+    function createFreshBroadcastAudioTrack() {
+      try {
+        if (liveBroadcastAudioCtx && liveBroadcastAudioCtx.state !== 'closed') {
+          try { liveBroadcastAudioCtx.close(); } catch (e) {}
+        }
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        liveBroadcastAudioCtx = new AudioCtx({ sampleRate: 44100 });
+        if (liveBroadcastAudioCtx.state === 'suspended') {
+          liveBroadcastAudioCtx.resume().catch(() => {});
+        }
+
+        const dest = liveBroadcastAudioCtx.createMediaStreamDestination();
+
+        // Continuous inaudible reference tone so Audio & Video timestamps start at t=0.000s in lockstep
+        const osc = liveBroadcastAudioCtx.createOscillator();
+        const silentGain = liveBroadcastAudioCtx.createGain();
+        silentGain.gain.value = 0.00001;
+        osc.connect(silentGain);
+        silentGain.connect(dest);
+        osc.start();
+
+        // Mix live hardware microphone/line-in if active
+        if (activeHardwareStreams && activeHardwareStreams.audio && activeHardwareStreams.audio.getAudioTracks().length > 0) {
+          const hwTrack = activeHardwareStreams.audio.getAudioTracks()[0];
+          if (hwTrack && hwTrack.readyState === 'live') {
+            try {
+              const micSource = liveBroadcastAudioCtx.createMediaStreamSource(activeHardwareStreams.audio);
+              micSource.connect(dest);
+            } catch (micErr) {
+              console.warn('Could not mix hardware audio into broadcast context:', micErr);
+            }
+          }
+        }
+
+        return dest.stream.getAudioTracks()[0] || null;
+      } catch (e) {
+        console.warn('Fallback to getMasterAudioTrack:', e);
+        return getMasterAudioTrack();
+      }
+    }
 
     function setStreamUIState(state, info) {
       const livePill = document.getElementById('livePill');
@@ -11039,6 +11081,18 @@ Pues resucitaste, Rey`
     async function startMasterLiveStream() {
       if (isLiveStreaming) return;
 
+      // Clean up any lingering socket before starting a new connection
+      if (liveStreamWs) {
+        try {
+          liveStreamWs.onopen = null;
+          liveStreamWs.onmessage = null;
+          liveStreamWs.onerror = null;
+          liveStreamWs.onclose = null;
+          liveStreamWs.close();
+        } catch (e) {}
+        liveStreamWs = null;
+      }
+
       let ytEnabled = document.getElementById('ytStreamEnable')?.checked ?? true;
       let ytUrl = document.getElementById('ytStreamUrl')?.value.trim() || 'rtmp://a.rtmp.youtube.com/live2';
       let ytKey = document.getElementById('ytStreamKey')?.value.trim() || '';
@@ -11080,29 +11134,34 @@ Pues resucitaste, Rey`
 
       setStreamUIState('connecting');
 
-      // Safety timeout: Never stay stuck on connecting (15s max)
       clearTimeout(liveConnectingTimer);
       liveConnectingTimer = setTimeout(() => {
         if (!isLiveStreaming) {
           console.warn('[Stream WebSocket] Connection timeout reached (15s)');
-          stopMasterLiveStream();
-          alert('⚠️ Tiempo de espera agotado al conectar con los servidores de streaming.\n\nVerifica tu conexión a internet y que la clave de transmisión en Facebook Live Producer siga activa (o genera una nueva transmisión con "Volver" en Facebook).');
+          stopMasterLiveStream(false);
+          alert('⚠️ Tiempo de espera agotado al conectar con los servidores de streaming.\n\nVerifica tu conexión a internet y que la clave de transmisión en Facebook Live Producer siga activa.');
         }
       }, 15000);
 
       try {
         const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${proto}//${window.location.host}/api/live-stream-ws`;
+        const encodedCfg = encodeURIComponent(JSON.stringify(streamConfig));
+        const wsUrl = `${proto}//${window.location.host}/api/live-stream-ws?config=${encodedCfg}`;
 
-        liveStreamWs = new WebSocket(wsUrl);
-        liveStreamWs.binaryType = 'arraybuffer';
+        const ws = new WebSocket(wsUrl);
+        ws.binaryType = 'arraybuffer';
+        liveStreamWs = ws;
 
-        liveStreamWs.onopen = () => {
-          console.log('[Stream WebSocket] Connected. Sending start action...');
-          liveStreamWs.send(JSON.stringify({ action: 'start', config: streamConfig }));
+        ws.onopen = () => {
+          if (liveStreamWs !== ws) return;
+          console.log('[Stream WebSocket] Connected to server.');
+          try {
+            ws.send(JSON.stringify({ action: 'start', config: streamConfig }));
+          } catch (e) {}
         };
 
-        liveStreamWs.onmessage = (event) => {
+        ws.onmessage = (event) => {
+          if (liveStreamWs !== ws) return;
           try {
             const data = JSON.parse(event.data);
 
@@ -11110,18 +11169,22 @@ Pues resucitaste, Rey`
               console.log('[Stream WebSocket] Received READY signal from server!');
               clearTimeout(liveConnectingTimer);
               liveConnectingTimer = null;
+
               const progCanvas = document.getElementById('programCanvas');
               if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
 
+              // Force an immediate paint on programCanvas so captureStream has an initial frame ready
+              try { renderCompositor(); } catch (e) {}
+
               const canvasStream = progCanvas.captureStream(30);
-              const audioTrack = getMasterAudioTrack();
+              const audioTrack = createFreshBroadcastAudioTrack();
               const broadcastStream = new MediaStream();
               canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));
               if (audioTrack) broadcastStream.addTrack(audioTrack);
 
               const candidateMimes = [
-                'video/webm;codecs=vp8,opus',
                 'video/webm;codecs=h264,opus',
+                'video/webm;codecs=vp8,opus',
                 'video/webm',
                 'video/mp4'
               ];
@@ -11133,13 +11196,12 @@ Pues resucitaste, Rey`
               });
 
               liveMediaRecorder.ondataavailable = (e) => {
-                if (e.data && e.data.size > 0 && liveStreamWs && liveStreamWs.readyState === WebSocket.OPEN) {
-                  liveStreamWs.send(e.data);
+                if (e.data && e.data.size >= 16 && liveStreamWs === ws && ws.readyState === WebSocket.OPEN) {
+                  ws.send(e.data);
                 }
               };
 
-              liveMediaRecorder.start(1000);
-              try { liveMediaRecorder.requestData(); } catch (e) {}
+              liveMediaRecorder.start(500);
               isLiveStreaming = true;
               liveDestinationsSummary = data.destinations || ['EN VIVO'];
               setStreamUIState('live', liveDestinationsSummary);
@@ -11153,14 +11215,15 @@ Pues resucitaste, Rey`
 
             } else if (data.type === 'error') {
               clearTimeout(liveConnectingTimer);
+              liveConnectingTimer = null;
               console.warn('[Stream WebSocket Error]:', data.message);
+              stopMasterLiveStream(false);
               alert('Aviso de Transmisión:\n\n' + data.message);
-              stopMasterLiveStream();
 
             } else if (data.type === 'stopped') {
               console.log('[Stream WebSocket] Server notified stream stopped');
               if (isLiveStreaming) {
-                stopMasterLiveStream();
+                stopMasterLiveStream(true);
               }
             }
           } catch (msgErr) {
@@ -11168,17 +11231,21 @@ Pues resucitaste, Rey`
           }
         };
 
-        liveStreamWs.onerror = (err) => {
+        ws.onerror = (err) => {
+          if (liveStreamWs !== ws) return;
           console.error('[Stream WebSocket] Network error:', err);
           clearTimeout(liveConnectingTimer);
-          stopMasterLiveStream();
+          liveConnectingTimer = null;
+          stopMasterLiveStream(false);
         };
 
-        liveStreamWs.onclose = () => {
+        ws.onclose = () => {
+          if (liveStreamWs !== ws) return;
           console.log('[Stream WebSocket] Connection closed');
           clearTimeout(liveConnectingTimer);
+          liveConnectingTimer = null;
           if (isLiveStreaming) {
-            stopMasterLiveStream();
+            stopMasterLiveStream(true);
           } else {
             setStreamUIState('idle');
           }
@@ -11187,44 +11254,52 @@ Pues resucitaste, Rey`
       } catch (err) {
         console.error('Error initializing WebSocket live stream:', err);
         clearTimeout(liveConnectingTimer);
+        liveConnectingTimer = null;
         setStreamUIState('idle');
         alert('Error al iniciar la transmisión: ' + err.message);
       }
     }
 
-    function stopMasterLiveStream() {
+    function stopMasterLiveStream(showNotification = true) {
       clearTimeout(liveConnectingTimer);
-      setStreamUIState('stopping');
+      liveConnectingTimer = null;
 
-      if (liveMediaRecorder && liveMediaRecorder.state !== 'inactive') {
+      if (liveMediaRecorder) {
         try {
           liveMediaRecorder.ondataavailable = null;
-          liveMediaRecorder.stop();
+          if (liveMediaRecorder.state !== 'inactive') {
+            liveMediaRecorder.stop();
+          }
         } catch (e) {}
         liveMediaRecorder = null;
       }
 
-      if (liveStreamWs) {
-        try {
-          if (liveStreamWs.readyState === WebSocket.OPEN) {
-            liveStreamWs.send(JSON.stringify({ action: 'stop' }));
-          }
-          liveStreamWs.close();
-        } catch (e) {}
-        liveStreamWs = null;
+      if (liveBroadcastAudioCtx && liveBroadcastAudioCtx.state !== 'closed') {
+        try { liveBroadcastAudioCtx.close(); } catch (e) {}
+        liveBroadcastAudioCtx = null;
       }
 
-      // Also call HTTP stop fallback to clean up any server-side FFmpeg process
-      try {
-        fetch('/api/stream/stop', { method: 'POST' }).catch(() => {});
-      } catch (e) {}
+      if (liveStreamWs) {
+        const ws = liveStreamWs;
+        liveStreamWs = null;
+        try {
+          ws.onopen = null;
+          ws.onmessage = null;
+          ws.onerror = null;
+          ws.onclose = null;
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ action: 'stop' }));
+          }
+          ws.close();
+        } catch (e) {}
+      }
 
       isLiveStreaming = false;
-      setTimeout(() => {
-        setStreamUIState('idle');
-      }, 400);
+      setStreamUIState('idle');
 
-      showToast('⏹ Transmisión detenida. Servidores RTMP liberados.', '⏹');
+      if (showNotification) {
+        showToast('⏹ Transmisión detenida. Servidores RTMP liberados.', '⏹');
+      }
     }
 
     // -------------------------------------------------------------------------

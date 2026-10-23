@@ -459,9 +459,12 @@ const requestHandler = (req, res) => {
 // =========================================================================
 // MASTER WEBSOCKET STREAMING ENGINE & FFMPEG LIFECYCLE
 // =========================================================================
+let streamHasValidHeader = false;
+
 function stopFfmpegStream(notifyClient = true) {
   liveStreamState.isStreaming = false;
   liveStreamState.startTime = null;
+  streamHasValidHeader = false;
 
   if (activeFfmpegProcess) {
     const proc = activeFfmpegProcess;
@@ -512,13 +515,14 @@ function startFfmpegStream(dest, activeWs) {
 
   if (targets.length === 0) {
     const err = 'No hay destinos de transmisión con clave válida configurada. Por favor ingresa tu clave en Destinos de Transmisión.';
+    console.warn('[WebSocket Stream] Start rejected: No valid targets configured');
     if (activeWs && activeWs.readyState === WebSocket.OPEN) {
       activeWs.send(JSON.stringify({ type: 'error', message: err }));
     }
     return { error: err };
   }
 
-  // Clean up any existing stream process
+  // Clean up any existing stream process without sending 'stopped' to new client
   stopFfmpegStream(false);
 
   const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
@@ -531,7 +535,7 @@ function startFfmpegStream(dest, activeWs) {
   }
 
   const ffmpegArgs = [
-    '-fflags', '+genpts',
+    '-thread_queue_size', '4096',
     '-re',
     '-i', 'pipe:0',
     '-c:v', 'libx264',
@@ -541,11 +545,15 @@ function startFfmpegStream(dest, activeWs) {
     '-maxrate', '5000k',
     '-bufsize', '9000k',
     '-pix_fmt', 'yuv420p',
+    '-r', '30',
     '-g', '60',
     '-keyint_min', '30',
     '-c:a', 'aac',
     '-b:a', '192k',
     '-ar', '44100',
+    '-ac', '2',
+    '-af', 'aresample=async=1:first_pts=0',
+    '-max_muxing_queue_size', '9999',
     '-flvflags', 'no_duration_filesize'
   ];
 
@@ -559,6 +567,7 @@ function startFfmpegStream(dest, activeWs) {
   console.log(`[FFmpeg RTMP] Spawning WebSocket streaming pipeline for: ${targets.map(t => t.name).join(' & ')}`);
   const proc = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe'] });
   activeFfmpegProcess = proc;
+  streamHasValidHeader = false;
 
   liveStreamState.isStreaming = true;
   liveStreamState.startTime = Date.now();
@@ -573,6 +582,10 @@ function startFfmpegStream(dest, activeWs) {
     const text = data.toString();
     if (!text.includes('frame=')) {
       console.log('[FFmpeg]:', text.trim());
+    } else {
+      const lines = text.trim().split(/\r?\n/);
+      const lastLine = lines[lines.length - 1];
+      console.log('[FFmpeg Frame]:', lastLine);
     }
     const fpsMatch = text.match(/fps=\s*([\d\.]+)/);
     const brMatch = text.match(/bitrate=\s*([\d\.]+)kbits\/s/);
@@ -607,6 +620,7 @@ function startFfmpegStream(dest, activeWs) {
     if (activeFfmpegProcess === proc) {
       activeFfmpegProcess = null;
       liveStreamState.isStreaming = false;
+      streamHasValidHeader = false;
       if (activeWs && activeWs.readyState === WebSocket.OPEN) {
         activeWs.send(JSON.stringify({ type: 'stopped', code }));
       }
@@ -620,6 +634,7 @@ function startFfmpegStream(dest, activeWs) {
       liveStreamState.stats.error = err.message;
       activeFfmpegProcess = null;
       liveStreamState.isStreaming = false;
+      streamHasValidHeader = false;
       if (activeWs && activeWs.readyState === WebSocket.OPEN) {
         activeWs.send(JSON.stringify({ type: 'error', message: err.message }));
       }
@@ -641,16 +656,34 @@ function startFfmpegStream(dest, activeWs) {
 
 const liveStreamWss = new WebSocket.Server({ noServer: true });
 
-liveStreamWss.on('connection', (ws) => {
+liveStreamWss.on('connection', (ws, request) => {
   console.log('[WebSocket Stream] Browser client connected');
   activeStreamWebSocket = ws;
+  let startedForThisSocket = false;
+
+  // Auto-start immediately if config was passed in the WebSocket URL query string
+  try {
+    const host = (request && request.headers && request.headers.host) || 'localhost';
+    const parsedUrl = new URL(request.url, `http://${host}`);
+    const urlConfig = parsedUrl.searchParams.get('config');
+    if (urlConfig) {
+      const parsedConfig = JSON.parse(urlConfig);
+      startedForThisSocket = true;
+      startFfmpegStream(parsedConfig, ws);
+    }
+  } catch (urlErr) {
+    console.warn('[WebSocket Stream] URL config parse warning:', urlErr.message);
+  }
 
   ws.on('message', (message, isBinary) => {
     if (!isBinary) {
       try {
         const payload = JSON.parse(message.toString());
         if (payload.action === 'start') {
-          startFfmpegStream(payload.config, ws);
+          if (!startedForThisSocket) {
+            startedForThisSocket = true;
+            startFfmpegStream(payload.config, ws);
+          }
         } else if (payload.action === 'stop') {
           stopFfmpegStream();
           if (ws.readyState === WebSocket.OPEN) {
@@ -663,11 +696,18 @@ liveStreamWss.on('connection', (ws) => {
     } else {
       if (activeFfmpegProcess && activeFfmpegProcess.stdin && activeFfmpegProcess.stdin.writable) {
         try {
-          activeFfmpegProcess.stdin.write(message);
-          liveStreamState.stats.totalBytes += message.length;
-          if (liveStreamState.stats.totalBytes <= message.length * 3) {
-            console.log(`[WebSocket Stream] Initial chunk written to FFmpeg: ${message.length} bytes (Total: ${liveStreamState.stats.totalBytes})`);
+          const buf = Buffer.isBuffer(message) ? message : Buffer.from(message);
+          if (!streamHasValidHeader) {
+            // Skip any tiny runt fragment (< 16 bytes) before the WebM EBML header (0x1A 0x45 0xDF 0xA3)
+            if (buf.length < 16) {
+              console.log(`[WebSocket Stream] Skipping initial runt fragment (${buf.length} bytes)`);
+              return;
+            }
+            streamHasValidHeader = true;
+            console.log(`[WebSocket Stream] First valid WebM header chunk received: ${buf.length} bytes`);
           }
+          activeFfmpegProcess.stdin.write(buf);
+          liveStreamState.stats.totalBytes += buf.length;
         } catch (err) {
           console.warn('[WebSocket Stream] stdin write error:', err.message);
         }
@@ -679,9 +719,9 @@ liveStreamWss.on('connection', (ws) => {
     console.log('[WebSocket Stream] Browser client disconnected');
     if (activeStreamWebSocket === ws) {
       activeStreamWebSocket = null;
-    }
-    if (activeFfmpegProcess) {
-      stopFfmpegStream();
+      if (activeFfmpegProcess) {
+        stopFfmpegStream(false);
+      }
     }
   });
 
