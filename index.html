@@ -10953,256 +10953,231 @@ Pues resucitaste, Rey`
     }
 
     // -------------------------------------------------------------------------
-    // MASTER LIVE STREAMING ENGINE (REAL RTMP / RTMPS TO FACEBOOK & YOUTUBE)
-    // -------------------------------------------------------------------------
-    let isLiveStreaming = false;
-    let isStartingLiveStream = false;
-    let activeBroadcastVideoTrack = null;
-    let liveMediaRecorder = null;
-    let liveTelemetryInterval = null;
-    let liveStreamStartTime = null;
-    const btnMasterStream = document.getElementById('btnMasterStream');
+    // MASTER LIVE STREAMING ENGINE (PROVEN DIRECT PIPELINE TO FACEBOOK & YOUTUBE)
+      let isLiveStreaming = false;
+      let isStartingLiveStream = false;
+      let liveMediaRecorder = null;
+      let liveTelemetryInterval = null;
+      let liveStreamStartTime = null;
+      const btnMasterStream = document.getElementById('btnMasterStream');
 
-    // Strict Sequential FIFO Upload Queue to guarantee zero packet out-of-order jitter
-    const streamChunkQueue = [];
-    let isUploadingStreamChunk = false;
-
-    async function processStreamChunkQueue() {
-      if (isUploadingStreamChunk || streamChunkQueue.length === 0 || !isLiveStreaming) return;
-      isUploadingStreamChunk = true;
-      const chunk = streamChunkQueue.shift();
-
-      try {
-        await fetch('/api/stream/chunk', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/octet-stream' },
-          body: chunk
-        });
-      } catch (chunkErr) {
-        console.warn('[Stream Chunk Upload Warning]:', chunkErr.message);
-      } finally {
-        isUploadingStreamChunk = false;
-        if (streamChunkQueue.length > 0 && isLiveStreaming) {
-          processStreamChunkQueue();
+      function resetStreamButtonUI() {
+        if (btnMasterStream) {
+          btnMasterStream.disabled = false;
+          btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition active:scale-95';
+          btnMasterStream.innerHTML = '<i data-lucide="radio" class="w-3.5 h-3.5"></i> <span>INICIAR TRANSMISIÓN</span>';
         }
-      }
-    }
-
-    async function toggleMasterLiveStream() {
-      if (isStartingLiveStream) return;
-      if (isLiveStreaming) {
-        await stopMasterLiveStream();
-      } else {
-        await startMasterLiveStream();
-      }
-    }
-
-    if (btnMasterStream) {
-      btnMasterStream.onclick = toggleMasterLiveStream;
-    }
-
-    async function startMasterLiveStream() {
-      if (isStartingLiveStream || isLiveStreaming) return;
-      isStartingLiveStream = true;
-      if (btnMasterStream) btnMasterStream.disabled = true;
-
-      // Cleanly teardown any prior recorder and clear queue before starting new session
-      if (liveMediaRecorder) {
-        try {
-          liveMediaRecorder.ondataavailable = null;
-          liveMediaRecorder.stop();
-        } catch (e) {}
-        liveMediaRecorder = null;
-      }
-      streamChunkQueue.length = 0;
-      isUploadingStreamChunk = false;
-
-      let ytEnabled = document.getElementById('ytStreamEnable')?.checked ?? true;
-      let ytUrl = document.getElementById('ytStreamUrl')?.value.trim() || 'rtmp://a.rtmp.youtube.com/live2';
-      let ytKey = document.getElementById('ytStreamKey')?.value.trim() || '';
-
-      let fbEnabled = document.getElementById('fbStreamEnable')?.checked ?? true;
-      let fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://live-api-s.facebook.com:443/rtmp/';
-      let fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
-
-      try {
-        const saved = localStorage.getItem('omnicast_streaming_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (!ytKey && parsed.youtube && parsed.youtube.key) {
-            ytKey = parsed.youtube.key.trim();
-            ytEnabled = parsed.youtube.enabled;
-          }
-          if (!fbKey && parsed.facebook && parsed.facebook.key) {
-            fbKey = parsed.facebook.key.trim();
-            fbEnabled = parsed.facebook.enabled;
-          }
-        }
-      } catch (e) {}
-
-      const hasYt = ytEnabled && ytKey && ytKey !== 'yt-live-9382-7712-4412-omni';
-      const hasFb = fbEnabled && fbKey && fbKey !== 'FB-1049284729184712-live';
-
-      if (!hasYt && !hasFb) {
-        alert('⚠️ Para iniciar la transmisión en vivo necesitas configurar tu clave de transmisión (Stream Key) de Facebook Live o YouTube Live.\n\nAbriendo panel de Destinos de Transmisión...');
-        openCampusSettingsModal();
-        switchSettingsTab('destinos');
-        return;
-      }
-
-      const streamConfig = {
-        youtube: { enabled: hasYt, url: ytUrl, key: ytKey },
-        facebook: { enabled: hasFb, url: fbUrl, key: fbKey }
-      };
-
-      btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-amber-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition animate-pulse';
-      btnMasterStream.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> <span>CONECTANDO SERVIDORES...</span>';
-      if (window.lucide) lucide.createIcons();
-
-      try {
-        const resp = await fetch('/api/stream/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(streamConfig)
-        });
-        const result = await resp.json();
-        if (!resp.ok || result.error) {
-          throw new Error(result.error || 'Error al iniciar pipeline RTMP en servidor');
-        }
-
-        const progCanvas = document.getElementById('programCanvas');
-        if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
-
-        const canvasStream = progCanvas.captureStream(30);
-        activeBroadcastVideoTrack = canvasStream.getVideoTracks()[0];
-        const audioTrack = getMasterAudioTrack();
-        const broadcastStream = new MediaStream();
-        canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));
-        if (audioTrack) broadcastStream.addTrack(audioTrack);
-
-        const candidateMimes = [
-          'video/webm;codecs=vp8,opus',
-          'video/webm;codecs=h264,opus',
-          'video/webm',
-          'video/mp4'
-        ];
-        const mime = candidateMimes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
-
-        liveMediaRecorder = new MediaRecorder(broadcastStream, {
-          mimeType: mime,
-          videoBitsPerSecond: 4500000
-        });
-
-        streamChunkQueue.length = 0;
-        isUploadingStreamChunk = false;
-
-        liveMediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size >= 100 && isLiveStreaming) {
-            streamChunkQueue.push(e.data);
-            processStreamChunkQueue();
-          }
-        };
-
-        liveMediaRecorder.start(1000);
-        isLiveStreaming = true;
-        liveStreamStartTime = Date.now();
-
         const livePill = document.getElementById('livePill');
         const liveDot = document.getElementById('liveDot');
         const liveText = document.getElementById('liveText');
         const bitrateBadge = document.getElementById('liveBitrateBadge');
-        const bitrateVal = document.getElementById('liveBitrateVal');
-
-        if (livePill) livePill.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-red-950 border border-red-500/60 shadow-lg shadow-red-500/20';
-        if (liveDot) liveDot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-ping';
-        
-        const destDesc = (result.destinations || []).join(' + ') || 'EN VIVO';
+        if (livePill) livePill.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700/60';
+        if (liveDot) liveDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-600';
         if (liveText) {
-          liveText.className = 'text-xs font-bold font-mono tracking-widest text-red-400';
-          liveText.textContent = `ON AIR (${destDesc})`;
+          liveText.className = 'text-xs font-bold font-mono tracking-widest text-slate-400';
+          liveText.textContent = 'OFF AIR';
         }
-
-        if (bitrateBadge) bitrateBadge.classList.remove('hidden');
-
-        if (liveTelemetryInterval) clearInterval(liveTelemetryInterval);
-        liveTelemetryInterval = setInterval(async () => {
-          if (!isLiveStreaming) return;
-          try {
-            const sRes = await fetch('/api/stream/status');
-            const sData = await sRes.json();
-            if (sData) {
-              if (!sData.isStreaming && isLiveStreaming) {
-                stopMasterLiveStream();
-                if (sData.stats && sData.stats.error) {
-                  showToast('⚠️ ' + sData.stats.error, '⚠️');
-                }
-                return;
-              }
-              if (sData.stats) {
-                const br = sData.stats.bitrate > 0 ? `${sData.stats.bitrate} kbps` : '4,500 kbps (1080p60)';
-                if (bitrateVal) bitrateVal.textContent = br;
-              }
-            }
-          } catch (e) {}
-        }, 2000);
-
-        btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/30 transition active:scale-95';
-        btnMasterStream.innerHTML = '<i data-lucide="radio" class="w-3.5 h-3.5"></i> <span>DETENER TRANSMISIÓN</span>';
-
-        showToast(`📡 Transmisión Full HD iniciada en vivo a ${destDesc}`, '📡');
-
-      } catch (err) {
-        console.error('Error starting live stream:', err);
-        isLiveStreaming = false;
-        alert('Error al iniciar la transmisión: ' + err.message);
-        stopMasterLiveStream();
-      } finally {
-        isStartingLiveStream = false;
-        if (btnMasterStream) btnMasterStream.disabled = false;
-      }
-      if (window.lucide) lucide.createIcons();
-    }
-
-    async function stopMasterLiveStream() {
-      isLiveStreaming = false;
-      liveStreamStartTime = null;
-
-      if (liveMediaRecorder && liveMediaRecorder.state !== 'inactive') {
-        try { liveMediaRecorder.stop(); } catch (e) {}
-        liveMediaRecorder = null;
+        if (bitrateBadge) bitrateBadge.classList.add('hidden');
+        if (window.lucide) lucide.createIcons();
       }
 
-      try {
-        await fetch('/api/stream/stop', { method: 'POST' });
-      } catch (e) {}
-
-      if (liveTelemetryInterval) {
-        clearInterval(liveTelemetryInterval);
-        liveTelemetryInterval = null;
+      async function toggleMasterLiveStream() {
+        if (isStartingLiveStream) return;
+        if (isLiveStreaming) {
+          await stopMasterLiveStream();
+        } else {
+          await startMasterLiveStream();
+        }
       }
-
-      const livePill = document.getElementById('livePill');
-      const liveDot = document.getElementById('liveDot');
-      const liveText = document.getElementById('liveText');
-      const bitrateBadge = document.getElementById('liveBitrateBadge');
-
-      if (livePill) livePill.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-700/60';
-      if (liveDot) liveDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-600';
-      if (liveText) {
-        liveText.className = 'text-xs font-bold font-mono tracking-widest text-slate-400';
-        liveText.textContent = 'OFF AIR';
-      }
-
-      if (bitrateBadge) bitrateBadge.classList.add('hidden');
 
       if (btnMasterStream) {
-        btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition active:scale-95';
-        btnMasterStream.innerHTML = '<i data-lucide="radio" class="w-3.5 h-3.5"></i> <span>INICIAR TRANSMISIÓN</span>';
+        btnMasterStream.onclick = toggleMasterLiveStream;
       }
 
-      showToast('⏹ Transmisión detenida. Servidores RTMP liberados.', '⏹');
-      if (window.lucide) lucide.createIcons();
-    }
+      async function startMasterLiveStream() {
+        if (isStartingLiveStream || isLiveStreaming) return;
+        isStartingLiveStream = true;
+
+        let ytEnabled = document.getElementById('ytStreamEnable')?.checked ?? true;
+        let ytUrl = document.getElementById('ytStreamUrl')?.value.trim() || 'rtmp://a.rtmp.youtube.com/live2';
+        let ytKey = document.getElementById('ytStreamKey')?.value.trim() || '';
+
+        let fbEnabled = document.getElementById('fbStreamEnable')?.checked ?? true;
+        let fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://live-api-s.facebook.com:443/rtmp/';
+        let fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
+
+        try {
+          const saved = localStorage.getItem('omnicast_streaming_config');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (!ytKey && parsed.youtube && parsed.youtube.key) {
+              ytKey = parsed.youtube.key.trim();
+              ytEnabled = parsed.youtube.enabled;
+            }
+            if (!fbKey && parsed.facebook && parsed.facebook.key) {
+              fbKey = parsed.facebook.key.trim();
+              fbEnabled = parsed.facebook.enabled;
+            }
+          }
+        } catch (e) {}
+
+        const hasYt = ytEnabled && ytKey && ytKey !== 'yt-live-9382-7712-4412-omni';
+        const hasFb = fbEnabled && fbKey && fbKey !== 'FB-1049284729184712-live';
+
+        if (!hasYt && !hasFb) {
+          isStartingLiveStream = false;
+          alert('⚠️ Para iniciar la transmisión en vivo necesitas configurar tu clave de transmisión (Stream Key) de Facebook Live o YouTube Live.\n\nAbriendo panel de Destinos de Transmisión...');
+          openCampusSettingsModal();
+          switchSettingsTab('destinos');
+          return;
+        }
+
+        const streamConfig = {
+          youtube: { enabled: hasYt, url: ytUrl, key: ytKey },
+          facebook: { enabled: hasFb, url: fbUrl, key: fbKey }
+        };
+
+        if (btnMasterStream) {
+          btnMasterStream.disabled = true;
+          btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-amber-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition animate-pulse';
+          btnMasterStream.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> <span>CONECTANDO SERVIDORES...</span>';
+        }
+        if (window.lucide) lucide.createIcons();
+
+        try {
+          const resp = await fetch('/api/stream/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(streamConfig)
+          });
+          const result = await resp.json();
+          if (!resp.ok || result.error) {
+            throw new Error(result.error || 'Error al iniciar pipeline RTMP en servidor');
+          }
+
+          const progCanvas = document.getElementById('programCanvas');
+          if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
+
+          const canvasStream = progCanvas.captureStream(30);
+          const audioTrack = getMasterAudioTrack();
+          const broadcastStream = new MediaStream();
+          canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));
+          if (audioTrack) broadcastStream.addTrack(audioTrack);
+
+          const candidateMimes = [
+            'video/webm;codecs=vp8,opus',
+            'video/webm;codecs=h264,opus',
+            'video/webm',
+            'video/mp4'
+          ];
+          const mime = candidateMimes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+
+          liveMediaRecorder = new MediaRecorder(broadcastStream, {
+            mimeType: mime,
+            videoBitsPerSecond: 4500000
+          });
+
+          // Proven direct asynchronous chunk transmission from d2aaeae
+          liveMediaRecorder.ondataavailable = async (e) => {
+            if (e.data && e.data.size > 0 && isLiveStreaming) {
+              try {
+                await fetch('/api/stream/chunk', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/octet-stream' },
+                  body: e.data
+                });
+              } catch (chunkErr) {
+                console.warn('[Stream Chunk Upload Warning]:', chunkErr.message);
+              }
+            }
+          };
+
+          liveMediaRecorder.start(1000);
+          isLiveStreaming = true;
+          liveStreamStartTime = Date.now();
+
+          const livePill = document.getElementById('livePill');
+          const liveDot = document.getElementById('liveDot');
+          const liveText = document.getElementById('liveText');
+          const bitrateBadge = document.getElementById('liveBitrateBadge');
+          const bitrateVal = document.getElementById('liveBitrateVal');
+
+          if (livePill) livePill.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-red-950 border border-red-500/60 shadow-lg shadow-red-500/20';
+          if (liveDot) liveDot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-ping';
+          
+          const destDesc = (result.destinations || []).join(' + ') || 'EN VIVO';
+          if (liveText) {
+            liveText.className = 'text-xs font-bold font-mono tracking-widest text-red-400';
+            liveText.textContent = `ON AIR (${destDesc})`;
+          }
+
+          if (bitrateBadge) bitrateBadge.classList.remove('hidden');
+
+          if (liveTelemetryInterval) clearInterval(liveTelemetryInterval);
+          liveTelemetryInterval = setInterval(async () => {
+            if (!isLiveStreaming) return;
+            try {
+              const sRes = await fetch('/api/stream/status');
+              const sData = await sRes.json();
+              if (sData) {
+                if (!sData.isStreaming && isLiveStreaming) {
+                  stopMasterLiveStream();
+                  return;
+                }
+                if (sData.stats) {
+                  const br = sData.stats.bitrate > 0 ? `${sData.stats.bitrate} kbps` : '4,500 kbps (1080p60)';
+                  if (bitrateVal) bitrateVal.textContent = br;
+                }
+              }
+            } catch (e) {}
+          }, 2000);
+
+          if (btnMasterStream) {
+            btnMasterStream.disabled = false;
+            btnMasterStream.className = 'w-full mt-0.5 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-red-600/30 transition active:scale-95';
+            btnMasterStream.innerHTML = '<i data-lucide="radio" class="w-3.5 h-3.5"></i> <span>DETENER TRANSMISIÓN</span>';
+          }
+
+          showToast(`📡 Transmisión Full HD iniciada en vivo a ${destDesc}`, '📡');
+
+        } catch (err) {
+          console.error('Error starting live stream:', err);
+          isLiveStreaming = false;
+          resetStreamButtonUI();
+          alert('Error al iniciar la transmisión: ' + err.message);
+        } finally {
+          isStartingLiveStream = false;
+          if (btnMasterStream && !isLiveStreaming) {
+            btnMasterStream.disabled = false;
+          }
+        }
+        if (window.lucide) lucide.createIcons();
+      }
+
+      async function stopMasterLiveStream() {
+        isLiveStreaming = false;
+        liveStreamStartTime = null;
+
+        if (liveMediaRecorder && liveMediaRecorder.state !== 'inactive') {
+          try {
+            liveMediaRecorder.ondataavailable = null;
+            liveMediaRecorder.stop();
+          } catch (e) {}
+          liveMediaRecorder = null;
+        }
+
+        try {
+          await fetch('/api/stream/stop', { method: 'POST' });
+        } catch (e) {}
+
+        if (liveTelemetryInterval) {
+          clearInterval(liveTelemetryInterval);
+          liveTelemetryInterval = null;
+        }
+
+        resetStreamButtonUI();
+        showToast('⏹ Transmisión detenida. Servidores RTMP liberados.', '⏹');
+      }
 
     // -------------------------------------------------------------------------
     // DOCK NAVIGATION

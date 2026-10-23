@@ -61,8 +61,6 @@ let liveStreamState = {
   }
 };
 let activeFfmpegProcess = null;
-let streamHasReceivedHeader = false;
-let liveChunkCounter = 0;
 let currentTallyState = { programCam: 0, previewCam: 0 };
 const camSignalsForStudio = []; // Signals from phones for studio
 const camSignalsForPhones = { 1: [], 2: [], 3: [], 4: [] }; // Signals from studio for phones
@@ -454,11 +452,8 @@ const requestHandler = (req, res) => {
         }
 
         const ffmpegArgs = [
-          '-thread_queue_size', '1024',
-          '-f', 'matroska',
+          '-re',
           '-i', 'pipe:0',
-          '-map', '0:v:0?',
-          '-map', '0:a:0?',
           '-c:v', 'libx264',
           '-preset', 'veryfast',
           '-tune', 'zerolatency',
@@ -466,26 +461,21 @@ const requestHandler = (req, res) => {
           '-maxrate', '5000k',
           '-bufsize', '9000k',
           '-pix_fmt', 'yuv420p',
-          '-r', '30',
           '-g', '60',
-          '-keyint_min', '60',
-          '-sc_threshold', '0',
+          '-keyint_min', '30',
           '-c:a', 'aac',
           '-b:a', '192k',
           '-ar', '44100',
-          '-ac', '2',
           '-max_muxing_queue_size', '4096'
         ];
 
         if (targets.length === 1) {
-          ffmpegArgs.push('-flvflags', 'no_duration_filesize', '-f', 'flv', targets[0].url);
+          ffmpegArgs.push('-f', 'flv', targets[0].url);
         } else {
-          const teeTargets = targets.map(t => `[f=flv:flvflags=no_duration_filesize:onfail=ignore]${t.url}`).join('|');
-          ffmpegArgs.push('-f', 'tee', teeTargets);
+          const teeTargets = targets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
+          ffmpegArgs.push('-f', 'tee', '-map', '0:v', '-map', '0:a', teeTargets);
         }
 
-        streamHasReceivedHeader = false;
-        liveChunkCounter = 0;
         console.log(`[FFmpeg RTMP] Spawning streaming pipeline for: ${targets.map(t => t.name).join(' & ')}`);
         activeFfmpegProcess = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe'] });
 
@@ -568,32 +558,6 @@ const requestHandler = (req, res) => {
     req.on('data', c => chunks.push(c));
     req.on('end', () => {
       const buffer = Buffer.concat(chunks);
-      if (buffer.length < 32) {
-        console.warn(`[RTMP Ingest] Dropping runt chunk of ${buffer.length} bytes (less than 32 bytes)`);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, dropped: true }));
-        return;
-      }
-
-      // If we haven't received the EBML header yet, verify magic bytes: 0x1A 0x45 0xDF 0xA3
-      if (!streamHasReceivedHeader) {
-        const isEbml = buffer.length >= 4 &&
-          buffer[0] === 0x1A && buffer[1] === 0x45 && buffer[2] === 0xDF && buffer[3] === 0xA3;
-        if (!isEbml) {
-          console.warn(`[RTMP Ingest] Discarding ${buffer.length} bytes: missing EBML header (0x1A45DFA3)`);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: true, dropped: true }));
-          return;
-        }
-        streamHasReceivedHeader = true;
-        console.log(`[RTMP Ingest] Valid WebM EBML header verified! Initializing FFmpeg pipe (${buffer.length} bytes)`);
-      }
-
-      liveChunkCounter++;
-      if (liveChunkCounter <= 5 || liveChunkCounter % 10 === 0) {
-        console.log(`[RTMP Ingest] Chunk #${liveChunkCounter}: ${buffer.length} bytes | Total: ${((liveStreamState.stats.totalBytes + buffer.length) / 1024 / 1024).toFixed(2)} MB`);
-      }
-
       if (buffer.length > 0 && activeFfmpegProcess && activeFfmpegProcess.stdin && activeFfmpegProcess.stdin.writable) {
         try {
           activeFfmpegProcess.stdin.write(buffer);
