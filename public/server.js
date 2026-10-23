@@ -551,7 +551,7 @@ function getStandbyJpegBuffer() {
     if (fs.existsSync(ffmpegPath)) {
       const res = spawnSync(ffmpegPath, [
         '-f', 'lavfi',
-        '-i', 'color=c=0x0d131f:s=1280x720:r=1',
+        '-i', 'color=c=0x0d131f:s=960x540:r=1',
         '-frames:v', '1',
         '-f', 'image2',
         '-vcodec', 'mjpeg',
@@ -703,7 +703,7 @@ function startFfmpegStream(dest, activeWs) {
     getStandbyJpegBuffer();
   }
 
-  // Match OBS Studio's exact H.264 Main Profile CBR + AAC stereo configuration
+  // Match OBS Studio's H.264 Main Profile CBR + AAC stereo with lightweight 3-thread ultrafast CPU usage
   const ffmpegArgs = [
     '-thread_queue_size', '4096',
     '-f', 'image2pipe',
@@ -714,22 +714,23 @@ function startFfmpegStream(dest, activeWs) {
     '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
     '-map', '0:v:0',
     '-map', '1:a:0',
-    '-vf', 'scale=1920:1080,format=yuv420p',
+    '-vf', 'scale=1280:720,format=yuv420p',
     '-c:v', 'libx264',
-    '-preset', 'veryfast',
+    '-preset', 'ultrafast',
     '-tune', 'zerolatency',
+    '-threads', '3',
     '-profile:v', 'main',
-    '-b:v', '4500k',
-    '-minrate', '4500k',
-    '-maxrate', '4500k',
-    '-bufsize', '4500k',
+    '-b:v', '3000k',
+    '-minrate', '3000k',
+    '-maxrate', '3000k',
+    '-bufsize', '3000k',
     '-pix_fmt', 'yuv420p',
     '-r', '30',
     '-g', '60',
     '-keyint_min', '60',
     '-sc_threshold', '0',
     '-c:a', 'aac',
-    '-b:a', '192k',
+    '-b:a', '160k',
     '-ar', '44100',
     '-ac', '2',
     '-shortest',

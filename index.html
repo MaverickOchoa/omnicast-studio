@@ -10970,49 +10970,53 @@ Pues resucitaste, Rey`
 
     function logStreamClientEvent(event, details = {}) {
       console.log(`[OmniCast Stream] ${event}`, details);
-      try {
-        fetch('/api/stream/client-log', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ event, details, ts: Date.now() })
-        }).catch(() => {});
-      } catch (e) {}
+      if (liveStreamWs && liveStreamWs.readyState === WebSocket.OPEN) {
+        try {
+          liveStreamWs.send(JSON.stringify({ action: 'log', event, details }));
+        } catch (e) {}
+      }
     }
 
-    function captureProgramJpegBytes() {
-      try {
-        const progCanvas = document.getElementById('programCanvas');
-        if (!progCanvas) return null;
+    let isEncodingStreamFrame = false;
 
-        // Paint latest live Program frame
+    function pumpAsyncJpegFrame() {
+      if (!isLiveStreaming || isEncodingStreamFrame) return;
+      if (!liveStreamWs || liveStreamWs.readyState !== WebSocket.OPEN) return;
+      if (liveStreamWs.bufferedAmount > 256 * 1024) return;
+
+      const progCanvas = document.getElementById('programCanvas');
+      if (!progCanvas) return;
+
+      // Only manually repaint programCanvas if the browser tab is hidden in the background;
+      // when visible in the foreground, renderCompositor() is already painting at 30-40 FPS!
+      if (document.hidden) {
         try {
-          time += 0.02;
+          time += 0.03;
           drawComposedFrame(progCtx, wirecastState.program, true);
         } catch (e) {}
+      }
 
-        if (!liveStreamCaptureCanvas) {
-          liveStreamCaptureCanvas = document.createElement('canvas');
-          liveStreamCaptureCanvas.width = 1280;
-          liveStreamCaptureCanvas.height = 720;
-          liveStreamCaptureCtx = liveStreamCaptureCanvas.getContext('2d');
-        }
+      if (!liveStreamCaptureCanvas) {
+        liveStreamCaptureCanvas = document.createElement('canvas');
+        liveStreamCaptureCanvas.width = 960;
+        liveStreamCaptureCanvas.height = 540;
+        liveStreamCaptureCtx = liveStreamCaptureCanvas.getContext('2d', { alpha: false });
+      }
 
-        liveStreamCaptureCtx.drawImage(progCanvas, 0, 0, 1280, 720);
-        const dataUrl = liveStreamCaptureCanvas.toDataURL('image/jpeg', 0.80);
-        const commaIdx = dataUrl.indexOf(',');
-        if (commaIdx === -1) return null;
-
-        const b64 = dataUrl.slice(commaIdx + 1);
-        const binStr = atob(b64);
-        const len = binStr.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binStr.charCodeAt(i);
-        }
-        return bytes;
+      try {
+        isEncodingStreamFrame = true;
+        liveStreamCaptureCtx.drawImage(progCanvas, 0, 0, 960, 540);
+        liveStreamCaptureCanvas.toBlob((blob) => {
+          isEncodingStreamFrame = false;
+          if (!blob || !isLiveStreaming) return;
+          if (liveStreamWs && liveStreamWs.readyState === WebSocket.OPEN && liveStreamWs.bufferedAmount < 256 * 1024) {
+            try {
+              liveStreamWs.send(blob);
+            } catch (e) {}
+          }
+        }, 'image/jpeg', 0.75);
       } catch (err) {
-        console.warn('[OmniCast Stream] Frame capture warning:', err);
-        return null;
+        isEncodingStreamFrame = false;
       }
     }
 
@@ -11157,57 +11161,12 @@ Pues resucitaste, Rey`
       if (hasYt) initialDestNames.push('YouTube Live');
 
       isLiveStreaming = true;
+      isEncodingStreamFrame = false;
       liveDestinationsSummary = initialDestNames;
       setStreamUIState('live', liveDestinationsSummary);
       showToast(`📡 Transmisión Full HD en vivo a ${liveDestinationsSummary.join(' y ')}`, '📡');
 
-      let emittedFrameCount = 0;
-      let httpUploadInFlight = false;
-
-      function sendSingleJpegFrame() {
-        if (!isLiveStreaming) return;
-        const jpegBytes = captureProgramJpegBytes();
-        if (!jpegBytes || jpegBytes.length === 0) return;
-
-        emittedFrameCount++;
-        if (emittedFrameCount <= 3 || emittedFrameCount % 25 === 0) {
-          logStreamClientEvent('chunk_emitted', { chunk: emittedFrameCount, size: jpegBytes.length });
-        }
-
-        if (liveStreamWs && liveStreamWs.readyState === WebSocket.OPEN) {
-          if (liveStreamWs.bufferedAmount < 512 * 1024) {
-            try {
-              liveStreamWs.send(jpegBytes);
-              return;
-            } catch (e) {}
-          }
-        }
-
-        if (!httpUploadInFlight) {
-          httpUploadInFlight = true;
-          fetch('/api/stream/chunk?seq=' + emittedFrameCount, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/octet-stream' },
-            body: jpegBytes
-          }).catch(() => {}).finally(() => {
-            httpUploadInFlight = false;
-          });
-        }
-      }
-
-      // 1. Send Frame #1 and start FFmpeg immediately via HTTP so it never waits for WebSocket
-      sendSingleJpegFrame();
-      fetch('/api/stream/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(streamConfig)
-      }).catch(() => {});
-
-      // 2. Start continuous 25fps live canvas frame pump
-      clearInterval(liveCompositorPumpTimer);
-      liveCompositorPumpTimer = setInterval(sendSingleJpegFrame, 40);
-
-      // 3. Also open dedicated WebSocket for ultra-low-latency frame streaming & telemetry
+      // Open dedicated WebSocket (zero competing HTTP requests so ws.onopen fires in <5ms)
       try {
         const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const encodedCfg = encodeURIComponent(JSON.stringify(streamConfig));
@@ -11220,7 +11179,9 @@ Pues resucitaste, Rey`
         ws.onopen = () => {
           if (liveStreamWs !== ws) return;
           logStreamClientEvent('ws_open');
-          sendSingleJpegFrame();
+          pumpAsyncJpegFrame();
+          clearInterval(liveCompositorPumpTimer);
+          liveCompositorPumpTimer = setInterval(pumpAsyncJpegFrame, 60);
         };
 
         ws.onmessage = (event) => {
@@ -11243,7 +11204,7 @@ Pues resucitaste, Rey`
         ws.onerror = () => {};
         ws.onclose = () => {};
       } catch (err) {
-        console.warn('[OmniCast Stream] WebSocket fallback to HTTP:', err);
+        console.warn('[OmniCast Stream] WebSocket error:', err);
       }
     }
 
