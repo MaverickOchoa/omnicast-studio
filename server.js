@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
+const WebSocket = require('ws');
 
 const PORT = process.env.PORT || 3000;
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
@@ -61,6 +62,7 @@ let liveStreamState = {
   }
 };
 let activeFfmpegProcess = null;
+let activeStreamWebSocket = null;
 let currentTallyState = { programCam: 0, previewCam: 0 };
 const camSignalsForStudio = []; // Signals from phones for studio
 const camSignalsForPhones = { 1: [], 2: [], 3: [], 4: [] }; // Signals from studio for phones
@@ -390,8 +392,6 @@ const requestHandler = (req, res) => {
   }
   // =========================================================================
   // MASTER RTMP / RTMPS LIVE STREAMING PIPELINE (FACEBOOK LIVE & YOUTUBE LIVE)
-  // =========================================================================
-
   // Endpoint: Get Live Streaming Status & Real Telemetry
   if (parsedUrl === '/api/stream/status' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -404,205 +404,20 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  // Endpoint: Start Live RTMP/RTMPS Stream via FFmpeg
-  if (parsedUrl === '/api/stream/start' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      try {
-        const dest = JSON.parse(body || '{}');
-        const yt = dest.youtube || {};
-        const fb = dest.facebook || {};
-
-        const targets = [];
-        if (fb.enabled && fb.key && fb.key.trim()) {
-          const rawUrl = (fb.url || 'rtmps://live-api-s.facebook.com:443/rtmp/').trim();
-          const cleanKey = fb.key.trim();
-          const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;
-          targets.push({ name: 'Facebook Live', url: targetUrl });
-        }
-
-        if (yt.enabled && yt.key && yt.key.trim()) {
-          const rawUrl = (yt.url || 'rtmp://a.rtmp.youtube.com/live2').trim();
-          const cleanKey = yt.key.trim();
-          const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;
-          targets.push({ name: 'YouTube Live', url: targetUrl });
-        }
-
-        if (targets.length === 0) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            error: 'No hay destinos de transmisión con clave válida configurada. Por favor ingresa tu clave en Destinos de Transmisión.'
-          }));
-          return;
-        }
-
-        // Clean up any existing stream process
-        if (activeFfmpegProcess) {
-          try { activeFfmpegProcess.stdin.end(); } catch (e) {}
-          try { activeFfmpegProcess.kill('SIGINT'); } catch (e) {}
-          activeFfmpegProcess = null;
-        }
-
-        const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
-        if (!fs.existsSync(ffmpegPath)) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: `Binario FFmpeg no encontrado en ${ffmpegPath}` }));
-          return;
-        }
-
-        const ffmpegArgs = [
-          '-re',
-          '-i', 'pipe:0',
-          '-c:v', 'libx264',
-          '-preset', 'veryfast',
-          '-tune', 'zerolatency',
-          '-b:v', '4500k',
-          '-maxrate', '5000k',
-          '-bufsize', '9000k',
-          '-pix_fmt', 'yuv420p',
-          '-g', '60',
-          '-keyint_min', '30',
-          '-c:a', 'aac',
-          '-b:a', '192k',
-          '-ar', '44100',
-          '-max_muxing_queue_size', '4096'
-        ];
-
-        if (targets.length === 1) {
-          ffmpegArgs.push('-f', 'flv', targets[0].url);
-        } else {
-          const teeTargets = targets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
-          ffmpegArgs.push('-f', 'tee', '-map', '0:v', '-map', '0:a', teeTargets);
-        }
-
-        console.log(`[FFmpeg RTMP] Spawning streaming pipeline for: ${targets.map(t => t.name).join(' & ')}`);
-        activeFfmpegProcess = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe'] });
-
-        liveStreamState.isStreaming = true;
-        liveStreamState.startTime = Date.now();
-        liveStreamState.destinations = dest;
-        liveStreamState.stats = { fps: 0, bitrate: 0, speed: '1x', totalBytes: 0, droppedFrames: 0, error: null };
-
-        activeFfmpegProcess.stdin.on('error', (err) => {
-          console.warn('[FFmpeg stdin error]:', err.message);
-        });
-
-        activeFfmpegProcess.stderr.on('data', (data) => {
-          const text = data.toString();
-          if (!text.includes('frame=')) {
-            console.log('[FFmpeg]:', text.trim());
-          }
-          const fpsMatch = text.match(/fps=\s*([\d\.]+)/);
-          const brMatch = text.match(/bitrate=\s*([\d\.]+)kbits\/s/);
-          const spMatch = text.match(/speed=\s*([\d\.]+x)/);
-          const dropMatch = text.match(/drop=\s*([\d]+)/);
-
-          if (fpsMatch) liveStreamState.stats.fps = parseFloat(fpsMatch[1]);
-          if (brMatch) liveStreamState.stats.bitrate = parseFloat(brMatch[1]);
-          if (spMatch) liveStreamState.stats.speed = spMatch[1];
-          if (dropMatch) liveStreamState.stats.droppedFrames = parseInt(dropMatch[1], 10);
-
-          if (fpsMatch || brMatch) {
-            broadcastSSE('stream_telemetry', liveStreamState.stats);
-          }
-
-          if (/error in the pull function|connection refused|handshake failed|i\/o error|invalid session|session has been invalidated/i.test(text)) {
-            console.warn('[FFmpeg RTMP Warning]:', text.trim());
-            liveStreamState.stats.error = 'La plataforma rechazó la conexión RTMP (clave caducada o no válida). Verifica tu clave en Facebook Live Producer o activa "Clave de stream persistente".';
-            broadcastSSE('stream_error', { error: liveStreamState.stats.error });
-          }
-        });
-
-        activeFfmpegProcess.on('close', (code) => {
-          console.log(`[FFmpeg RTMP] Stream ended with exit code ${code}`);
-          activeFfmpegProcess = null;
-          liveStreamState.isStreaming = false;
-          broadcastSSE('stream_status', { isStreaming: false, code });
-        });
-
-        activeFfmpegProcess.on('error', (err) => {
-          console.error('[FFmpeg RTMP Process Error]:', err);
-          liveStreamState.stats.error = err.message;
-          activeFfmpegProcess = null;
-          liveStreamState.isStreaming = false;
-          broadcastSSE('stream_status', { isStreaming: false, error: err.message });
-        });
-
-        broadcastSSE('stream_status', { isStreaming: true, destinations: targets.map(t => t.name) });
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          message: `Transmisión iniciada exitosamente a ${targets.map(t => t.name).join(' y ')}`,
-          destinations: targets.map(t => t.name)
-        }));
-      } catch (err) {
-        console.error('Error starting live stream:', err);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
-      }
-    });
-    return;
-  }
-
-  // Endpoint: Ingest Live Binary Stream Chunks from Canvas MediaRecorder
-  if (parsedUrl === '/api/stream/chunk' && req.method === 'POST') {
-    if (!activeFfmpegProcess || !liveStreamState.isStreaming) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, message: 'Stream is not active' }));
-      return;
-    }
-
-    const chunks = [];
-    req.on('data', c => chunks.push(c));
-    req.on('end', () => {
-      const buffer = Buffer.concat(chunks);
-      if (buffer.length > 0 && activeFfmpegProcess && activeFfmpegProcess.stdin && activeFfmpegProcess.stdin.writable) {
-        try {
-          activeFfmpegProcess.stdin.write(buffer);
-          liveStreamState.stats.totalBytes += buffer.length;
-        } catch (err) {
-          console.warn('[FFmpeg stdin write error]:', err.message);
-        }
-      }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, bytes: liveStreamState.stats.totalBytes }));
-    });
-    return;
-  }
-
-  // Endpoint: Stop Live Stream
+  // Endpoint: Stop Live Stream (HTTP Fallback)
   if (parsedUrl === '/api/stream/stop' && req.method === 'POST') {
-    liveStreamState.isStreaming = false;
-    liveStreamState.startTime = null;
-
-    if (activeFfmpegProcess) {
-      const proc = activeFfmpegProcess;
-      activeFfmpegProcess = null;
-
-      try {
-        proc.stdin.end(); // Triggers EOF -> FFmpeg sends RTMP unpublish/close packet cleanly
-      } catch (e) {}
-
-      // Allow FFmpeg up to 4 seconds to gracefully finalize RTMP connection
-      const killTimer = setTimeout(() => {
-        try {
-          proc.kill();
-        } catch (e) {}
-      }, 4000);
-
-      proc.once('close', () => {
-        clearTimeout(killTimer);
-      });
-    }
-
-    broadcastSSE('stream_status', { isStreaming: false, stopped: true });
+    stopFfmpegStream();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, stopped: true }));
     return;
   }
 
+  // Endpoint: Ingest Live Binary Stream Chunks (Deprecated in favor of WebSocket)
+  if (parsedUrl === '/api/stream/chunk' && req.method === 'POST') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, deprecated: true }));
+    return;
+  }
 
   // Static File Serving
   let reqPath = parsedUrl;
@@ -641,8 +456,254 @@ const requestHandler = (req, res) => {
   });
 };
 
+// =========================================================================
+// MASTER WEBSOCKET STREAMING ENGINE & FFMPEG LIFECYCLE
+// =========================================================================
+function stopFfmpegStream() {
+  liveStreamState.isStreaming = false;
+  liveStreamState.startTime = null;
+
+  if (activeFfmpegProcess) {
+    const proc = activeFfmpegProcess;
+    activeFfmpegProcess = null;
+
+    try {
+      proc.stdin.end(); // Clean EOF -> triggers RTMP unpublish
+    } catch (e) {}
+
+    const killTimer = setTimeout(() => {
+      try { proc.kill(); } catch (e) {}
+    }, 3000);
+
+    proc.once('close', () => {
+      clearTimeout(killTimer);
+    });
+  }
+
+  if (activeStreamWebSocket && activeStreamWebSocket.readyState === WebSocket.OPEN) {
+    try {
+      activeStreamWebSocket.send(JSON.stringify({ type: 'stopped' }));
+    } catch (e) {}
+  }
+  broadcastSSE('stream_status', { isStreaming: false, stopped: true });
+}
+
+function startFfmpegStream(dest, activeWs) {
+  dest = dest || {};
+  const yt = dest.youtube || {};
+  const fb = dest.facebook || {};
+
+  const targets = [];
+  if (fb.enabled && fb.key && fb.key.trim() && fb.key.trim() !== 'FB-1049284729184712-live') {
+    const rawUrl = (fb.url || 'rtmps://live-api-s.facebook.com:443/rtmp/').trim();
+    const cleanKey = fb.key.trim();
+    const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;
+    targets.push({ name: 'Facebook Live', url: targetUrl });
+  }
+
+  if (yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni') {
+    const rawUrl = (yt.url || 'rtmp://a.rtmp.youtube.com/live2').trim();
+    const cleanKey = yt.key.trim();
+    const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;
+    targets.push({ name: 'YouTube Live', url: targetUrl });
+  }
+
+  if (targets.length === 0) {
+    const err = 'No hay destinos de transmisión con clave válida configurada. Por favor ingresa tu clave en Destinos de Transmisión.';
+    if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+      activeWs.send(JSON.stringify({ type: 'error', message: err }));
+    }
+    return { error: err };
+  }
+
+  // Clean up any existing stream process
+  stopFfmpegStream();
+
+  const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
+  if (!fs.existsSync(ffmpegPath)) {
+    const err = `Binario FFmpeg no encontrado en ${ffmpegPath}`;
+    if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+      activeWs.send(JSON.stringify({ type: 'error', message: err }));
+    }
+    return { error: err };
+  }
+
+  const ffmpegArgs = [
+    '-fflags', '+genpts',
+    '-re',
+    '-i', 'pipe:0',
+    '-c:v', 'libx264',
+    '-preset', 'veryfast',
+    '-tune', 'zerolatency',
+    '-b:v', '4500k',
+    '-maxrate', '5000k',
+    '-bufsize', '9000k',
+    '-pix_fmt', 'yuv420p',
+    '-g', '60',
+    '-keyint_min', '30',
+    '-c:a', 'aac',
+    '-b:a', '192k',
+    '-ar', '44100',
+    '-flvflags', 'no_duration_filesize'
+  ];
+
+  if (targets.length === 1) {
+    ffmpegArgs.push('-f', 'flv', targets[0].url);
+  } else {
+    const teeTargets = targets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
+    ffmpegArgs.push('-f', 'tee', '-map', '0:v', '-map', '0:a', teeTargets);
+  }
+
+  console.log(`[FFmpeg RTMP] Spawning WebSocket streaming pipeline for: ${targets.map(t => t.name).join(' & ')}`);
+  const proc = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe'] });
+  activeFfmpegProcess = proc;
+
+  liveStreamState.isStreaming = true;
+  liveStreamState.startTime = Date.now();
+  liveStreamState.destinations = dest;
+  liveStreamState.stats = { fps: 0, bitrate: 0, speed: '1x', totalBytes: 0, droppedFrames: 0, error: null };
+
+  proc.stdin.on('error', (err) => {
+    console.warn('[FFmpeg stdin error]:', err.message);
+  });
+
+  proc.stderr.on('data', (data) => {
+    const text = data.toString();
+    if (!text.includes('frame=')) {
+      console.log('[FFmpeg]:', text.trim());
+    }
+    const fpsMatch = text.match(/fps=\s*([\d\.]+)/);
+    const brMatch = text.match(/bitrate=\s*([\d\.]+)kbits\/s/);
+    const spMatch = text.match(/speed=\s*([\d\.]+x)/);
+    const dropMatch = text.match(/drop=\s*([\d]+)/);
+
+    if (fpsMatch) liveStreamState.stats.fps = parseFloat(fpsMatch[1]);
+    if (brMatch) liveStreamState.stats.bitrate = parseFloat(brMatch[1]);
+    if (spMatch) liveStreamState.stats.speed = spMatch[1];
+    if (dropMatch) liveStreamState.stats.droppedFrames = parseInt(dropMatch[1], 10);
+
+    if (fpsMatch || brMatch) {
+      if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+        activeWs.send(JSON.stringify({ type: 'telemetry', stats: liveStreamState.stats }));
+      }
+      broadcastSSE('stream_telemetry', liveStreamState.stats);
+    }
+
+    if (/error in the pull function|connection refused|handshake failed|i\/o error|invalid session|session has been invalidated/i.test(text)) {
+      console.warn('[FFmpeg RTMP Warning]:', text.trim());
+      const errMsg = 'La plataforma rechazó la conexión RTMP (clave caducada o no válida). Verifica tu clave en Facebook Live Producer o activa "Clave de stream persistente".';
+      liveStreamState.stats.error = errMsg;
+      if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+        activeWs.send(JSON.stringify({ type: 'error', message: errMsg }));
+      }
+      broadcastSSE('stream_error', { error: errMsg });
+    }
+  });
+
+  proc.on('close', (code) => {
+    console.log(`[FFmpeg RTMP] Stream ended with exit code ${code}`);
+    if (activeFfmpegProcess === proc) {
+      activeFfmpegProcess = null;
+      liveStreamState.isStreaming = false;
+      if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+        activeWs.send(JSON.stringify({ type: 'stopped', code }));
+      }
+      broadcastSSE('stream_status', { isStreaming: false, code });
+    }
+  });
+
+  proc.on('error', (err) => {
+    console.error('[FFmpeg RTMP Process Error]:', err);
+    if (activeFfmpegProcess === proc) {
+      liveStreamState.stats.error = err.message;
+      activeFfmpegProcess = null;
+      liveStreamState.isStreaming = false;
+      if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+        activeWs.send(JSON.stringify({ type: 'error', message: err.message }));
+      }
+      broadcastSSE('stream_status', { isStreaming: false, error: err.message });
+    }
+  });
+
+  if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+    activeWs.send(JSON.stringify({
+      type: 'ready',
+      message: `Pipeline RTMP listo para ${targets.map(t => t.name).join(' y ')}`,
+      destinations: targets.map(t => t.name)
+    }));
+  }
+  broadcastSSE('stream_status', { isStreaming: true, destinations: targets.map(t => t.name) });
+
+  return { success: true, destinations: targets.map(t => t.name) };
+}
+
+const liveStreamWss = new WebSocket.Server({ noServer: true });
+
+liveStreamWss.on('connection', (ws) => {
+  console.log('[WebSocket Stream] Browser client connected');
+  activeStreamWebSocket = ws;
+
+  ws.on('message', (message, isBinary) => {
+    if (!isBinary) {
+      try {
+        const payload = JSON.parse(message.toString());
+        if (payload.action === 'start') {
+          startFfmpegStream(payload.config, ws);
+        } else if (payload.action === 'stop') {
+          stopFfmpegStream();
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'stopped' }));
+          }
+        }
+      } catch (err) {
+        console.warn('[WebSocket Stream] Parse message error:', err.message);
+      }
+    } else {
+      if (activeFfmpegProcess && activeFfmpegProcess.stdin && activeFfmpegProcess.stdin.writable) {
+        try {
+          activeFfmpegProcess.stdin.write(message);
+          liveStreamState.stats.totalBytes += message.length;
+        } catch (err) {
+          console.warn('[WebSocket Stream] stdin write error:', err.message);
+        }
+      }
+    }
+  });
+
+  ws.on('close', () => {
+    console.log('[WebSocket Stream] Browser client disconnected');
+    if (activeStreamWebSocket === ws) {
+      activeStreamWebSocket = null;
+    }
+    if (activeFfmpegProcess) {
+      stopFfmpegStream();
+    }
+  });
+
+  ws.on('error', (err) => {
+    console.warn('[WebSocket Stream] Socket error:', err.message);
+  });
+});
+
+const handleUpgrade = (request, socket, head) => {
+  try {
+    const host = request.headers.host || 'localhost';
+    const parsed = new URL(request.url, `http://${host}`);
+    if (parsed.pathname === '/api/live-stream-ws') {
+      liveStreamWss.handleUpgrade(request, socket, head, ws => {
+        liveStreamWss.emit('connection', ws, request);
+      });
+    } else {
+      socket.destroy();
+    }
+  } catch (err) {
+    socket.destroy();
+  }
+};
+
 // Start Standard HTTP Server (Port 3000)
 const httpServer = http.createServer(requestHandler);
+httpServer.on('upgrade', handleUpgrade);
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log('\n========================================================');
   console.log('       📡 OMNICAST STUDIO - SERVIDOR LOCAL ACTIVO       ');
@@ -674,6 +735,7 @@ if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
       cert: fs.readFileSync(certPath)
     };
     const httpsServer = https.createServer(sslOptions, requestHandler);
+    httpsServer.on('upgrade', handleUpgrade);
     httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
       console.log(`  🔒 HTTPS Seguro Activo para Cámaras Móviles:`);
       const localIps = getLocalIpAddresses();
