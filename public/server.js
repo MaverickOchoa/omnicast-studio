@@ -429,21 +429,43 @@ const requestHandler = (req, res) => {
     req.on('end', () => {
       try {
         const dest = JSON.parse(body || '{}');
-        const result = startFfmpegStream(dest, activeStreamWebSocket);
-        if (result.error) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: result.error }));
+        const yt = dest.youtube || {};
+        const fb = dest.facebook || {};
+        const targetNames = [];
+        if (fb.enabled && fb.key && fb.key.trim() && fb.key.trim() !== 'FB-1049284729184712-live') {
+          targetNames.push('Facebook Live');
+        }
+        if (yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni') {
+          targetNames.push('YouTube Live');
+        }
+        if (targetNames.length === 0) {
+          const errPayload = JSON.stringify({ error: 'No hay destinos de transmisión con clave válida configurada.' });
+          res.writeHead(400, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(errPayload) });
+          res.end(errPayload);
           return;
         }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
+
+        // Send HTTP 200 response FIRST before spawning FFmpeg so child_process.spawn on Windows
+        // never inherits the open HTTP socket handle or delays the response to the browser!
+        const okPayload = JSON.stringify({
           success: true,
-          message: `Transmisión iniciada exitosamente a ${(result.destinations || []).join(' y ')}`,
-          destinations: result.destinations || []
-        }));
+          message: `Transmisión iniciada exitosamente a ${targetNames.join(' y ')}`,
+          destinations: targetNames
+        });
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(okPayload),
+          'Cache-Control': 'no-cache'
+        });
+        res.end(okPayload);
+
+        setTimeout(() => {
+          startFfmpegStream(dest, null);
+        }, 10);
       } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+        const errPayload = JSON.stringify({ error: err.message });
+        res.writeHead(500, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(errPayload) });
+        res.end(errPayload);
       }
     });
     return;
@@ -451,9 +473,10 @@ const requestHandler = (req, res) => {
 
   // Endpoint: Stop Live Stream (HTTP Fallback)
   if (parsedUrl === '/api/stream/stop' && req.method === 'POST') {
-    stopFfmpegStream();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, stopped: true }));
+    const okPayload = JSON.stringify({ success: true, stopped: true });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(okPayload) });
+    res.end(okPayload);
+    setTimeout(() => stopFfmpegStream(), 5);
     return;
   }
 
@@ -466,8 +489,9 @@ const requestHandler = (req, res) => {
       if (buffer.length > 0) {
         writeChunkToFfmpeg(buffer, 'HTTP');
       }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, bytes: liveStreamState.stats.totalBytes }));
+      const okPayload = JSON.stringify({ ok: true, bytes: liveStreamState.stats.totalBytes });
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(okPayload) });
+      res.end(okPayload);
     });
     return;
   }
@@ -518,7 +542,7 @@ let pendingStreamChunks = [];
 let activeTargetNames = [];
 
 function writeChunkToFfmpeg(rawData, source = 'WS') {
-  const buf = Buffer.isBuffer(rawData) ? rawData : Buffer.from(rawData);
+  let buf = Buffer.isBuffer(rawData) ? rawData : Buffer.from(rawData);
   if (!buf || buf.length === 0) return;
 
   if (!activeFfmpegProcess || !activeFfmpegProcess.stdin || !activeFfmpegProcess.stdin.writable) {
@@ -527,6 +551,13 @@ function writeChunkToFfmpeg(rawData, source = 'WS') {
   }
 
   try {
+    if (streamChunkCount === 0 && buf.length >= 3 && buf[0] === 0x45 && buf[1] === 0xDF && buf[2] === 0xA3) {
+      buf = Buffer.concat([Buffer.from([0x1A]), buf]);
+      streamHasValidHeader = true;
+    } else if (streamHasValidHeader && buf.length === 1 && buf[0] === 0x1A) {
+      return;
+    }
+
     streamChunkCount++;
     if (streamChunkCount <= 4 || streamChunkCount % 10 === 0) {
       const hexPreview = buf.subarray(0, Math.min(8, buf.length)).toString('hex');

@@ -11158,22 +11158,19 @@ Pues resucitaste, Rey`
       }, 15000);
 
       let emittedChunkCount = 0;
-      let chunkUploadChain = Promise.resolve();
 
       try {
+        clearTimeout(liveConnectingTimer);
+        liveConnectingTimer = null;
+
         logStreamClientEvent('http_start_request');
-        const resp = await fetch('/api/stream/start', {
+        fetch('/api/stream/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(streamConfig)
+        }).catch((startErr) => {
+          logStreamClientEvent('http_start_fetch_error', { message: startErr.message });
         });
-        const result = await resp.json();
-        if (!resp.ok || result.error) {
-          throw new Error(result.error || 'Error al iniciar pipeline RTMP en servidor');
-        }
-
-        clearTimeout(liveConnectingTimer);
-        liveConnectingTimer = null;
 
         const progCanvas = document.getElementById('programCanvas');
         if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
@@ -11211,25 +11208,19 @@ Pues resucitaste, Rey`
             if (currentChunkNum <= 4 || currentChunkNum % 10 === 0) {
               logStreamClientEvent('chunk_emitted', { chunk: currentChunkNum, size: blob.size });
             }
-            // Strict FIFO queue so chunk #1 (0x1a) is always delivered before chunk #2
-            chunkUploadChain = chunkUploadChain.then(async () => {
-              if (!isLiveStreaming) return;
-              try {
-                await fetch('/api/stream/chunk', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/octet-stream' },
-                  body: blob
-                });
-              } catch (chunkErr) {
-                console.warn('[Stream Chunk Upload Warning]:', chunkErr.message);
-              }
+            fetch('/api/stream/chunk?seq=' + currentChunkNum, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/octet-stream' },
+              body: blob
+            }).catch((chunkErr) => {
+              console.warn('[Stream Chunk Upload Warning]:', chunkErr.message);
             });
           }
         };
 
         isLiveStreaming = true;
         liveMediaRecorder.start(500);
-        liveDestinationsSummary = result.destinations || initialDestNames;
+        liveDestinationsSummary = initialDestNames;
         setStreamUIState('live', liveDestinationsSummary);
         showToast(`📡 Transmisión Full HD en vivo a ${liveDestinationsSummary.join(' y ')}`, '📡');
         logStreamClientEvent('mediarecorder_started', {
