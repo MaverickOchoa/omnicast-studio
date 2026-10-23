@@ -11157,153 +11157,90 @@ Pues resucitaste, Rey`
         }
       }, 15000);
 
-      let mediaRecorderLaunched = false;
       let emittedChunkCount = 0;
+      let chunkUploadChain = Promise.resolve();
 
-      function launchBrowserMediaRecorder(ws, destNames) {
-        if (mediaRecorderLaunched) return;
-        mediaRecorderLaunched = true;
+      try {
+        logStreamClientEvent('http_start_request');
+        const resp = await fetch('/api/stream/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(streamConfig)
+        });
+        const result = await resp.json();
+        if (!resp.ok || result.error) {
+          throw new Error(result.error || 'Error al iniciar pipeline RTMP en servidor');
+        }
 
         clearTimeout(liveConnectingTimer);
         liveConnectingTimer = null;
 
-        try {
-          const progCanvas = document.getElementById('programCanvas');
-          if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
+        const progCanvas = document.getElementById('programCanvas');
+        if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
 
-          // Force an immediate paint on programCanvas so captureStream has an initial frame ready
-          try { drawComposedFrame(progCtx, wirecastState.program, true); } catch (e) {}
+        // Force an immediate paint on programCanvas so captureStream has an initial frame ready
+        try { drawComposedFrame(progCtx, wirecastState.program, true); } catch (e) {}
 
-          const canvasStream = progCanvas.captureStream(30);
-          activeBroadcastVideoTrack = canvasStream.getVideoTracks()[0] || null;
+        const canvasStream = progCanvas.captureStream(30);
+        activeBroadcastVideoTrack = canvasStream.getVideoTracks()[0] || null;
 
-          const broadcastStream = new MediaStream();
-          canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));
-          if (hwAudioTrack) {
-            broadcastStream.addTrack(hwAudioTrack);
-          }
-
-          const candidateMimes = hwAudioTrack
-            ? ['video/webm;codecs=vp8,opus', 'video/webm']
-            : ['video/webm;codecs=vp8', 'video/webm;codecs=vp8,opus', 'video/webm'];
-          const mime = candidateMimes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
-
-          liveMediaRecorder = new MediaRecorder(broadcastStream, {
-            mimeType: mime,
-            videoBitsPerSecond: 4500000
-          });
-
-          liveMediaRecorder.onerror = (recErr) => {
-            logStreamClientEvent('mediarecorder_error', { error: String(recErr?.error?.message || recErr) });
-          };
-
-          liveMediaRecorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0 && liveStreamWs === ws && ws.readyState === WebSocket.OPEN) {
-              emittedChunkCount++;
-              if (emittedChunkCount <= 3 || emittedChunkCount % 10 === 0) {
-                logStreamClientEvent('chunk_emitted', { chunk: emittedChunkCount, size: e.data.size });
-              }
-              ws.send(e.data);
-            }
-          };
-
-          liveMediaRecorder.start(500);
-          isLiveStreaming = true;
-          liveDestinationsSummary = destNames || initialDestNames;
-          setStreamUIState('live', liveDestinationsSummary);
-          showToast(`📡 Transmisión Full HD en vivo a ${liveDestinationsSummary.join(' y ')}`, '📡');
-          logStreamClientEvent('mediarecorder_started', {
-            mime,
-            state: liveMediaRecorder.state,
-            vTracks: broadcastStream.getVideoTracks().length,
-            aTracks: broadcastStream.getAudioTracks().length
-          });
-        } catch (recInitErr) {
-          logStreamClientEvent('mediarecorder_init_failed', { message: recInitErr.message });
-          stopMasterLiveStream(false);
-          alert('Error al iniciar codificador de video en el navegador: ' + recInitErr.message);
+        const broadcastStream = new MediaStream();
+        canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));
+        if (hwAudioTrack) {
+          broadcastStream.addTrack(hwAudioTrack);
         }
-      }
 
-      try {
-        const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const encodedCfg = encodeURIComponent(JSON.stringify(streamConfig));
-        const wsUrl = `${proto}//${window.location.host}/api/live-stream-ws?config=${encodedCfg}`;
+        const candidateMimes = hwAudioTrack
+          ? ['video/webm;codecs=vp8,opus', 'video/webm']
+          : ['video/webm;codecs=vp8', 'video/webm;codecs=vp8,opus', 'video/webm'];
+        const mime = candidateMimes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
 
-        const ws = new WebSocket(wsUrl);
-        ws.binaryType = 'arraybuffer';
-        liveStreamWs = ws;
+        liveMediaRecorder = new MediaRecorder(broadcastStream, {
+          mimeType: mime,
+          videoBitsPerSecond: 4500000
+        });
 
-        ws.onopen = () => {
-          if (liveStreamWs !== ws) return;
-          logStreamClientEvent('ws_open');
-          try {
-            ws.send(JSON.stringify({ action: 'start', config: streamConfig }));
-          } catch (e) {}
-          // Start MediaRecorder immediately upon WebSocket open
-          launchBrowserMediaRecorder(ws, initialDestNames);
+        liveMediaRecorder.onerror = (recErr) => {
+          logStreamClientEvent('mediarecorder_error', { error: String(recErr?.error?.message || recErr) });
         };
 
-        ws.onmessage = (event) => {
-          if (liveStreamWs !== ws) return;
-          try {
-            const data = JSON.parse(event.data);
-
-            if (data.type === 'ready') {
-              logStreamClientEvent('ws_ready_received', { destinations: data.destinations });
-              if (!mediaRecorderLaunched) {
-                launchBrowserMediaRecorder(ws, data.destinations || initialDestNames);
-              } else if (data.destinations) {
-                liveDestinationsSummary = data.destinations;
-                setStreamUIState('live', liveDestinationsSummary);
-              }
-
-            } else if (data.type === 'telemetry') {
-              if (data.stats && data.stats.bitrate > 0) {
-                const bitrateVal = document.getElementById('liveBitrateVal');
-                if (bitrateVal) bitrateVal.textContent = `${data.stats.bitrate} kbps (${data.stats.fps || 30} fps)`;
-              }
-
-            } else if (data.type === 'error') {
-              clearTimeout(liveConnectingTimer);
-              liveConnectingTimer = null;
-              logStreamClientEvent('ws_server_error', { message: data.message });
-              stopMasterLiveStream(false);
-              alert('Aviso de Transmisión:\n\n' + data.message);
-
-            } else if (data.type === 'stopped') {
-              logStreamClientEvent('ws_server_stopped', { code: data.code });
-              if (isLiveStreaming) {
-                stopMasterLiveStream(true);
-              }
+        liveMediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0 && isLiveStreaming) {
+            const blob = e.data;
+            const currentChunkNum = ++emittedChunkCount;
+            if (currentChunkNum <= 4 || currentChunkNum % 10 === 0) {
+              logStreamClientEvent('chunk_emitted', { chunk: currentChunkNum, size: blob.size });
             }
-          } catch (msgErr) {
-            console.warn('[Stream WebSocket] Parse message error:', msgErr);
+            // Strict FIFO queue so chunk #1 (0x1a) is always delivered before chunk #2
+            chunkUploadChain = chunkUploadChain.then(async () => {
+              if (!isLiveStreaming) return;
+              try {
+                await fetch('/api/stream/chunk', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/octet-stream' },
+                  body: blob
+                });
+              } catch (chunkErr) {
+                console.warn('[Stream Chunk Upload Warning]:', chunkErr.message);
+              }
+            });
           }
         };
 
-        ws.onerror = (err) => {
-          if (liveStreamWs !== ws) return;
-          logStreamClientEvent('ws_error');
-          clearTimeout(liveConnectingTimer);
-          liveConnectingTimer = null;
-          stopMasterLiveStream(false);
-        };
-
-        ws.onclose = () => {
-          if (liveStreamWs !== ws) return;
-          logStreamClientEvent('ws_close');
-          clearTimeout(liveConnectingTimer);
-          liveConnectingTimer = null;
-          if (isLiveStreaming) {
-            stopMasterLiveStream(true);
-          } else {
-            setStreamUIState('idle');
-          }
-        };
+        isLiveStreaming = true;
+        liveMediaRecorder.start(500);
+        liveDestinationsSummary = result.destinations || initialDestNames;
+        setStreamUIState('live', liveDestinationsSummary);
+        showToast(`📡 Transmisión Full HD en vivo a ${liveDestinationsSummary.join(' y ')}`, '📡');
+        logStreamClientEvent('mediarecorder_started', {
+          mime,
+          state: liveMediaRecorder.state,
+          vTracks: broadcastStream.getVideoTracks().length,
+          aTracks: broadcastStream.getAudioTracks().length
+        });
 
       } catch (err) {
-        logStreamClientEvent('ws_exception', { message: err.message });
+        logStreamClientEvent('http_start_exception', { message: err.message });
         clearTimeout(liveConnectingTimer);
         liveConnectingTimer = null;
         setStreamUIState('idle');
@@ -11315,6 +11252,8 @@ Pues resucitaste, Rey`
       clearTimeout(liveConnectingTimer);
       liveConnectingTimer = null;
       activeBroadcastVideoTrack = null;
+      const wasStreaming = isLiveStreaming;
+      isLiveStreaming = false;
 
       if (liveMediaRecorder) {
         try {
@@ -11326,22 +11265,10 @@ Pues resucitaste, Rey`
         liveMediaRecorder = null;
       }
 
-      if (liveStreamWs) {
-        const ws = liveStreamWs;
-        liveStreamWs = null;
-        try {
-          ws.onopen = null;
-          ws.onmessage = null;
-          ws.onerror = null;
-          ws.onclose = null;
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ action: 'stop' }));
-          }
-          ws.close();
-        } catch (e) {}
+      if (wasStreaming) {
+        fetch('/api/stream/stop', { method: 'POST' }).catch(() => {});
       }
 
-      isLiveStreaming = false;
       setStreamUIState('idle');
 
       if (showNotification) {
