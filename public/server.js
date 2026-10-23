@@ -459,7 +459,7 @@ const requestHandler = (req, res) => {
 // =========================================================================
 // MASTER WEBSOCKET STREAMING ENGINE & FFMPEG LIFECYCLE
 // =========================================================================
-function stopFfmpegStream() {
+function stopFfmpegStream(notifyClient = true) {
   liveStreamState.isStreaming = false;
   liveStreamState.startTime = null;
 
@@ -480,12 +480,14 @@ function stopFfmpegStream() {
     });
   }
 
-  if (activeStreamWebSocket && activeStreamWebSocket.readyState === WebSocket.OPEN) {
-    try {
-      activeStreamWebSocket.send(JSON.stringify({ type: 'stopped' }));
-    } catch (e) {}
+  if (notifyClient) {
+    if (activeStreamWebSocket && activeStreamWebSocket.readyState === WebSocket.OPEN) {
+      try {
+        activeStreamWebSocket.send(JSON.stringify({ type: 'stopped' }));
+      } catch (e) {}
+    }
+    broadcastSSE('stream_status', { isStreaming: false, stopped: true });
   }
-  broadcastSSE('stream_status', { isStreaming: false, stopped: true });
 }
 
 function startFfmpegStream(dest, activeWs) {
@@ -517,7 +519,7 @@ function startFfmpegStream(dest, activeWs) {
   }
 
   // Clean up any existing stream process
-  stopFfmpegStream();
+  stopFfmpegStream(false);
 
   const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
   if (!fs.existsSync(ffmpegPath)) {
@@ -663,6 +665,9 @@ liveStreamWss.on('connection', (ws) => {
         try {
           activeFfmpegProcess.stdin.write(message);
           liveStreamState.stats.totalBytes += message.length;
+          if (liveStreamState.stats.totalBytes <= message.length * 3) {
+            console.log(`[WebSocket Stream] Initial chunk written to FFmpeg: ${message.length} bytes (Total: ${liveStreamState.stats.totalBytes})`);
+          }
         } catch (err) {
           console.warn('[WebSocket Stream] stdin write error:', err.message);
         }

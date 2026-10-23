@@ -11107,7 +11107,9 @@ Pues resucitaste, Rey`
             const data = JSON.parse(event.data);
 
             if (data.type === 'ready') {
+              console.log('[Stream WebSocket] Received READY signal from server!');
               clearTimeout(liveConnectingTimer);
+              liveConnectingTimer = null;
               const progCanvas = document.getElementById('programCanvas');
               if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
 
@@ -11137,6 +11139,7 @@ Pues resucitaste, Rey`
               };
 
               liveMediaRecorder.start(1000);
+              try { liveMediaRecorder.requestData(); } catch (e) {}
               isLiveStreaming = true;
               liveDestinationsSummary = data.destinations || ['EN VIVO'];
               setStreamUIState('live', liveDestinationsSummary);
@@ -11156,7 +11159,9 @@ Pues resucitaste, Rey`
 
             } else if (data.type === 'stopped') {
               console.log('[Stream WebSocket] Server notified stream stopped');
-              stopMasterLiveStream();
+              if (isLiveStreaming) {
+                stopMasterLiveStream();
+              }
             }
           } catch (msgErr) {
             console.warn('[Stream WebSocket] Parse message error:', msgErr);
