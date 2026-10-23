@@ -526,30 +526,14 @@ function writeChunkToFfmpeg(rawData, source = 'WS') {
   }
 
   try {
-    let payloadToWrite = buf;
-    if (!streamHasValidHeader) {
-      // Look for WebM EBML header magic bytes (0x1A 0x45 0xDF 0xA3) or ISO BMFF ftyp
-      const ebmlMagic = Buffer.from([0x1A, 0x45, 0xDF, 0xA3]);
-      const ebmlIdx = buf.indexOf(ebmlMagic);
-      if (ebmlIdx === -1 && buf.length < 32) {
-        console.log(`[Stream ${source}] Skipping initial runt fragment (${buf.length} bytes)`);
-        return;
-      }
-      if (ebmlIdx > 0) {
-        payloadToWrite = buf.subarray(ebmlIdx);
-      }
-      streamHasValidHeader = true;
-      streamChunkCount = 1;
-      console.log(`[Stream ${source}] First valid media header chunk written to FFmpeg: ${payloadToWrite.length} bytes`);
-    } else {
-      streamChunkCount++;
-      if (streamChunkCount <= 3 || streamChunkCount % 10 === 0) {
-        console.log(`[Stream ${source}] Chunk #${streamChunkCount} written: ${payloadToWrite.length} bytes (Total: ${Math.round((liveStreamState.stats.totalBytes + payloadToWrite.length) / 1024)} KB)`);
-      }
+    streamChunkCount++;
+    if (streamChunkCount <= 4 || streamChunkCount % 10 === 0) {
+      const hexPreview = buf.subarray(0, Math.min(8, buf.length)).toString('hex');
+      console.log(`[Stream ${source}] Chunk #${streamChunkCount} written: ${buf.length} bytes [hex:${hexPreview}] (Total: ${Math.round((liveStreamState.stats.totalBytes + buf.length) / 1024)} KB)`);
     }
 
-    activeFfmpegProcess.stdin.write(payloadToWrite);
-    liveStreamState.stats.totalBytes += payloadToWrite.length;
+    activeFfmpegProcess.stdin.write(buf);
+    liveStreamState.stats.totalBytes += buf.length;
   } catch (err) {
     console.warn(`[Stream ${source}] stdin write error:`, err.message);
   }
