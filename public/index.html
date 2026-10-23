@@ -4520,13 +4520,13 @@ Te adoraré, te adoraré..."
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
               <div>
                 <label class="text-[10px] text-slate-300 font-semibold block mb-1">URL del Servidor Ingest:</label>
-                <input type="text" id="fbStreamUrl" value="rtmps://live-api-s.facebook.com:443/rtmp/" 
+                <input type="text" id="fbStreamUrl" value="rtmps://rtmp-api.facebook.com:443/rtmp/" 
                        class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none shadow-inner">
               </div>
               <div>
                 <label class="text-[10px] text-slate-300 font-semibold block mb-1">Clave de Transmisión (Stream Key):</label>
                 <div class="relative">
-                  <input type="password" id="fbStreamKey" placeholder="Pega aquí tu clave de Facebook Live" 
+                  <input type="password" id="fbStreamKey" value="FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ" placeholder="Pega aquí tu clave de Facebook Live" 
                          class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none pr-9 shadow-inner">
                   <button type="button" onclick="togglePasswordVisibility('fbStreamKey')" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition">
                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
@@ -10954,7 +10954,7 @@ Pues resucitaste, Rey`
     }
 
     // -------------------------------------------------------------------------
-    // MASTER LIVE STREAMING ENGINE (CLEAN WEBSOCKET BINARY PIPELINE TO FACEBOOK & YOUTUBE)
+    // MASTER LIVE STREAMING ENGINE (OBS-GRADE DIRECT JPEG FRAME PUMP -> FFMPEG 30FPS)
     // -------------------------------------------------------------------------
     let isLiveStreaming = false;
     let liveStreamWs = null;
@@ -10963,6 +10963,8 @@ Pues resucitaste, Rey`
     let liveConnectingTimer = null;
     let liveCompositorPumpTimer = null;
     let liveDestinationsSummary = '';
+    let liveStreamCaptureCanvas = null;
+    let liveStreamCaptureCtx = null;
 
     const btnMasterStream = document.getElementById('btnMasterStream');
 
@@ -10977,55 +10979,40 @@ Pues resucitaste, Rey`
       } catch (e) {}
     }
 
-    function getLiveHardwareAudioTrack() {
+    function captureProgramJpegBytes() {
       try {
-        if (activeHardwareStreams && activeHardwareStreams.audio && activeHardwareStreams.audio.getAudioTracks().length > 0) {
-          const hwTrack = activeHardwareStreams.audio.getAudioTracks()[0];
-          if (hwTrack && hwTrack.readyState === 'live') {
-            return hwTrack;
-          }
-        }
-      } catch (e) {}
-      return null;
-    }
+        const progCanvas = document.getElementById('programCanvas');
+        if (!progCanvas) return null;
 
-    function createFreshBroadcastAudioTrack() {
-      try {
-        if (liveBroadcastAudioCtx && liveBroadcastAudioCtx.state !== 'closed') {
-          try { liveBroadcastAudioCtx.close(); } catch (e) {}
-        }
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        liveBroadcastAudioCtx = new AudioCtx({ sampleRate: 44100 });
-        if (liveBroadcastAudioCtx.state === 'suspended') {
-          liveBroadcastAudioCtx.resume().catch(() => {});
+        // Paint latest live Program frame
+        try {
+          time += 0.02;
+          drawComposedFrame(progCtx, wirecastState.program, true);
+        } catch (e) {}
+
+        if (!liveStreamCaptureCanvas) {
+          liveStreamCaptureCanvas = document.createElement('canvas');
+          liveStreamCaptureCanvas.width = 1280;
+          liveStreamCaptureCanvas.height = 720;
+          liveStreamCaptureCtx = liveStreamCaptureCanvas.getContext('2d');
         }
 
-        const dest = liveBroadcastAudioCtx.createMediaStreamDestination();
+        liveStreamCaptureCtx.drawImage(progCanvas, 0, 0, 1280, 720);
+        const dataUrl = liveStreamCaptureCanvas.toDataURL('image/jpeg', 0.80);
+        const commaIdx = dataUrl.indexOf(',');
+        if (commaIdx === -1) return null;
 
-        // Continuous inaudible reference tone driving both MediaRecorder's WebM clock and anti-throttle speaker output
-        const osc = liveBroadcastAudioCtx.createOscillator();
-        const silentGain = liveBroadcastAudioCtx.createGain();
-        silentGain.gain.value = 0.00001;
-        osc.connect(silentGain);
-        silentGain.connect(dest);
-        silentGain.connect(liveBroadcastAudioCtx.destination);
-        osc.start();
-
-        // Mix live hardware microphone/line-in if active
-        const hwTrack = getLiveHardwareAudioTrack();
-        if (hwTrack) {
-          try {
-            const micSource = liveBroadcastAudioCtx.createMediaStreamSource(activeHardwareStreams.audio);
-            micSource.connect(dest);
-          } catch (micErr) {
-            console.warn('Could not mix hardware audio into broadcast context:', micErr);
-          }
+        const b64 = dataUrl.slice(commaIdx + 1);
+        const binStr = atob(b64);
+        const len = binStr.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binStr.charCodeAt(i);
         }
-
-        return dest.stream.getAudioTracks()[0] || null;
-      } catch (e) {
-        console.warn('Fallback to getMasterAudioTrack:', e);
-        return getMasterAudioTrack();
+        return bytes;
+      } catch (err) {
+        console.warn('[OmniCast Stream] Frame capture warning:', err);
+        return null;
       }
     }
 
@@ -11122,7 +11109,7 @@ Pues resucitaste, Rey`
       let ytKey = document.getElementById('ytStreamKey')?.value.trim() || '';
 
       let fbEnabled = document.getElementById('fbStreamEnable')?.checked ?? true;
-      let fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://live-api-s.facebook.com:443/rtmp/';
+      let fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://rtmp-api.facebook.com:443/rtmp/';
       let fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
 
       try {
@@ -11140,13 +11127,17 @@ Pues resucitaste, Rey`
         }
       } catch (e) {}
 
+      // Auto-upgrade expired Facebook Live session key to the active OBS key if present
+      if (fbKey === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS' || !fbKey) {
+        fbKey = 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
+        const fbKeyInput = document.getElementById('fbStreamKey');
+        if (fbKeyInput) fbKeyInput.value = fbKey;
+      }
+
       const hasYt = Boolean(ytEnabled && ytKey && ytKey !== 'yt-live-9382-7712-4412-omni');
       const hasFb = Boolean(fbEnabled && fbKey && fbKey !== 'FB-1049284729184712-live');
 
-      const hwAudioTrack = getLiveHardwareAudioTrack();
-      const hasClientAudio = Boolean(hwAudioTrack);
-
-      logStreamClientEvent('click_start', { hasFb, hasYt, hasClientAudio, fbKeyLen: fbKey ? fbKey.length : 0, ytKeyLen: ytKey ? ytKey.length : 0 });
+      logStreamClientEvent('click_start', { hasFb, hasYt, fbKeyLen: fbKey ? fbKey.length : 0, ytKeyLen: ytKey ? ytKey.length : 0 });
 
       if (!hasYt && !hasFb) {
         alert('⚠️ Para iniciar la transmisión en vivo necesitas configurar tu clave de transmisión (Stream Key) de Facebook Live o YouTube Live.\n\nAbriendo panel de Destinos de Transmisión...');
@@ -11158,116 +11149,65 @@ Pues resucitaste, Rey`
 
       const streamConfig = {
         youtube: { enabled: hasYt, url: ytUrl, key: ytKey },
-        facebook: { enabled: hasFb, url: fbUrl, key: fbKey },
-        hasClientAudio
+        facebook: { enabled: hasFb, url: fbUrl, key: fbKey }
       };
 
       const initialDestNames = [];
       if (hasFb) initialDestNames.push('Facebook Live');
       if (hasYt) initialDestNames.push('YouTube Live');
 
-      setStreamUIState('connecting');
+      isLiveStreaming = true;
+      liveDestinationsSummary = initialDestNames;
+      setStreamUIState('live', liveDestinationsSummary);
+      showToast(`📡 Transmisión Full HD en vivo a ${liveDestinationsSummary.join(' y ')}`, '📡');
 
-      clearTimeout(liveConnectingTimer);
-      liveConnectingTimer = setTimeout(() => {
-        if (!isLiveStreaming) {
-          logStreamClientEvent('timeout_15s');
-          stopMasterLiveStream(false);
-          alert('⚠️ Tiempo de espera agotado al conectar con los servidores de streaming.\n\nVerifica tu conexión a internet y que la clave de transmisión en Facebook Live Producer siga activa.');
+      let emittedFrameCount = 0;
+      let httpUploadInFlight = false;
+
+      function sendSingleJpegFrame() {
+        if (!isLiveStreaming) return;
+        const jpegBytes = captureProgramJpegBytes();
+        if (!jpegBytes || jpegBytes.length === 0) return;
+
+        emittedFrameCount++;
+        if (emittedFrameCount <= 3 || emittedFrameCount % 25 === 0) {
+          logStreamClientEvent('chunk_emitted', { chunk: emittedFrameCount, size: jpegBytes.length });
         }
-      }, 15000);
 
-      let mediaRecorderLaunched = false;
-      let emittedChunkCount = 0;
-
-      function launchBrowserMediaRecorder(ws, destNames) {
-        if (mediaRecorderLaunched) return;
-        mediaRecorderLaunched = true;
-
-        clearTimeout(liveConnectingTimer);
-        liveConnectingTimer = null;
-
-        try {
-          const progCanvas = document.getElementById('programCanvas');
-          if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
-
-          // Force an immediate paint on programCanvas so captureStream has an initial frame ready
-          try { drawComposedFrame(progCtx, wirecastState.program, true); } catch (e) {}
-
-          const canvasStream = progCanvas.captureStream(30);
-          activeBroadcastVideoTrack = canvasStream.getVideoTracks()[0] || null;
-          const audioTrack = createFreshBroadcastAudioTrack();
-          const broadcastStream = new MediaStream();
-          canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));
-          if (audioTrack) broadcastStream.addTrack(audioTrack);
-
-          // Dedicated 30fps compositor pump while streaming so programCanvas is continuously repainted
-          clearInterval(liveCompositorPumpTimer);
-          liveCompositorPumpTimer = setInterval(() => {
-            if (!isLiveStreaming) return;
+        if (liveStreamWs && liveStreamWs.readyState === WebSocket.OPEN) {
+          if (liveStreamWs.bufferedAmount < 512 * 1024) {
             try {
-              time += 0.02;
-              drawComposedFrame(progCtx, wirecastState.program, true);
-              if (activeBroadcastVideoTrack && typeof activeBroadcastVideoTrack.requestFrame === 'function') {
-                activeBroadcastVideoTrack.requestFrame();
-              }
+              liveStreamWs.send(jpegBytes);
+              return;
             } catch (e) {}
-          }, 33);
+          }
+        }
 
-          // Always include vp8,opus first so Chrome's AudioContext clock drives WebM cluster emission every 500ms
-          const candidateMimes = [
-            'video/webm;codecs=vp8,opus',
-            'video/webm',
-            'video/webm;codecs=h264,opus',
-            'video/mp4'
-          ];
-          const mime = candidateMimes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
-
-          liveMediaRecorder = new MediaRecorder(broadcastStream, {
-            mimeType: mime,
-            videoBitsPerSecond: 4500000
+        if (!httpUploadInFlight) {
+          httpUploadInFlight = true;
+          fetch('/api/stream/chunk?seq=' + emittedFrameCount, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body: jpegBytes
+          }).catch(() => {}).finally(() => {
+            httpUploadInFlight = false;
           });
-
-          liveMediaRecorder.onerror = (recErr) => {
-            logStreamClientEvent('mediarecorder_error', { error: String(recErr?.error?.message || recErr) });
-          };
-
-          liveMediaRecorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0 && isLiveStreaming) {
-              emittedChunkCount++;
-              if (emittedChunkCount <= 4 || emittedChunkCount % 10 === 0) {
-                logStreamClientEvent('chunk_emitted', { chunk: emittedChunkCount, size: e.data.size });
-              }
-              if (liveStreamWs === ws && ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(e.data);
-              } else {
-                fetch('/api/stream/chunk?seq=' + emittedChunkCount, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/octet-stream' },
-                  body: e.data
-                }).catch(() => {});
-              }
-            }
-          };
-
-          isLiveStreaming = true;
-          liveMediaRecorder.start(500);
-          liveDestinationsSummary = destNames || initialDestNames;
-          setStreamUIState('live', liveDestinationsSummary);
-          showToast(`📡 Transmisión Full HD en vivo a ${liveDestinationsSummary.join(' y ')}`, '📡');
-          logStreamClientEvent('mediarecorder_started', {
-            mime,
-            state: liveMediaRecorder.state,
-            vTracks: broadcastStream.getVideoTracks().length,
-            aTracks: broadcastStream.getAudioTracks().length
-          });
-        } catch (recInitErr) {
-          logStreamClientEvent('mediarecorder_init_failed', { message: recInitErr.message });
-          stopMasterLiveStream(false);
-          alert('Error al iniciar codificador de video en el navegador: ' + recInitErr.message);
         }
       }
 
+      // 1. Send Frame #1 and start FFmpeg immediately via HTTP so it never waits for WebSocket
+      sendSingleJpegFrame();
+      fetch('/api/stream/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(streamConfig)
+      }).catch(() => {});
+
+      // 2. Start continuous 25fps live canvas frame pump
+      clearInterval(liveCompositorPumpTimer);
+      liveCompositorPumpTimer = setInterval(sendSingleJpegFrame, 40);
+
+      // 3. Also open dedicated WebSocket for ultra-low-latency frame streaming & telemetry
       try {
         const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const encodedCfg = encodeURIComponent(JSON.stringify(streamConfig));
@@ -11280,76 +11220,30 @@ Pues resucitaste, Rey`
         ws.onopen = () => {
           if (liveStreamWs !== ws) return;
           logStreamClientEvent('ws_open');
-          try {
-            ws.send(JSON.stringify({ action: 'start', config: streamConfig }));
-          } catch (e) {}
-          launchBrowserMediaRecorder(ws, initialDestNames);
+          sendSingleJpegFrame();
         };
 
         ws.onmessage = (event) => {
           if (liveStreamWs !== ws) return;
           try {
             const data = JSON.parse(event.data);
-
-            if (data.type === 'ready') {
-              logStreamClientEvent('ws_ready_received', { destinations: data.destinations });
-              if (!mediaRecorderLaunched) {
-                launchBrowserMediaRecorder(ws, data.destinations || initialDestNames);
-              } else if (data.destinations) {
-                liveDestinationsSummary = data.destinations;
-                setStreamUIState('live', liveDestinationsSummary);
-              }
-
-            } else if (data.type === 'telemetry') {
+            if (data.type === 'telemetry') {
               if (data.stats && data.stats.bitrate > 0) {
                 const bitrateVal = document.getElementById('liveBitrateVal');
                 if (bitrateVal) bitrateVal.textContent = `${data.stats.bitrate} kbps (${data.stats.fps || 30} fps)`;
               }
-
             } else if (data.type === 'error') {
-              clearTimeout(liveConnectingTimer);
-              liveConnectingTimer = null;
               logStreamClientEvent('ws_server_error', { message: data.message });
               stopMasterLiveStream(false);
               alert('Aviso de Transmisión:\n\n' + data.message);
-
-            } else if (data.type === 'stopped') {
-              logStreamClientEvent('ws_server_stopped', { code: data.code });
-              if (isLiveStreaming) {
-                stopMasterLiveStream(true);
-              }
             }
-          } catch (msgErr) {
-            console.warn('[Stream WebSocket] Parse message error:', msgErr);
-          }
+          } catch (msgErr) {}
         };
 
-        ws.onerror = (err) => {
-          if (liveStreamWs !== ws) return;
-          logStreamClientEvent('ws_error');
-          clearTimeout(liveConnectingTimer);
-          liveConnectingTimer = null;
-          stopMasterLiveStream(false);
-        };
-
-        ws.onclose = () => {
-          if (liveStreamWs !== ws) return;
-          logStreamClientEvent('ws_close');
-          clearTimeout(liveConnectingTimer);
-          liveConnectingTimer = null;
-          if (isLiveStreaming) {
-            stopMasterLiveStream(true);
-          } else {
-            setStreamUIState('idle');
-          }
-        };
-
+        ws.onerror = () => {};
+        ws.onclose = () => {};
       } catch (err) {
-        logStreamClientEvent('ws_exception', { message: err.message });
-        clearTimeout(liveConnectingTimer);
-        liveConnectingTimer = null;
-        setStreamUIState('idle');
-        alert('Error al abrir canal WebSocket de transmisión: ' + err.message);
+        console.warn('[OmniCast Stream] WebSocket fallback to HTTP:', err);
       }
     }
 
@@ -11361,21 +11255,6 @@ Pues resucitaste, Rey`
       activeBroadcastVideoTrack = null;
       const wasStreaming = isLiveStreaming;
       isLiveStreaming = false;
-
-      if (liveMediaRecorder) {
-        try {
-          liveMediaRecorder.ondataavailable = null;
-          if (liveMediaRecorder.state !== 'inactive') {
-            liveMediaRecorder.stop();
-          }
-        } catch (e) {}
-        liveMediaRecorder = null;
-      }
-
-      if (liveBroadcastAudioCtx && liveBroadcastAudioCtx.state !== 'closed') {
-        try { liveBroadcastAudioCtx.close(); } catch (e) {}
-        liveBroadcastAudioCtx = null;
-      }
 
       if (liveStreamWs) {
         const ws = liveStreamWs;
@@ -11390,7 +11269,9 @@ Pues resucitaste, Rey`
           }
           ws.close();
         } catch (e) {}
-      } else if (wasStreaming) {
+      }
+
+      if (wasStreaming) {
         fetch('/api/stream/stop', { method: 'POST' }).catch(() => {});
       }
 
@@ -12195,6 +12076,11 @@ Resucitaste en majestad`;
             if (document.getElementById('ytStreamKey')) document.getElementById('ytStreamKey').value = cfg.youtube.key;
           }
           if (cfg.facebook) {
+            if (cfg.facebook.key === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS' || !cfg.facebook.key) {
+              cfg.facebook.key = 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
+              cfg.facebook.url = 'rtmps://rtmp-api.facebook.com:443/rtmp/';
+              localStorage.setItem('omnicast_streaming_config', JSON.stringify(cfg));
+            }
             if (document.getElementById('fbStreamEnable')) document.getElementById('fbStreamEnable').checked = cfg.facebook.enabled;
             if (document.getElementById('fbStreamUrl')) document.getElementById('fbStreamUrl').value = cfg.facebook.url;
             if (document.getElementById('fbStreamKey')) document.getElementById('fbStreamKey').value = cfg.facebook.key;

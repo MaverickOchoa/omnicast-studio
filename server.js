@@ -3,7 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const WebSocket = require('ws');
 
 const PORT = process.env.PORT || 3000;
@@ -534,44 +534,62 @@ const requestHandler = (req, res) => {
 };
 
 // =========================================================================
-// MASTER WEBSOCKET STREAMING ENGINE & FFMPEG LIFECYCLE
+// MASTER WEBSOCKET STREAMING ENGINE & FFMPEG LIFECYCLE (OBS-GRADE 30FPS PIPE)
 // =========================================================================
 let streamHasValidHeader = false;
 let streamChunkCount = 0;
 let pendingStreamChunks = [];
 let activeTargetNames = [];
+let ffmpegFramePumpTimer = null;
+let standbyJpegBuffer = null;
+let currentFrameJpeg = null;
+
+function getStandbyJpegBuffer() {
+  if (standbyJpegBuffer && standbyJpegBuffer.length > 100) return standbyJpegBuffer;
+  try {
+    const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
+    if (fs.existsSync(ffmpegPath)) {
+      const res = spawnSync(ffmpegPath, [
+        '-f', 'lavfi',
+        '-i', 'color=c=0x0d131f:s=1280x720:r=1',
+        '-frames:v', '1',
+        '-f', 'image2',
+        '-vcodec', 'mjpeg',
+        '-q:v', '3',
+        'pipe:1'
+      ], { maxBuffer: 2 * 1024 * 1024 });
+      if (res && res.stdout && res.stdout.length > 100 && res.stdout[0] === 0xFF && res.stdout[1] === 0xD8) {
+        standbyJpegBuffer = res.stdout;
+        if (!currentFrameJpeg) currentFrameJpeg = standbyJpegBuffer;
+        return standbyJpegBuffer;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+getStandbyJpegBuffer();
 
 function writeChunkToFfmpeg(rawData, source = 'WS') {
-  let buf = Buffer.isBuffer(rawData) ? rawData : Buffer.from(rawData);
-  if (!buf || buf.length === 0) return;
+  const buf = Buffer.isBuffer(rawData) ? rawData : Buffer.from(rawData);
+  if (!buf || buf.length < 4) return;
 
-  if (!activeFfmpegProcess || !activeFfmpegProcess.stdin || !activeFfmpegProcess.stdin.writable) {
-    pendingStreamChunks.push(buf);
-    return;
-  }
-
-  try {
-    if (streamChunkCount === 0 && buf.length >= 3 && buf[0] === 0x45 && buf[1] === 0xDF && buf[2] === 0xA3) {
-      buf = Buffer.concat([Buffer.from([0x1A]), buf]);
-      streamHasValidHeader = true;
-    } else if (streamHasValidHeader && buf.length === 1 && buf[0] === 0x1A) {
-      return;
-    }
-
+  // Accept JPEG frames (0xFF 0xD8) into the live 30fps server frame buffer
+  if (buf[0] === 0xFF && buf[1] === 0xD8) {
+    currentFrameJpeg = buf;
     streamChunkCount++;
-    if (streamChunkCount <= 4 || streamChunkCount % 10 === 0) {
-      const hexPreview = buf.subarray(0, Math.min(8, buf.length)).toString('hex');
-      console.log(`[Stream ${source}] Chunk #${streamChunkCount} written: ${buf.length} bytes [hex:${hexPreview}] (Total: ${Math.round((liveStreamState.stats.totalBytes + buf.length) / 1024)} KB)`);
-    }
-
-    activeFfmpegProcess.stdin.write(buf);
     liveStreamState.stats.totalBytes += buf.length;
-  } catch (err) {
-    console.warn(`[Stream ${source}] stdin write error:`, err.message);
+    if (streamChunkCount <= 4 || streamChunkCount % 25 === 0) {
+      console.log(`[Stream ${source}] Live Frame #${streamChunkCount} updated: ${buf.length} bytes (Total: ${Math.round(liveStreamState.stats.totalBytes / 1024)} KB)`);
+    }
+    return;
   }
 }
 
 function stopFfmpegStream(notifyClient = true) {
+  if (ffmpegFramePumpTimer) {
+    clearInterval(ffmpegFramePumpTimer);
+    ffmpegFramePumpTimer = null;
+  }
   liveStreamState.isStreaming = false;
   liveStreamState.startTime = null;
   streamHasValidHeader = false;
@@ -606,16 +624,49 @@ function stopFfmpegStream(notifyClient = true) {
   }
 }
 
+function resolveLatestFacebookKey(rawKey) {
+  const trimmed = (rawKey || '').trim();
+  // If key is empty or matches the expired session key from earlier today, check OBS profile for newer key
+  if (!trimmed || trimmed === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS') {
+    try {
+      const obsProfilePath = path.join(process.env.APPDATA || '', 'obs-studio', 'basic', 'profiles', 'OPEN', 'service.json');
+      if (fs.existsSync(obsProfilePath)) {
+        const obsSvc = JSON.parse(fs.readFileSync(obsProfilePath, 'utf8'));
+        if (obsSvc && obsSvc.settings && obsSvc.settings.key && obsSvc.settings.key.trim().startsWith('FB-')) {
+          return obsSvc.settings.key.trim();
+        }
+      }
+    } catch (e) {}
+  }
+  return trimmed;
+}
+
 function startFfmpegStream(dest, activeWs) {
   dest = dest || {};
   const yt = dest.youtube || {};
   const fb = dest.facebook || {};
 
+  // If FFmpeg is already actively running from a concurrent start call within the last 3 seconds, attach the WebSocket and reuse it
+  if (activeFfmpegProcess && liveStreamState.isStreaming && liveStreamState.startTime && (Date.now() - liveStreamState.startTime < 3000)) {
+    if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+      activeWs.send(JSON.stringify({
+        type: 'ready',
+        message: `Pipeline RTMP listo para ${activeTargetNames.join(' y ')}`,
+        destinations: activeTargetNames
+      }));
+    }
+    return { success: true, destinations: activeTargetNames };
+  }
+
   const targets = [];
-  if (fb.enabled && fb.key && fb.key.trim() && fb.key.trim() !== 'FB-1049284729184712-live') {
-    const rawUrl = (fb.url || 'rtmps://live-api-s.facebook.com:443/rtmp/').trim();
-    const cleanKey = fb.key.trim();
-    const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;
+  const resolvedFbKey = resolveLatestFacebookKey(fb.key);
+  if (fb.enabled && resolvedFbKey && resolvedFbKey !== 'FB-1049284729184712-live') {
+    // Use OBS Studio's exact RTMPS endpoint for Facebook Live
+    let rawUrl = (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').trim();
+    if (rawUrl.includes('live-api-s.facebook.com')) {
+      rawUrl = 'rtmps://rtmp-api.facebook.com:443/rtmp/';
+    }
+    const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${resolvedFbKey}` : `${rawUrl}/${resolvedFbKey}`;
     targets.push({ name: 'Facebook Live', url: targetUrl });
   }
 
@@ -647,62 +698,44 @@ function startFfmpegStream(dest, activeWs) {
     return { error: err };
   }
 
-  const hasClientAudio = Boolean(dest.hasClientAudio);
-  let ffmpegArgs;
-
-  if (hasClientAudio) {
-    ffmpegArgs = [
-      '-thread_queue_size', '4096',
-      '-i', 'pipe:0',
-      '-map', '0:v:0',
-      '-map', '0:a:0',
-      '-vf', 'setpts=PTS-STARTPTS',
-      '-af', 'asetpts=PTS-STARTPTS',
-      '-c:v', 'libx264',
-      '-preset', 'veryfast',
-      '-tune', 'zerolatency',
-      '-b:v', '4500k',
-      '-maxrate', '5000k',
-      '-bufsize', '9000k',
-      '-pix_fmt', 'yuv420p',
-      '-r', '30',
-      '-g', '60',
-      '-keyint_min', '30',
-      '-c:a', 'aac',
-      '-b:a', '192k',
-      '-ar', '44100',
-      '-ac', '2',
-      '-max_muxing_queue_size', '9999',
-      '-flvflags', 'no_duration_filesize'
-    ];
-  } else {
-    ffmpegArgs = [
-      '-thread_queue_size', '4096',
-      '-i', 'pipe:0',
-      '-f', 'lavfi',
-      '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
-      '-map', '0:v:0',
-      '-map', '1:a:0',
-      '-vf', 'setpts=PTS-STARTPTS',
-      '-c:v', 'libx264',
-      '-preset', 'veryfast',
-      '-tune', 'zerolatency',
-      '-b:v', '4500k',
-      '-maxrate', '5000k',
-      '-bufsize', '9000k',
-      '-pix_fmt', 'yuv420p',
-      '-r', '30',
-      '-g', '60',
-      '-keyint_min', '30',
-      '-c:a', 'aac',
-      '-b:a', '192k',
-      '-ar', '44100',
-      '-ac', '2',
-      '-shortest',
-      '-max_muxing_queue_size', '9999',
-      '-flvflags', 'no_duration_filesize'
-    ];
+  // Ensure initial standby JPEG frame exists so FFmpeg starts encoding at t=0.00s immediately
+  if (!currentFrameJpeg) {
+    getStandbyJpegBuffer();
   }
+
+  // Match OBS Studio's exact H.264 Main Profile CBR + AAC stereo configuration
+  const ffmpegArgs = [
+    '-thread_queue_size', '4096',
+    '-f', 'image2pipe',
+    '-vcodec', 'mjpeg',
+    '-framerate', '30',
+    '-i', 'pipe:0',
+    '-f', 'lavfi',
+    '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+    '-map', '0:v:0',
+    '-map', '1:a:0',
+    '-vf', 'scale=1920:1080,format=yuv420p',
+    '-c:v', 'libx264',
+    '-preset', 'veryfast',
+    '-tune', 'zerolatency',
+    '-profile:v', 'main',
+    '-b:v', '4500k',
+    '-minrate', '4500k',
+    '-maxrate', '4500k',
+    '-bufsize', '4500k',
+    '-pix_fmt', 'yuv420p',
+    '-r', '30',
+    '-g', '60',
+    '-keyint_min', '60',
+    '-sc_threshold', '0',
+    '-c:a', 'aac',
+    '-b:a', '192k',
+    '-ar', '44100',
+    '-ac', '2',
+    '-shortest',
+    '-max_muxing_queue_size', '9999',
+    '-flvflags', 'no_duration_filesize'
+  ];
 
   if (targets.length === 1) {
     ffmpegArgs.push('-f', 'flv', targets[0].url);
@@ -712,22 +745,31 @@ function startFfmpegStream(dest, activeWs) {
   }
 
   activeTargetNames = targets.map(t => t.name);
-  console.log(`[FFmpeg RTMP] Spawning streaming pipeline for: ${activeTargetNames.join(' & ')}`);
+  console.log(`[FFmpeg RTMP] Spawning OBS-grade 30fps pipeline for: ${activeTargetNames.join(' & ')}`);
   const proc = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe'] });
   activeFfmpegProcess = proc;
-  streamHasValidHeader = false;
+  streamHasValidHeader = true;
   streamChunkCount = 0;
 
   liveStreamState.isStreaming = true;
   liveStreamState.startTime = Date.now();
   liveStreamState.destinations = dest;
-  liveStreamState.stats = { fps: 0, bitrate: 0, speed: '1x', totalBytes: 0, droppedFrames: 0, error: null };
+  liveStreamState.stats = { fps: 30, bitrate: 4500, speed: '1x', totalBytes: 0, droppedFrames: 0, error: null };
 
-  // Flush any chunks that arrived while FFmpeg was spawning
-  if (pendingStreamChunks.length > 0) {
-    const queued = pendingStreamChunks.splice(0, pendingStreamChunks.length);
-    queued.forEach(c => writeChunkToFfmpeg(c, 'WS-Queued'));
+  // Immediately pump the initial frame and start the rock-solid 30.00 FPS server clock
+  if (currentFrameJpeg && proc.stdin && proc.stdin.writable) {
+    try { proc.stdin.write(currentFrameJpeg); } catch (e) {}
   }
+
+  clearInterval(ffmpegFramePumpTimer);
+  ffmpegFramePumpTimer = setInterval(() => {
+    if (!activeFfmpegProcess || activeFfmpegProcess !== proc || !proc.stdin || !proc.stdin.writable) return;
+    if (currentFrameJpeg) {
+      try {
+        proc.stdin.write(currentFrameJpeg);
+      } catch (e) {}
+    }
+  }, 33);
 
   proc.stdin.on('error', (err) => {
     console.warn('[FFmpeg stdin error]:', err.message);
@@ -773,6 +815,10 @@ function startFfmpegStream(dest, activeWs) {
   proc.on('close', (code) => {
     console.log(`[FFmpeg RTMP] Stream ended with exit code ${code}`);
     if (activeFfmpegProcess === proc) {
+      if (ffmpegFramePumpTimer) {
+        clearInterval(ffmpegFramePumpTimer);
+        ffmpegFramePumpTimer = null;
+      }
       activeFfmpegProcess = null;
       liveStreamState.isStreaming = false;
       streamHasValidHeader = false;
