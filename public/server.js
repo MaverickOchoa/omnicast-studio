@@ -615,33 +615,68 @@ function startFfmpegStream(dest, activeWs) {
     return { error: err };
   }
 
-  const ffmpegArgs = [
-    '-thread_queue_size', '4096',
-    '-i', 'pipe:0',
-    '-c:v', 'libx264',
-    '-preset', 'veryfast',
-    '-tune', 'zerolatency',
-    '-b:v', '4500k',
-    '-maxrate', '5000k',
-    '-bufsize', '9000k',
-    '-pix_fmt', 'yuv420p',
-    '-r', '30',
-    '-g', '60',
-    '-keyint_min', '30',
-    '-c:a', 'aac',
-    '-b:a', '192k',
-    '-ar', '44100',
-    '-ac', '2',
-    '-af', 'aresample=async=1:first_pts=0',
-    '-max_muxing_queue_size', '9999',
-    '-flvflags', 'no_duration_filesize'
-  ];
+  const hasClientAudio = Boolean(dest.hasClientAudio);
+  let ffmpegArgs;
+
+  if (hasClientAudio) {
+    ffmpegArgs = [
+      '-thread_queue_size', '4096',
+      '-i', 'pipe:0',
+      '-map', '0:v:0',
+      '-map', '0:a:0',
+      '-vf', 'setpts=PTS-STARTPTS',
+      '-af', 'asetpts=PTS-STARTPTS',
+      '-c:v', 'libx264',
+      '-preset', 'veryfast',
+      '-tune', 'zerolatency',
+      '-b:v', '4500k',
+      '-maxrate', '5000k',
+      '-bufsize', '9000k',
+      '-pix_fmt', 'yuv420p',
+      '-r', '30',
+      '-g', '60',
+      '-keyint_min', '30',
+      '-c:a', 'aac',
+      '-b:a', '192k',
+      '-ar', '44100',
+      '-ac', '2',
+      '-max_muxing_queue_size', '9999',
+      '-flvflags', 'no_duration_filesize'
+    ];
+  } else {
+    ffmpegArgs = [
+      '-thread_queue_size', '4096',
+      '-i', 'pipe:0',
+      '-f', 'lavfi',
+      '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+      '-map', '0:v:0',
+      '-map', '1:a:0',
+      '-vf', 'setpts=PTS-STARTPTS',
+      '-c:v', 'libx264',
+      '-preset', 'veryfast',
+      '-tune', 'zerolatency',
+      '-b:v', '4500k',
+      '-maxrate', '5000k',
+      '-bufsize', '9000k',
+      '-pix_fmt', 'yuv420p',
+      '-r', '30',
+      '-g', '60',
+      '-keyint_min', '30',
+      '-c:a', 'aac',
+      '-b:a', '192k',
+      '-ar', '44100',
+      '-ac', '2',
+      '-shortest',
+      '-max_muxing_queue_size', '9999',
+      '-flvflags', 'no_duration_filesize'
+    ];
+  }
 
   if (targets.length === 1) {
     ffmpegArgs.push('-f', 'flv', targets[0].url);
   } else {
     const teeTargets = targets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
-    ffmpegArgs.push('-f', 'tee', '-map', '0:v', '-map', '0:a', teeTargets);
+    ffmpegArgs.push('-f', 'tee', teeTargets);
   }
 
   activeTargetNames = targets.map(t => t.name);

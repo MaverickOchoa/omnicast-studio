@@ -10961,6 +10961,7 @@ Pues resucitaste, Rey`
     let liveBroadcastAudioCtx = null;
     let liveConnectingTimer = null;
     let liveDestinationsSummary = '';
+    let activeBroadcastVideoTrack = null;
 
     const btnMasterStream = document.getElementById('btnMasterStream');
 
@@ -10975,45 +10976,34 @@ Pues resucitaste, Rey`
       } catch (e) {}
     }
 
-    function createFreshBroadcastAudioTrack() {
+    function ensureAntiThrottleAudioTap() {
       try {
-        if (liveBroadcastAudioCtx && liveBroadcastAudioCtx.state !== 'closed') {
-          try { liveBroadcastAudioCtx.close(); } catch (e) {}
+        if (!liveBroadcastAudioCtx || liveBroadcastAudioCtx.state === 'closed') {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          liveBroadcastAudioCtx = new AudioCtx({ sampleRate: 44100 });
+          const osc = liveBroadcastAudioCtx.createOscillator();
+          const silentSpeaker = liveBroadcastAudioCtx.createGain();
+          silentSpeaker.gain.value = 0.000001;
+          osc.connect(silentSpeaker);
+          silentSpeaker.connect(liveBroadcastAudioCtx.destination);
+          osc.start();
         }
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        liveBroadcastAudioCtx = new AudioCtx({ sampleRate: 44100 });
         if (liveBroadcastAudioCtx.state === 'suspended') {
           liveBroadcastAudioCtx.resume().catch(() => {});
         }
+      } catch (e) {}
+    }
 
-        const dest = liveBroadcastAudioCtx.createMediaStreamDestination();
-
-        // Continuous inaudible reference tone so Audio & Video timestamps start at t=0.000s in lockstep
-        const osc = liveBroadcastAudioCtx.createOscillator();
-        const silentGain = liveBroadcastAudioCtx.createGain();
-        silentGain.gain.value = 0.00001;
-        osc.connect(silentGain);
-        silentGain.connect(dest);
-        osc.start();
-
-        // Mix live hardware microphone/line-in if active
+    function getLiveHardwareAudioTrack() {
+      try {
         if (activeHardwareStreams && activeHardwareStreams.audio && activeHardwareStreams.audio.getAudioTracks().length > 0) {
           const hwTrack = activeHardwareStreams.audio.getAudioTracks()[0];
           if (hwTrack && hwTrack.readyState === 'live') {
-            try {
-              const micSource = liveBroadcastAudioCtx.createMediaStreamSource(activeHardwareStreams.audio);
-              micSource.connect(dest);
-            } catch (micErr) {
-              console.warn('Could not mix hardware audio into broadcast context:', micErr);
-            }
+            return hwTrack;
           }
         }
-
-        return dest.stream.getAudioTracks()[0] || null;
-      } catch (e) {
-        console.warn('Fallback to getMasterAudioTrack:', e);
-        return getMasterAudioTrack();
-      }
+      } catch (e) {}
+      return null;
     }
 
     function setStreamUIState(state, info) {
@@ -11130,7 +11120,13 @@ Pues resucitaste, Rey`
       const hasYt = Boolean(ytEnabled && ytKey && ytKey !== 'yt-live-9382-7712-4412-omni');
       const hasFb = Boolean(fbEnabled && fbKey && fbKey !== 'FB-1049284729184712-live');
 
-      logStreamClientEvent('click_start', { hasFb, hasYt, fbKeyLen: fbKey ? fbKey.length : 0, ytKeyLen: ytKey ? ytKey.length : 0 });
+      const hwAudioTrack = getLiveHardwareAudioTrack();
+      const hasClientAudio = Boolean(hwAudioTrack);
+
+      // Start anti-throttle speaker tap synchronously during user click gesture
+      ensureAntiThrottleAudioTap();
+
+      logStreamClientEvent('click_start', { hasFb, hasYt, hasClientAudio, fbKeyLen: fbKey ? fbKey.length : 0, ytKeyLen: ytKey ? ytKey.length : 0 });
 
       if (!hasYt && !hasFb) {
         alert('⚠️ Para iniciar la transmisión en vivo necesitas configurar tu clave de transmisión (Stream Key) de Facebook Live o YouTube Live.\n\nAbriendo panel de Destinos de Transmisión...');
@@ -11142,7 +11138,8 @@ Pues resucitaste, Rey`
 
       const streamConfig = {
         youtube: { enabled: hasYt, url: ytUrl, key: ytKey },
-        facebook: { enabled: hasFb, url: fbUrl, key: fbKey }
+        facebook: { enabled: hasFb, url: fbUrl, key: fbKey },
+        hasClientAudio
       };
 
       const initialDestNames = [];
@@ -11178,19 +11175,17 @@ Pues resucitaste, Rey`
           try { drawComposedFrame(progCtx, wirecastState.program, true); } catch (e) {}
 
           const canvasStream = progCanvas.captureStream(30);
-          const audioTrack = createFreshBroadcastAudioTrack();
+          activeBroadcastVideoTrack = canvasStream.getVideoTracks()[0] || null;
+
           const broadcastStream = new MediaStream();
           canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));
-          if (audioTrack) broadcastStream.addTrack(audioTrack);
+          if (hwAudioTrack) {
+            broadcastStream.addTrack(hwAudioTrack);
+          }
 
-          // IMPORTANT: Always keep vp8,opus FIRST because programCanvas has an alpha channel (alpha_mode: 1),
-          // which Chrome's VP8 encoder supports natively whereas H.264 on alpha canvas can fail to emit chunks.
-          const candidateMimes = [
-            'video/webm;codecs=vp8,opus',
-            'video/webm',
-            'video/webm;codecs=h264,opus',
-            'video/mp4'
-          ];
+          const candidateMimes = hwAudioTrack
+            ? ['video/webm;codecs=vp8,opus', 'video/webm']
+            : ['video/webm;codecs=vp8', 'video/webm;codecs=vp8,opus', 'video/webm'];
           const mime = candidateMimes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
 
           liveMediaRecorder = new MediaRecorder(broadcastStream, {
@@ -11245,7 +11240,7 @@ Pues resucitaste, Rey`
           try {
             ws.send(JSON.stringify({ action: 'start', config: streamConfig }));
           } catch (e) {}
-          // Start MediaRecorder immediately upon WebSocket open — never block waiting for a round-trip 'ready' frame
+          // Start MediaRecorder immediately upon WebSocket open
           launchBrowserMediaRecorder(ws, initialDestNames);
         };
 
@@ -11319,6 +11314,7 @@ Pues resucitaste, Rey`
     function stopMasterLiveStream(showNotification = true) {
       clearTimeout(liveConnectingTimer);
       liveConnectingTimer = null;
+      activeBroadcastVideoTrack = null;
 
       if (liveMediaRecorder) {
         try {
@@ -11328,11 +11324,6 @@ Pues resucitaste, Rey`
           }
         } catch (e) {}
         liveMediaRecorder = null;
-      }
-
-      if (liveBroadcastAudioCtx && liveBroadcastAudioCtx.state !== 'closed') {
-        try { liveBroadcastAudioCtx.close(); } catch (e) {}
-        liveBroadcastAudioCtx = null;
       }
 
       if (liveStreamWs) {
