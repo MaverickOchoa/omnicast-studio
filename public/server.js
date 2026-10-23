@@ -404,6 +404,50 @@ const requestHandler = (req, res) => {
     return;
   }
 
+  // Endpoint: Client-Side Stream Diagnostic Logger
+  if (parsedUrl === '/api/stream/client-log' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        console.log(`[Client Stream Log] ${data.event}:`, JSON.stringify(data.details || {}));
+      } catch (e) {
+        console.log('[Client Stream Log Raw]:', body);
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    });
+    return;
+  }
+
+  // Endpoint: Start Live RTMP/RTMPS Stream via FFmpeg (HTTP Compatibility)
+  if (parsedUrl === '/api/stream/start' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const dest = JSON.parse(body || '{}');
+        const result = startFfmpegStream(dest, activeStreamWebSocket);
+        if (result.error) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: result.error }));
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          message: `Transmisión iniciada exitosamente a ${(result.destinations || []).join(' y ')}`,
+          destinations: result.destinations || []
+        }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   // Endpoint: Stop Live Stream (HTTP Fallback)
   if (parsedUrl === '/api/stream/stop' && req.method === 'POST') {
     stopFfmpegStream();
@@ -412,10 +456,18 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  // Endpoint: Ingest Live Binary Stream Chunks (Deprecated in favor of WebSocket)
+  // Endpoint: Ingest Live Binary Stream Chunks (HTTP Compatibility)
   if (parsedUrl === '/api/stream/chunk' && req.method === 'POST') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, deprecated: true }));
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => {
+      const buffer = Buffer.concat(chunks);
+      if (buffer.length > 0) {
+        writeChunkToFfmpeg(buffer, 'HTTP');
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, bytes: liveStreamState.stats.totalBytes }));
+    });
     return;
   }
 
@@ -460,11 +512,56 @@ const requestHandler = (req, res) => {
 // MASTER WEBSOCKET STREAMING ENGINE & FFMPEG LIFECYCLE
 // =========================================================================
 let streamHasValidHeader = false;
+let streamChunkCount = 0;
+let pendingStreamChunks = [];
+let activeTargetNames = [];
+
+function writeChunkToFfmpeg(rawData, source = 'WS') {
+  const buf = Buffer.isBuffer(rawData) ? rawData : Buffer.from(rawData);
+  if (!buf || buf.length === 0) return;
+
+  if (!activeFfmpegProcess || !activeFfmpegProcess.stdin || !activeFfmpegProcess.stdin.writable) {
+    pendingStreamChunks.push(buf);
+    return;
+  }
+
+  try {
+    let payloadToWrite = buf;
+    if (!streamHasValidHeader) {
+      // Look for WebM EBML header magic bytes (0x1A 0x45 0xDF 0xA3) or ISO BMFF ftyp
+      const ebmlMagic = Buffer.from([0x1A, 0x45, 0xDF, 0xA3]);
+      const ebmlIdx = buf.indexOf(ebmlMagic);
+      if (ebmlIdx === -1 && buf.length < 32) {
+        console.log(`[Stream ${source}] Skipping initial runt fragment (${buf.length} bytes)`);
+        return;
+      }
+      if (ebmlIdx > 0) {
+        payloadToWrite = buf.subarray(ebmlIdx);
+      }
+      streamHasValidHeader = true;
+      streamChunkCount = 1;
+      console.log(`[Stream ${source}] First valid media header chunk written to FFmpeg: ${payloadToWrite.length} bytes`);
+    } else {
+      streamChunkCount++;
+      if (streamChunkCount <= 3 || streamChunkCount % 10 === 0) {
+        console.log(`[Stream ${source}] Chunk #${streamChunkCount} written: ${payloadToWrite.length} bytes (Total: ${Math.round((liveStreamState.stats.totalBytes + payloadToWrite.length) / 1024)} KB)`);
+      }
+    }
+
+    activeFfmpegProcess.stdin.write(payloadToWrite);
+    liveStreamState.stats.totalBytes += payloadToWrite.length;
+  } catch (err) {
+    console.warn(`[Stream ${source}] stdin write error:`, err.message);
+  }
+}
 
 function stopFfmpegStream(notifyClient = true) {
   liveStreamState.isStreaming = false;
   liveStreamState.startTime = null;
   streamHasValidHeader = false;
+  streamChunkCount = 0;
+  pendingStreamChunks = [];
+  activeTargetNames = [];
 
   if (activeFfmpegProcess) {
     const proc = activeFfmpegProcess;
@@ -536,7 +633,6 @@ function startFfmpegStream(dest, activeWs) {
 
   const ffmpegArgs = [
     '-thread_queue_size', '4096',
-    '-re',
     '-i', 'pipe:0',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
@@ -564,15 +660,23 @@ function startFfmpegStream(dest, activeWs) {
     ffmpegArgs.push('-f', 'tee', '-map', '0:v', '-map', '0:a', teeTargets);
   }
 
-  console.log(`[FFmpeg RTMP] Spawning WebSocket streaming pipeline for: ${targets.map(t => t.name).join(' & ')}`);
+  activeTargetNames = targets.map(t => t.name);
+  console.log(`[FFmpeg RTMP] Spawning streaming pipeline for: ${activeTargetNames.join(' & ')}`);
   const proc = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe'] });
   activeFfmpegProcess = proc;
   streamHasValidHeader = false;
+  streamChunkCount = 0;
 
   liveStreamState.isStreaming = true;
   liveStreamState.startTime = Date.now();
   liveStreamState.destinations = dest;
   liveStreamState.stats = { fps: 0, bitrate: 0, speed: '1x', totalBytes: 0, droppedFrames: 0, error: null };
+
+  // Flush any chunks that arrived while FFmpeg was spawning
+  if (pendingStreamChunks.length > 0) {
+    const queued = pendingStreamChunks.splice(0, pendingStreamChunks.length);
+    queued.forEach(c => writeChunkToFfmpeg(c, 'WS-Queued'));
+  }
 
   proc.stdin.on('error', (err) => {
     console.warn('[FFmpeg stdin error]:', err.message);
@@ -645,13 +749,13 @@ function startFfmpegStream(dest, activeWs) {
   if (activeWs && activeWs.readyState === WebSocket.OPEN) {
     activeWs.send(JSON.stringify({
       type: 'ready',
-      message: `Pipeline RTMP listo para ${targets.map(t => t.name).join(' y ')}`,
-      destinations: targets.map(t => t.name)
+      message: `Pipeline RTMP listo para ${activeTargetNames.join(' y ')}`,
+      destinations: activeTargetNames
     }));
   }
-  broadcastSSE('stream_status', { isStreaming: true, destinations: targets.map(t => t.name) });
+  broadcastSSE('stream_status', { isStreaming: true, destinations: activeTargetNames });
 
-  return { success: true, destinations: targets.map(t => t.name) };
+  return { success: true, destinations: activeTargetNames };
 }
 
 const liveStreamWss = new WebSocket.Server({ noServer: true });
@@ -661,7 +765,7 @@ liveStreamWss.on('connection', (ws, request) => {
   activeStreamWebSocket = ws;
   let startedForThisSocket = false;
 
-  // Auto-start immediately if config was passed in the WebSocket URL query string
+  // Auto-start if config was passed in the WebSocket URL query string
   try {
     const host = (request && request.headers && request.headers.host) || 'localhost';
     const parsedUrl = new URL(request.url, `http://${host}`);
@@ -680,38 +784,30 @@ liveStreamWss.on('connection', (ws, request) => {
       try {
         const payload = JSON.parse(message.toString());
         if (payload.action === 'start') {
-          if (!startedForThisSocket) {
+          if (!startedForThisSocket || !activeFfmpegProcess) {
             startedForThisSocket = true;
             startFfmpegStream(payload.config, ws);
+          } else if (ws.readyState === WebSocket.OPEN) {
+            // Always reply with ready so any client awaiting 'ready' after sending 'start' receives it
+            ws.send(JSON.stringify({
+              type: 'ready',
+              message: `Pipeline RTMP listo para ${activeTargetNames.join(' y ')}`,
+              destinations: activeTargetNames
+            }));
           }
         } else if (payload.action === 'stop') {
           stopFfmpegStream();
           if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'stopped' }));
           }
+        } else if (payload.action === 'log') {
+          console.log(`[Client WS Log] ${payload.event}:`, JSON.stringify(payload.details || {}));
         }
       } catch (err) {
         console.warn('[WebSocket Stream] Parse message error:', err.message);
       }
     } else {
-      if (activeFfmpegProcess && activeFfmpegProcess.stdin && activeFfmpegProcess.stdin.writable) {
-        try {
-          const buf = Buffer.isBuffer(message) ? message : Buffer.from(message);
-          if (!streamHasValidHeader) {
-            // Skip any tiny runt fragment (< 16 bytes) before the WebM EBML header (0x1A 0x45 0xDF 0xA3)
-            if (buf.length < 16) {
-              console.log(`[WebSocket Stream] Skipping initial runt fragment (${buf.length} bytes)`);
-              return;
-            }
-            streamHasValidHeader = true;
-            console.log(`[WebSocket Stream] First valid WebM header chunk received: ${buf.length} bytes`);
-          }
-          activeFfmpegProcess.stdin.write(buf);
-          liveStreamState.stats.totalBytes += buf.length;
-        } catch (err) {
-          console.warn('[WebSocket Stream] stdin write error:', err.message);
-        }
-      }
+      writeChunkToFfmpeg(message, 'WS');
     }
   });
 

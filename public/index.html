@@ -10964,6 +10964,17 @@ Pues resucitaste, Rey`
 
     const btnMasterStream = document.getElementById('btnMasterStream');
 
+    function logStreamClientEvent(event, details = {}) {
+      console.log(`[OmniCast Stream] ${event}`, details);
+      try {
+        fetch('/api/stream/client-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event, details, ts: Date.now() })
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
     function createFreshBroadcastAudioTrack() {
       try {
         if (liveBroadcastAudioCtx && liveBroadcastAudioCtx.state !== 'closed') {
@@ -11116,8 +11127,10 @@ Pues resucitaste, Rey`
         }
       } catch (e) {}
 
-      const hasYt = ytEnabled && ytKey && ytKey !== 'yt-live-9382-7712-4412-omni';
-      const hasFb = fbEnabled && fbKey && fbKey !== 'FB-1049284729184712-live';
+      const hasYt = Boolean(ytEnabled && ytKey && ytKey !== 'yt-live-9382-7712-4412-omni');
+      const hasFb = Boolean(fbEnabled && fbKey && fbKey !== 'FB-1049284729184712-live');
+
+      logStreamClientEvent('click_start', { hasFb, hasYt, fbKeyLen: fbKey ? fbKey.length : 0, ytKeyLen: ytKey ? ytKey.length : 0 });
 
       if (!hasYt && !hasFb) {
         alert('⚠️ Para iniciar la transmisión en vivo necesitas configurar tu clave de transmisión (Stream Key) de Facebook Live o YouTube Live.\n\nAbriendo panel de Destinos de Transmisión...');
@@ -11132,16 +11145,90 @@ Pues resucitaste, Rey`
         facebook: { enabled: hasFb, url: fbUrl, key: fbKey }
       };
 
+      const initialDestNames = [];
+      if (hasFb) initialDestNames.push('Facebook Live');
+      if (hasYt) initialDestNames.push('YouTube Live');
+
       setStreamUIState('connecting');
 
       clearTimeout(liveConnectingTimer);
       liveConnectingTimer = setTimeout(() => {
         if (!isLiveStreaming) {
-          console.warn('[Stream WebSocket] Connection timeout reached (15s)');
+          logStreamClientEvent('timeout_15s');
           stopMasterLiveStream(false);
           alert('⚠️ Tiempo de espera agotado al conectar con los servidores de streaming.\n\nVerifica tu conexión a internet y que la clave de transmisión en Facebook Live Producer siga activa.');
         }
       }, 15000);
+
+      let mediaRecorderLaunched = false;
+      let emittedChunkCount = 0;
+
+      function launchBrowserMediaRecorder(ws, destNames) {
+        if (mediaRecorderLaunched) return;
+        mediaRecorderLaunched = true;
+
+        clearTimeout(liveConnectingTimer);
+        liveConnectingTimer = null;
+
+        try {
+          const progCanvas = document.getElementById('programCanvas');
+          if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
+
+          // Force an immediate paint on programCanvas so captureStream has an initial frame ready
+          try { drawComposedFrame(progCtx, wirecastState.program, true); } catch (e) {}
+
+          const canvasStream = progCanvas.captureStream(30);
+          const audioTrack = createFreshBroadcastAudioTrack();
+          const broadcastStream = new MediaStream();
+          canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));
+          if (audioTrack) broadcastStream.addTrack(audioTrack);
+
+          // IMPORTANT: Always keep vp8,opus FIRST because programCanvas has an alpha channel (alpha_mode: 1),
+          // which Chrome's VP8 encoder supports natively whereas H.264 on alpha canvas can fail to emit chunks.
+          const candidateMimes = [
+            'video/webm;codecs=vp8,opus',
+            'video/webm',
+            'video/webm;codecs=h264,opus',
+            'video/mp4'
+          ];
+          const mime = candidateMimes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
+
+          liveMediaRecorder = new MediaRecorder(broadcastStream, {
+            mimeType: mime,
+            videoBitsPerSecond: 4500000
+          });
+
+          liveMediaRecorder.onerror = (recErr) => {
+            logStreamClientEvent('mediarecorder_error', { error: String(recErr?.error?.message || recErr) });
+          };
+
+          liveMediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0 && liveStreamWs === ws && ws.readyState === WebSocket.OPEN) {
+              emittedChunkCount++;
+              if (emittedChunkCount <= 3 || emittedChunkCount % 10 === 0) {
+                logStreamClientEvent('chunk_emitted', { chunk: emittedChunkCount, size: e.data.size });
+              }
+              ws.send(e.data);
+            }
+          };
+
+          liveMediaRecorder.start(500);
+          isLiveStreaming = true;
+          liveDestinationsSummary = destNames || initialDestNames;
+          setStreamUIState('live', liveDestinationsSummary);
+          showToast(`📡 Transmisión Full HD en vivo a ${liveDestinationsSummary.join(' y ')}`, '📡');
+          logStreamClientEvent('mediarecorder_started', {
+            mime,
+            state: liveMediaRecorder.state,
+            vTracks: broadcastStream.getVideoTracks().length,
+            aTracks: broadcastStream.getAudioTracks().length
+          });
+        } catch (recInitErr) {
+          logStreamClientEvent('mediarecorder_init_failed', { message: recInitErr.message });
+          stopMasterLiveStream(false);
+          alert('Error al iniciar codificador de video en el navegador: ' + recInitErr.message);
+        }
+      }
 
       try {
         const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -11154,10 +11241,12 @@ Pues resucitaste, Rey`
 
         ws.onopen = () => {
           if (liveStreamWs !== ws) return;
-          console.log('[Stream WebSocket] Connected to server.');
+          logStreamClientEvent('ws_open');
           try {
             ws.send(JSON.stringify({ action: 'start', config: streamConfig }));
           } catch (e) {}
+          // Start MediaRecorder immediately upon WebSocket open — never block waiting for a round-trip 'ready' frame
+          launchBrowserMediaRecorder(ws, initialDestNames);
         };
 
         ws.onmessage = (event) => {
@@ -11166,46 +11255,13 @@ Pues resucitaste, Rey`
             const data = JSON.parse(event.data);
 
             if (data.type === 'ready') {
-              console.log('[Stream WebSocket] Received READY signal from server!');
-              clearTimeout(liveConnectingTimer);
-              liveConnectingTimer = null;
-
-              const progCanvas = document.getElementById('programCanvas');
-              if (!progCanvas) throw new Error('No se encontró el lienzo de Program Canvas');
-
-              // Force an immediate paint on programCanvas so captureStream has an initial frame ready
-              try { renderCompositor(); } catch (e) {}
-
-              const canvasStream = progCanvas.captureStream(30);
-              const audioTrack = createFreshBroadcastAudioTrack();
-              const broadcastStream = new MediaStream();
-              canvasStream.getVideoTracks().forEach(t => broadcastStream.addTrack(t));
-              if (audioTrack) broadcastStream.addTrack(audioTrack);
-
-              const candidateMimes = [
-                'video/webm;codecs=h264,opus',
-                'video/webm;codecs=vp8,opus',
-                'video/webm',
-                'video/mp4'
-              ];
-              const mime = candidateMimes.find(t => MediaRecorder.isTypeSupported(t)) || 'video/webm';
-
-              liveMediaRecorder = new MediaRecorder(broadcastStream, {
-                mimeType: mime,
-                videoBitsPerSecond: 4500000
-              });
-
-              liveMediaRecorder.ondataavailable = (e) => {
-                if (e.data && e.data.size >= 16 && liveStreamWs === ws && ws.readyState === WebSocket.OPEN) {
-                  ws.send(e.data);
-                }
-              };
-
-              liveMediaRecorder.start(500);
-              isLiveStreaming = true;
-              liveDestinationsSummary = data.destinations || ['EN VIVO'];
-              setStreamUIState('live', liveDestinationsSummary);
-              showToast(`📡 Transmisión Full HD en vivo a ${liveDestinationsSummary.join(' y ')}`, '📡');
+              logStreamClientEvent('ws_ready_received', { destinations: data.destinations });
+              if (!mediaRecorderLaunched) {
+                launchBrowserMediaRecorder(ws, data.destinations || initialDestNames);
+              } else if (data.destinations) {
+                liveDestinationsSummary = data.destinations;
+                setStreamUIState('live', liveDestinationsSummary);
+              }
 
             } else if (data.type === 'telemetry') {
               if (data.stats && data.stats.bitrate > 0) {
@@ -11216,12 +11272,12 @@ Pues resucitaste, Rey`
             } else if (data.type === 'error') {
               clearTimeout(liveConnectingTimer);
               liveConnectingTimer = null;
-              console.warn('[Stream WebSocket Error]:', data.message);
+              logStreamClientEvent('ws_server_error', { message: data.message });
               stopMasterLiveStream(false);
               alert('Aviso de Transmisión:\n\n' + data.message);
 
             } else if (data.type === 'stopped') {
-              console.log('[Stream WebSocket] Server notified stream stopped');
+              logStreamClientEvent('ws_server_stopped', { code: data.code });
               if (isLiveStreaming) {
                 stopMasterLiveStream(true);
               }
@@ -11233,7 +11289,7 @@ Pues resucitaste, Rey`
 
         ws.onerror = (err) => {
           if (liveStreamWs !== ws) return;
-          console.error('[Stream WebSocket] Network error:', err);
+          logStreamClientEvent('ws_error');
           clearTimeout(liveConnectingTimer);
           liveConnectingTimer = null;
           stopMasterLiveStream(false);
@@ -11241,7 +11297,7 @@ Pues resucitaste, Rey`
 
         ws.onclose = () => {
           if (liveStreamWs !== ws) return;
-          console.log('[Stream WebSocket] Connection closed');
+          logStreamClientEvent('ws_close');
           clearTimeout(liveConnectingTimer);
           liveConnectingTimer = null;
           if (isLiveStreaming) {
@@ -11252,7 +11308,7 @@ Pues resucitaste, Rey`
         };
 
       } catch (err) {
-        console.error('Error initializing WebSocket live stream:', err);
+        logStreamClientEvent('ws_exception', { message: err.message });
         clearTimeout(liveConnectingTimer);
         liveConnectingTimer = null;
         setStreamUIState('idle');
