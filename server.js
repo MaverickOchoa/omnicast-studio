@@ -61,6 +61,8 @@ let liveStreamState = {
   }
 };
 let activeFfmpegProcess = null;
+let streamHasReceivedHeader = false;
+let liveChunkCounter = 0;
 let currentTallyState = { programCam: 0, previewCam: 0 };
 const camSignalsForStudio = []; // Signals from phones for studio
 const camSignalsForPhones = { 1: [], 2: [], 3: [], 4: [] }; // Signals from studio for phones
@@ -453,6 +455,7 @@ const requestHandler = (req, res) => {
 
         const ffmpegArgs = [
           '-thread_queue_size', '1024',
+          '-f', 'matroska',
           '-i', 'pipe:0',
           '-map', '0:v:0?',
           '-map', '0:a:0?',
@@ -481,6 +484,8 @@ const requestHandler = (req, res) => {
           ffmpegArgs.push('-f', 'tee', teeTargets);
         }
 
+        streamHasReceivedHeader = false;
+        liveChunkCounter = 0;
         console.log(`[FFmpeg RTMP] Spawning streaming pipeline for: ${targets.map(t => t.name).join(' & ')}`);
         activeFfmpegProcess = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe'] });
 
@@ -552,7 +557,6 @@ const requestHandler = (req, res) => {
   }
 
   // Endpoint: Ingest Live Binary Stream Chunks from Canvas MediaRecorder
-  let liveChunkCounter = 0;
   if (parsedUrl === '/api/stream/chunk' && req.method === 'POST') {
     if (!activeFfmpegProcess || !liveStreamState.isStreaming) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -564,10 +568,32 @@ const requestHandler = (req, res) => {
     req.on('data', c => chunks.push(c));
     req.on('end', () => {
       const buffer = Buffer.concat(chunks);
+      if (buffer.length < 32) {
+        console.warn(`[RTMP Ingest] Dropping runt chunk of ${buffer.length} bytes (less than 32 bytes)`);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, dropped: true }));
+        return;
+      }
+
+      // If we haven't received the EBML header yet, verify magic bytes: 0x1A 0x45 0xDF 0xA3
+      if (!streamHasReceivedHeader) {
+        const isEbml = buffer.length >= 4 &&
+          buffer[0] === 0x1A && buffer[1] === 0x45 && buffer[2] === 0xDF && buffer[3] === 0xA3;
+        if (!isEbml) {
+          console.warn(`[RTMP Ingest] Discarding ${buffer.length} bytes: missing EBML header (0x1A45DFA3)`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, dropped: true }));
+          return;
+        }
+        streamHasReceivedHeader = true;
+        console.log(`[RTMP Ingest] Valid WebM EBML header verified! Initializing FFmpeg pipe (${buffer.length} bytes)`);
+      }
+
       liveChunkCounter++;
       if (liveChunkCounter <= 5 || liveChunkCounter % 10 === 0) {
-        console.log(`[RTMP Ingest] Chunk #${liveChunkCounter}: ${buffer.length} bytes | Total: ${(liveStreamState.stats.totalBytes / 1024 / 1024).toFixed(2)} MB`);
+        console.log(`[RTMP Ingest] Chunk #${liveChunkCounter}: ${buffer.length} bytes | Total: ${((liveStreamState.stats.totalBytes + buffer.length) / 1024 / 1024).toFixed(2)} MB`);
       }
+
       if (buffer.length > 0 && activeFfmpegProcess && activeFfmpegProcess.stdin && activeFfmpegProcess.stdin.writable) {
         try {
           activeFfmpegProcess.stdin.write(buffer);

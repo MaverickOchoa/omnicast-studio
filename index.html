@@ -10956,6 +10956,7 @@ Pues resucitaste, Rey`
     // MASTER LIVE STREAMING ENGINE (REAL RTMP / RTMPS TO FACEBOOK & YOUTUBE)
     // -------------------------------------------------------------------------
     let isLiveStreaming = false;
+    let isStartingLiveStream = false;
     let activeBroadcastVideoTrack = null;
     let liveMediaRecorder = null;
     let liveTelemetryInterval = null;
@@ -10988,6 +10989,7 @@ Pues resucitaste, Rey`
     }
 
     async function toggleMasterLiveStream() {
+      if (isStartingLiveStream) return;
       if (isLiveStreaming) {
         await stopMasterLiveStream();
       } else {
@@ -11000,6 +11002,21 @@ Pues resucitaste, Rey`
     }
 
     async function startMasterLiveStream() {
+      if (isStartingLiveStream || isLiveStreaming) return;
+      isStartingLiveStream = true;
+      if (btnMasterStream) btnMasterStream.disabled = true;
+
+      // Cleanly teardown any prior recorder and clear queue before starting new session
+      if (liveMediaRecorder) {
+        try {
+          liveMediaRecorder.ondataavailable = null;
+          liveMediaRecorder.stop();
+        } catch (e) {}
+        liveMediaRecorder = null;
+      }
+      streamChunkQueue.length = 0;
+      isUploadingStreamChunk = false;
+
       let ytEnabled = document.getElementById('ytStreamEnable')?.checked ?? true;
       let ytUrl = document.getElementById('ytStreamUrl')?.value.trim() || 'rtmp://a.rtmp.youtube.com/live2';
       let ytKey = document.getElementById('ytStreamKey')?.value.trim() || '';
@@ -11080,7 +11097,7 @@ Pues resucitaste, Rey`
         isUploadingStreamChunk = false;
 
         liveMediaRecorder.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0 && isLiveStreaming) {
+          if (e.data && e.data.size >= 100 && isLiveStreaming) {
             streamChunkQueue.push(e.data);
             processStreamChunkQueue();
           }
@@ -11139,6 +11156,9 @@ Pues resucitaste, Rey`
         isLiveStreaming = false;
         alert('Error al iniciar la transmisión: ' + err.message);
         stopMasterLiveStream();
+      } finally {
+        isStartingLiveStream = false;
+        if (btnMasterStream) btnMasterStream.disabled = false;
       }
       if (window.lucide) lucide.createIcons();
     }
