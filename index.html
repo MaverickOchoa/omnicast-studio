@@ -2129,6 +2129,116 @@
           </div>
         </div>
 
+<!-- SUBTAB: VIDEOS & CAMPAÑAS INSTITUCIONALES (CDN) (SOLO ORGANIZACIÓN) -->
+        <div id="hqTabContentVideos" class="w-full h-full flex flex-col lg:flex-row gap-3 overflow-hidden hidden">
+          <!-- Left: Register Video -->
+          <div class="w-full lg:w-5/12 h-full flex flex-col bg-[#0d131f] border border-slate-800 rounded-xl p-4 gap-3 overflow-y-auto shadow">
+            <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+              <i data-lucide="film" class="w-4 h-4 text-sky-400"></i>
+              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Subir Video o Campaña de la Red</h3>
+            </div>
+
+            <div class="space-y-3">
+              <div>
+                <label class="text-[11px] font-semibold text-slate-300 block mb-1">Título del Video / Campaña:</label>
+                <input type="text" id="hqVideoTitle" placeholder="Ej. Campaña de Misiones 2026: Esperanza Viva" 
+                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500/50 font-sans">
+              </div>
+
+              <div>
+                <label class="text-[11px] font-semibold text-slate-300 block mb-1">Categoría:</label>
+                <select id="hqVideoCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
+                  <option value="campaña">Campaña Institucional / Misiones</option>
+                  <option value="congreso">Congreso de Jóvenes / Mujeres</option>
+                  <option value="ofrenda">Ofrenda & Generosidad</option>
+                  <option value="anuncio">Comunicado Oficial de Presidencia</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-[11px] font-semibold text-slate-300 block mb-1">URL de Video (CDN / MP4 / Stream / Archivo):</label>
+                <input type="text" id="hqVideoUrl" placeholder="https://cdn.alianzacristiana.org/videos/misiones-2026.mp4" 
+                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 font-mono focus:outline-none focus:border-sky-500/50">
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-300 block mb-1">Duración (min:seg):</label>
+                  <input type="text" id="hqVideoDuration" placeholder="03:00" 
+                         class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 font-mono focus:outline-none focus:border-sky-500/50">
+                </div>
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-300 block mb-1">Prioridad:</label>
+                  <select id="hqVideoPriority" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
+                    <option value="alta">Obligatorio en Sedes</option>
+                    <option value="media">Opcional para Sedes</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="p-3 rounded-lg bg-sky-950/30 border border-sky-500/20 text-[10.5px] text-sky-300 space-y-1">
+                <span class="font-bold flex items-center gap-1.5">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-sky-400"></i>
+                  Distribución Exclusiva de Red:
+                </span>
+                <p class="text-slate-400 text-[10px] leading-relaxed">
+                  Este video llegará automáticamente y de forma aislada a las pantallas y consolas Wirecast Capa 3 de las sedes filiales de tu organización.
+                </p>
+              </div>
+
+              <div class="pt-2">
+                <button onclick="publishOrgVideoCampaign()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-xs transition active:scale-95 shadow flex items-center justify-center gap-2">
+                  <i data-lucide="send" class="w-4 h-4"></i>
+                  <span>Distribuir a Wirecast de Mis Sedes</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: List of registered campaigns -->
+          <div class="w-full lg:w-7/12 h-full flex flex-col bg-[#0d131f] border border-slate-800 rounded-xl p-4 gap-3 overflow-hidden shadow">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Videos Activos en la Red Institucional</h3>
+              <span id="hqOrgVideosCountBadge" class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                0 Distribuidos
+              </span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-2.5 pr-1" id="hqOrgVideosContainer">
+              <!-- Renderizado dinámico -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB: RADAR SATELITAL & TELEMETRÍA DE SEDES (SOLO ORGANIZACIÓN) -->
+        <div id="hqTabContentTelemetry" class="w-full h-full flex flex-col gap-3 overflow-hidden hidden">
+          <!-- Top alert broadcaster -->
+          <div class="bg-[#0d131f] border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 shadow">
+            <div class="flex items-center gap-2.5 w-full sm:w-auto">
+              <div class="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
+                <i data-lucide="bell-ring" class="w-4 h-4"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-xs font-bold text-white">Mensaje / Alerta Urgente a tus Sedes</h4>
+                <p class="text-[10px] text-slate-400">Aparecerá en los monitores de retorno o pantallas de tus campus filiales</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <input type="text" id="hqAlertMessage" placeholder="Ej. Cadena de oración o aviso urgente..." 
+                     class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500 w-full sm:w-72">
+              <button onclick="broadcastOrgAlert()" class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition active:scale-95 shrink-0 flex items-center gap-1 shadow">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                <span>Enviar Alerta</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Campuses Grid de la Organización -->
+          <div id="hqTelemetryContainer" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-1">
+            <!-- Renderizado dinámico de las sedes de la organización -->
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -2139,34 +2249,38 @@
       <!-- 1. Header & KPI Status Bar -->
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-[#0d131f] border border-amber-500/30 rounded-xl p-3 shadow-lg shrink-0">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xl shadow-inner">
+          <div id="hqHeaderAvatarBox" class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xl shadow-inner">
             🏛️
           </div>
           <div>
             <div class="flex items-center gap-2">
-              <h2 class="text-sm md:text-base font-black text-white uppercase tracking-wider">Búnker de Oficinas Nacionales</h2>
-              <span class="text-[9px] font-mono font-black px-2 py-0.5 rounded bg-amber-500 text-slate-950">SUPER ADMIN</span>
+              <h2 id="hqHeaderTitle" class="text-sm md:text-base font-black text-white uppercase tracking-wider">Búnker de Oficinas Nacionales</h2>
+              <span id="hqHeaderRoleBadge" class="text-[9px] font-mono font-black px-2 py-0.5 rounded bg-amber-500 text-slate-950">SUPER ADMIN</span>
               <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 CDN SATELITAL EN LÍNEA
               </span>
             </div>
-            <p class="text-xs text-slate-400">Distribución de repertorio oficial, videos de campañas y supervisión de campus a nivel nacional</p>
+            <p id="hqHeaderSubtitle" class="text-xs text-slate-400">Distribución de repertorio oficial, videos de campañas y supervisión de campus a nivel nacional</p>
           </div>
         </div>
 
         <!-- Actions & KPI Metrics -->
         <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-          <div class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[90px]">
+          <div id="hqKpiOrgsBox" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[90px]">
             <span class="text-[10px] text-slate-400 uppercase font-mono block">Organizaciones</span>
             <span id="hqKpiOrgsCount" class="text-sm font-black text-amber-400 font-mono">1 Red</span>
           </div>
-          <div class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[90px]">
-            <span class="text-[10px] text-slate-400 uppercase font-mono block">Iglesias / Sedes</span>
+          <div id="hqKpiChurchesBox" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[90px]">
+            <span id="hqKpiChurchesTitle" class="text-[10px] text-slate-400 uppercase font-mono block">Iglesias / Sedes</span>
             <span id="hqKpiChurchesCount" class="text-sm font-black text-emerald-400 font-mono">3 Activas</span>
           </div>
-          <div class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[90px]">
-            <span class="text-[10px] text-slate-400 uppercase font-mono block">Librería Canciones</span>
+          <div id="hqKpiVideosBox" class="hidden px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[90px]">
+            <span class="text-[10px] text-slate-400 uppercase font-mono block">Videos CDN</span>
+            <span id="hqKpiVideosCount" class="text-sm font-black text-rose-400 font-mono">0 Videos</span>
+          </div>
+          <div id="hqKpiSongsBox" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[90px]">
+            <span id="hqKpiSongsTitle" class="text-[10px] text-slate-400 uppercase font-mono block">Librería Canciones</span>
             <span id="hqKpiSongsCount" class="text-sm font-black text-sky-400 font-mono">2 Oficiales</span>
           </div>
           <button onclick="handleLogout()" 
@@ -2180,20 +2294,39 @@
       <!-- 2. Sub-Navigation Tabs within HQ Portal -->
       <div class="flex items-center justify-between border-b border-slate-800/80 pb-1 shrink-0">
         <div class="flex items-center gap-2 overflow-x-auto">
+          <!-- Botón Organizaciones (Solo Super Admin) -->
           <button onclick="switchHqSubTab('orgs')" id="hqSubTabBtnOrgs" 
                   class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/40">
             <i data-lucide="building-2" class="w-4 h-4"></i>
             <span>1. Organizaciones / Instituciones</span>
           </button>
+          
+          <!-- Botón Iglesias / Sedes Filiales -->
           <button onclick="switchHqSubTab('churches')" id="hqSubTabBtnChurches" 
                   class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent">
             <i data-lucide="church" class="w-4 h-4"></i>
-            <span>2. Iglesias & Sedes</span>
+            <span id="hqSubTabBtnChurchesLabel">2. Iglesias & Sedes</span>
           </button>
+
+          <!-- Botón Videos & Campañas CDN (Solo Organización) -->
+          <button onclick="switchHqSubTab('videos')" id="hqSubTabBtnVideos" 
+                  class="hidden px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent">
+            <i data-lucide="film" class="w-4 h-4"></i>
+            <span>2. Videos & Campañas (CDN)</span>
+          </button>
+
+          <!-- Botón Radar Satelital & Telemetría (Solo Organización) -->
+          <button onclick="switchHqSubTab('telemetry')" id="hqSubTabBtnTelemetry" 
+                  class="hidden px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent">
+            <i data-lucide="radio" class="w-4 h-4"></i>
+            <span>3. Radar Satelital de Sedes</span>
+          </button>
+
+          <!-- Botón Librería de Canciones -->
           <button onclick="switchHqSubTab('songs')" id="hqSubTabBtnSongs" 
                   class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent">
             <i data-lucide="music" class="w-4 h-4"></i>
-            <span>3. Librería Maestra de Canciones</span>
+            <span id="hqSubTabBtnSongsLabel">3. Librería Maestra de Canciones</span>
           </button>
         </div>
 
@@ -2240,15 +2373,15 @@
           <!-- Header and Filter Bar -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d131f] border border-slate-800 rounded-xl p-3 shrink-0">
             <div>
-              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <h3 id="hqChurchesHeaderTitle" class="text-sm font-bold text-white flex items-center gap-2">
                 <i data-lucide="church" class="w-4 h-4 text-sky-400"></i>
                 <span>Directorio Maestro de Iglesias & Sedes</span>
               </h3>
-              <p class="text-[11px] text-slate-400">Gestión unificada de campus filiales e iglesias locales independientes</p>
+              <p id="hqChurchesHeaderSubtitle" class="text-[11px] text-slate-400">Gestión unificada de campus filiales e iglesias locales independientes</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <!-- Type Filter -->
-              <div class="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 text-xs">
+              <!-- Type Filter (Super Admin Only) -->
+              <div id="hqChurchesFilterGroup" class="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 text-xs">
                 <button type="button" onclick="setHqChurchesFilter('all')" id="churchFilterAll"
                         class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
                   Todas
@@ -2268,7 +2401,7 @@
               <button onclick="openNewChurchModal()" 
                       class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-sky-500/20 transition active:scale-95 shrink-0">
                 <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                <span>+ Nueva Iglesia / Sede</span>
+                <span id="hqBtnNewChurchText">+ Nueva Iglesia / Sede</span>
               </button>
             </div>
           </div>
@@ -2397,40 +2530,73 @@ Te adoraré, te adoraré..."
 
             <!-- Bottom Master Push Bar -->
             <div class="pt-3 border-t border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
-              <div class="flex items-center gap-3">
-                <span class="text-xl">💼</span>
-                <div>
-                  <h4 class="text-xs font-bold text-white flex items-center gap-2">
-                    Asignación y Licenciamiento de Librería
-                    <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">SUPER ADMIN</span>
-                  </h4>
-                  <p class="text-[10px] text-slate-400">Distribuye canciones al catálogo global o asigna a una Organización o Iglesia que compre la librería.</p>
+              <!-- Bloque Super Admin -->
+              <div id="bulkSongAssignSuperAdminBox" class="flex flex-col md:flex-row md:items-center justify-between gap-3 w-full">
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">💼</span>
+                  <div>
+                    <h4 class="text-xs font-bold text-white flex items-center gap-2">
+                      Asignación y Licenciamiento de Librería
+                      <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">SUPER ADMIN</span>
+                    </h4>
+                    <p class="text-[10px] text-slate-400">Distribuye canciones al catálogo global o asigna a una Organización o Iglesia que compre la librería.</p>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                  <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5">
+                    <span class="text-[10px] font-semibold text-slate-400 uppercase">Destino:</span>
+                    <select id="bulkSongAssignTargetType" onchange="handleBulkSongAssignTypeChange()" class="bg-slate-950 text-white text-xs rounded border border-slate-700 px-2 py-1 focus:outline-none focus:border-amber-500">
+                      <option value="GLOBAL">🌐 Toda la Plataforma (Global)</option>
+                      <option value="ORG">🏢 Organización Específica</option>
+                      <option value="CHURCH">⛪ Iglesia Específica</option>
+                    </select>
+                  </div>
+
+                  <div id="bulkSongAssignEntityWrapper" class="hidden">
+                    <select id="bulkSongAssignEntitySelect" class="bg-slate-950 text-white text-xs rounded border border-slate-700 px-2 py-2 focus:outline-none focus:border-amber-500 max-w-[200px]">
+                      <!-- Dinámico -->
+                    </select>
+                  </div>
+
+                  <button onclick="publishBulkSongsToNetwork()" 
+                          id="btnPublishBulk"
+                          disabled
+                          class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs transition active:scale-95 shadow-lg shadow-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                    <span id="btnPublishBulkText">🚀 Publicar Selección</span>
+                  </button>
                 </div>
               </div>
 
-              <div class="flex flex-wrap items-center gap-2 shrink-0">
-                <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5">
-                  <span class="text-[10px] font-semibold text-slate-400 uppercase">Destino:</span>
-                  <select id="bulkSongAssignTargetType" onchange="handleBulkSongAssignTypeChange()" class="bg-slate-950 text-white text-xs rounded border border-slate-700 px-2 py-1 focus:outline-none focus:border-amber-500">
-                    <option value="GLOBAL">🌐 Toda la Plataforma (Global)</option>
-                    <option value="ORG">🏢 Organización Específica</option>
-                    <option value="CHURCH">⛪ Iglesia Específica</option>
-                  </select>
+              <!-- Bloque Organización / Institución (Sin selector de destino: Exclusivo de su Red) -->
+              <div id="bulkSongAssignOrgAdminBox" class="hidden flex flex-col md:flex-row md:items-center justify-between gap-3 w-full">
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">🏢</span>
+                  <div>
+                    <h4 class="text-xs font-bold text-white flex items-center gap-2">
+                      Librería Institucional de la Red
+                      <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">ORGANIZACIÓN</span>
+                    </h4>
+                    <p class="text-[10px] text-slate-400">
+                      Distribución automática y aislada: Se sincronizará <strong class="text-sky-300">únicamente con las sedes filiales de tu red</strong>.
+                    </p>
+                  </div>
                 </div>
 
-                <div id="bulkSongAssignEntityWrapper" class="hidden">
-                  <select id="bulkSongAssignEntitySelect" class="bg-slate-950 text-white text-xs rounded border border-slate-700 px-2 py-2 focus:outline-none focus:border-amber-500 max-w-[200px]">
-                    <!-- Dinámico -->
-                  </select>
+                <div class="flex items-center gap-2 shrink-0">
+                  <div class="px-3 py-1.5 rounded-lg bg-sky-950/60 border border-sky-500/30 text-sky-300 text-xs font-semibold flex items-center gap-1.5">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-sky-400"></i>
+                    <span>Red: <strong id="bulkSongAssignOrgNameLabel" class="text-white">...</strong></span>
+                  </div>
+                  <button onclick="publishBulkSongsToNetwork()" 
+                          id="btnPublishBulkOrg"
+                          disabled
+                          class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-xs transition active:scale-95 shadow-lg shadow-sky-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                    <span id="btnPublishBulkOrgText">🚀 Publicar en mi Red de Sedes</span>
+                  </button>
                 </div>
-
-                <button onclick="publishBulkSongsToNetwork()" 
-                        id="btnPublishBulk"
-                        disabled
-                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs transition active:scale-95 shadow-lg shadow-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                  <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-                  <span id="btnPublishBulkText">🚀 Publicar Selección</span>
-                </button>
               </div>
             </div>
           </div>
@@ -7295,14 +7461,64 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const viewHq = document.getElementById('viewHQ');
       const hqIndicator = document.getElementById('hqSessionIndicatorName');
 
+      // Elements of HQ
+      const hqHeaderTitle = document.getElementById('hqHeaderTitle');
+      const hqHeaderRoleBadge = document.getElementById('hqHeaderRoleBadge');
+      const hqHeaderSubtitle = document.getElementById('hqHeaderSubtitle');
+      const hqKpiOrgsBox = document.getElementById('hqKpiOrgsBox');
+      const hqKpiVideosBox = document.getElementById('hqKpiVideosBox');
+      const hqKpiChurchesTitle = document.getElementById('hqKpiChurchesTitle');
+      const hqSubTabBtnOrgs = document.getElementById('hqSubTabBtnOrgs');
+      const hqSubTabBtnChurchesLabel = document.getElementById('hqSubTabBtnChurchesLabel');
+      const hqSubTabBtnVideos = document.getElementById('hqSubTabBtnVideos');
+      const hqSubTabBtnTelemetry = document.getElementById('hqSubTabBtnTelemetry');
+      const hqSubTabBtnSongsLabel = document.getElementById('hqSubTabBtnSongsLabel');
+      const hqChurchesHeaderTitle = document.getElementById('hqChurchesHeaderTitle');
+      const hqChurchesHeaderSubtitle = document.getElementById('hqChurchesHeaderSubtitle');
+      const hqChurchesFilterGroup = document.getElementById('hqChurchesFilterGroup');
+      const hqBtnNewChurchText = document.getElementById('hqBtnNewChurchText');
+      const bulkSuperBox = document.getElementById('bulkSongAssignSuperAdminBox');
+      const bulkOrgBox = document.getElementById('bulkSongAssignOrgAdminBox');
+      const bulkOrgLabel = document.getElementById('bulkSongAssignOrgNameLabel');
+
       if (account.isSuperAdmin) {
         if (topHqBtn) {
           topHqBtn.classList.remove('hidden');
           topHqBtn.innerHTML = '<i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i><span>BÚNKER MASTER</span>';
         }
         if (hqIndicator) hqIndicator.textContent = 'Super Admin Global';
-        const orgTabBtn = document.getElementById('hqSubTabBtnOrgs');
-        if (orgTabBtn) orgTabBtn.classList.remove('hidden');
+        
+        // Header & Role
+        if (hqHeaderTitle) hqHeaderTitle.textContent = 'Búnker de Oficinas Nacionales';
+        if (hqHeaderRoleBadge) {
+          hqHeaderRoleBadge.textContent = 'SUPER ADMIN';
+          hqHeaderRoleBadge.className = 'text-[9px] font-mono font-black px-2 py-0.5 rounded bg-amber-500 text-slate-950';
+        }
+        if (hqHeaderSubtitle) hqHeaderSubtitle.textContent = 'Gestión global de organizaciones, iglesias independientes y distribución de catálogo maestro';
+
+        // KPIs
+        if (hqKpiOrgsBox) hqKpiOrgsBox.classList.remove('hidden');
+        if (hqKpiVideosBox) hqKpiVideosBox.classList.add('hidden');
+        if (hqKpiChurchesTitle) hqKpiChurchesTitle.textContent = 'Iglesias / Sedes';
+
+        // Subtabs
+        if (hqSubTabBtnOrgs) hqSubTabBtnOrgs.classList.remove('hidden');
+        if (hqSubTabBtnChurchesLabel) hqSubTabBtnChurchesLabel.textContent = '2. Iglesias & Sedes';
+        if (hqSubTabBtnVideos) hqSubTabBtnVideos.classList.add('hidden');
+        if (hqSubTabBtnTelemetry) hqSubTabBtnTelemetry.classList.add('hidden');
+        if (hqSubTabBtnSongsLabel) hqSubTabBtnSongsLabel.textContent = '3. Catálogo Maestro de Canciones';
+
+        // Churches View
+        if (hqChurchesHeaderTitle) hqChurchesHeaderTitle.innerHTML = '<i data-lucide="church" class="w-4 h-4 text-sky-400"></i><span>Directorio Maestro de Iglesias & Sedes</span>';
+        if (hqChurchesHeaderSubtitle) hqChurchesHeaderSubtitle.textContent = 'Gestión unificada de campus filiales e iglesias locales independientes';
+        if (hqChurchesFilterGroup) hqChurchesFilterGroup.classList.remove('hidden');
+        if (hqBtnNewChurchText) hqBtnNewChurchText.textContent = '+ Nueva Iglesia / Sede';
+
+        // Songs bulk assign
+        if (bulkSuperBox) bulkSuperBox.classList.remove('hidden');
+        if (bulkOrgBox) bulkOrgBox.classList.add('hidden');
+
+        updateHqKpis();
         switchAtemTab('hq');
         switchHqSubTab('orgs');
         if (notify) showToast('👑 Sesión Super Admin: Gestión Global de Organizaciones e Iglesias', '🏛️');
@@ -7312,8 +7528,39 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           topHqBtn.innerHTML = '<i data-lucide="building-2" class="w-3.5 h-3.5 text-sky-400"></i><span>PANEL INSTITUCIONAL</span>';
         }
         if (hqIndicator) hqIndicator.textContent = account.orgName || account.name;
-        const orgTabBtn = document.getElementById('hqSubTabBtnOrgs');
-        if (orgTabBtn) orgTabBtn.classList.add('hidden');
+
+        // Header & Role
+        if (hqHeaderTitle) hqHeaderTitle.textContent = account.orgName || account.name || 'Búnker de Organización';
+        if (hqHeaderRoleBadge) {
+          hqHeaderRoleBadge.textContent = 'ORGANIZACIÓN';
+          hqHeaderRoleBadge.className = 'text-[9px] font-mono font-black px-2 py-0.5 rounded bg-sky-500 text-slate-950';
+        }
+        if (hqHeaderSubtitle) hqHeaderSubtitle.textContent = `Red institucional: ${account.orgName || account.name} • Supervisión de sedes filiales, CDN y telemetría`;
+
+        // KPIs
+        if (hqKpiOrgsBox) hqKpiOrgsBox.classList.add('hidden');
+        if (hqKpiVideosBox) hqKpiVideosBox.classList.remove('hidden');
+        if (hqKpiChurchesTitle) hqKpiChurchesTitle.textContent = 'Sedes Filiales';
+
+        // Subtabs
+        if (hqSubTabBtnOrgs) hqSubTabBtnOrgs.classList.add('hidden');
+        if (hqSubTabBtnChurchesLabel) hqSubTabBtnChurchesLabel.textContent = '1. Sedes Filiales';
+        if (hqSubTabBtnVideos) hqSubTabBtnVideos.classList.remove('hidden');
+        if (hqSubTabBtnTelemetry) hqSubTabBtnTelemetry.classList.remove('hidden');
+        if (hqSubTabBtnSongsLabel) hqSubTabBtnSongsLabel.textContent = '4. Librería de Canciones';
+
+        // Churches View: strictly isolated
+        if (hqChurchesHeaderTitle) hqChurchesHeaderTitle.innerHTML = `<i data-lucide="church" class="w-4 h-4 text-sky-400"></i><span>Sedes Filiales de ${account.orgName || account.name}</span>`;
+        if (hqChurchesHeaderSubtitle) hqChurchesHeaderSubtitle.textContent = 'Supervisión y administración exclusiva de las sedes filiales de tu red';
+        if (hqChurchesFilterGroup) hqChurchesFilterGroup.classList.add('hidden');
+        if (hqBtnNewChurchText) hqBtnNewChurchText.textContent = '+ Nueva Sede Filial';
+
+        // Songs bulk assign: locked to current org
+        if (bulkSuperBox) bulkSuperBox.classList.add('hidden');
+        if (bulkOrgBox) bulkOrgBox.classList.remove('hidden');
+        if (bulkOrgLabel) bulkOrgLabel.textContent = account.orgName || account.name;
+
+        updateHqKpis();
         switchAtemTab('hq');
         switchHqSubTab('churches');
         if (notify) showToast(`🏢 Panel Institucional: ${account.name}`, '🏛️');
@@ -7691,20 +7938,45 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     }
 
     function openNewChurchModal() {
-      populateChurchOrgSelect();
-      toggleNewChurchOrgField();
+      const isOrg = currentAccount && currentAccount.isOrgAdmin;
+      const modalTitle = document.getElementById('newChurchModalTitle');
+      const modalSubtitle = document.getElementById('newChurchModalSubtitle');
+      const typeContainer = document.getElementById('newChurchTypeContainer');
+      const orgGroup = document.getElementById('newChurchOrgGroup');
+      const branchRadio = document.querySelector('input[name="newChurchTypeRadio"][value="branch"]');
+
+      if (isOrg) {
+        if (modalTitle) modalTitle.textContent = `Registrar Nueva Sede Filial de ${currentAccount.orgName || 'la Organización'}`;
+        if (modalSubtitle) modalSubtitle.textContent = 'Esta sede quedará asignada y vinculada exclusivamente a tu red institucional';
+        if (typeContainer) typeContainer.classList.add('hidden');
+        if (orgGroup) orgGroup.classList.add('hidden');
+        if (branchRadio) branchRadio.checked = true;
+      } else {
+        if (modalTitle) modalTitle.textContent = 'Registrar Nueva Iglesia / Sede';
+        if (modalSubtitle) modalSubtitle.textContent = 'Define si pertenece a una organización o si es una congregación local independiente';
+        if (typeContainer) typeContainer.classList.remove('hidden');
+        populateChurchOrgSelect();
+        toggleNewChurchOrgField();
+      }
+
       const modal = document.getElementById('newChurchModal');
       if (modal) modal.classList.remove('hidden');
       if (window.lucide) lucide.createIcons();
     }
+
     function closeNewChurchModal() {
       const modal = document.getElementById('newChurchModal');
       if (modal) modal.classList.add('hidden');
     }
 
     function toggleNewChurchOrgField() {
-      const branchRadio = document.querySelector('input[name="newChurchTypeRadio"][value="branch"]');
+      const isOrg = currentAccount && currentAccount.isOrgAdmin;
       const orgGroup = document.getElementById('newChurchOrgGroup');
+      if (isOrg) {
+        if (orgGroup) orgGroup.classList.add('hidden');
+        return;
+      }
+      const branchRadio = document.querySelector('input[name="newChurchTypeRadio"][value="branch"]');
       if (orgGroup) {
         if (branchRadio && branchRadio.checked) {
           orgGroup.classList.remove('hidden');
@@ -7730,51 +8002,27 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       });
     }
 
-    function saveNewOrganization() {
-      const name = document.getElementById('newOrgName')?.value.trim();
-      const slug = (document.getElementById('newOrgSlug')?.value.trim() || '').toLowerCase().replace(/\s+/g, '-');
-      const city = document.getElementById('newOrgCity')?.value.trim();
-      const email = (document.getElementById('newOrgEmail')?.value.trim() || '').toLowerCase();
-      const phone = document.getElementById('newOrgPhone')?.value.trim();
-      const username = (document.getElementById('newOrgUsername')?.value.trim() || slug).toLowerCase();
-      const password = document.getElementById('newOrgPassword')?.value.trim() || 'admin';
-      const plan = document.getElementById('newOrgPlan')?.value || 'Enterprise Multi-Sede';
-
-      if (!name || !slug) {
-        showToast('⚠️ Completa el nombre y slug de la organización', '⚠️');
-        return;
-      }
-
-      const newOrg = {
-        id: `org-${Date.now()}`,
-        name,
-        slug,
-        headquarters: city,
-        adminEmail: email,
-        phone,
-        username,
-        password,
-        plan,
-        createdAt: new Date().toISOString().split('T')[0]
-      };
-
-      organizations.push(newOrg);
-      saveDatabaseToServer();
-      populateChurchOrgSelect();
-      renderHqOrgsList();
-      updateHqKpis();
-      closeNewOrgModal();
-      showToast(`🏛️ Organización "${name}" creada exitosamente`, '✓');
-    }
-
     function saveNewChurch() {
       const name = document.getElementById('newChurchName')?.value.trim();
-      const branchRadio = document.querySelector('input[name="newChurchTypeRadio"][value="branch"]');
-      const type = (branchRadio && branchRadio.checked) ? 'branch' : 'independent';
-      const orgSelect = document.getElementById('newChurchOrgSelect');
-      const orgId = type === 'branch' ? (orgSelect ? orgSelect.value : null) : null;
-      const parentOrg = orgId ? organizations.find(o => o.id === orgId) : null;
-      const orgName = parentOrg ? parentOrg.name : null;
+      const isOrg = currentAccount && currentAccount.isOrgAdmin;
+
+      let type = 'independent';
+      let orgId = null;
+      let orgName = null;
+
+      if (isOrg) {
+        // Enforce strict org ownership
+        type = 'branch';
+        orgId = currentAccount.orgId;
+        orgName = currentAccount.orgName;
+      } else {
+        const branchRadio = document.querySelector('input[name="newChurchTypeRadio"][value="branch"]');
+        type = (branchRadio && branchRadio.checked) ? 'branch' : 'independent';
+        const orgSelect = document.getElementById('newChurchOrgSelect');
+        orgId = type === 'branch' ? (orgSelect ? orgSelect.value : null) : null;
+        const parentOrg = orgId ? organizations.find(o => o.id === orgId) : null;
+        orgName = parentOrg ? parentOrg.name : null;
+      }
 
       const city = document.getElementById('newChurchCity')?.value.trim() || 'Ciudad';
       const operator = document.getElementById('newChurchOperator')?.value.trim() || 'Operador Local';
@@ -7808,7 +8056,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       renderHqChurchesList();
       updateHqKpis();
       closeNewChurchModal();
-      showToast(`⛪ Iglesia "${name}" creada exitosamente`, '✓');
+      showToast(`⛪ ${type === 'branch' ? 'Sede filial' : 'Iglesia'} "${name}" creada exitosamente`, '✓');
     }
 
     function deleteOrganization(orgId) {
@@ -9432,6 +9680,21 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       const songs = libraryItems.filter(item => {
         if (item.category === 'medios' || Boolean(item.isVideo) || item.category === 'biblia') return false;
+
+        // Multi-tenant isolation for songs
+        if (currentAccount && !currentAccount.isSuperAdmin) {
+          if (currentAccount.isOrgAdmin) {
+            if (item.targetOrgId && item.targetOrgId !== currentAccount.orgId) return false;
+            if (item.targetChurchId) return false;
+          } else {
+            // Church session (filial or independent)
+            if (item.targetChurchId && item.targetChurchId !== currentAccount.id) return false;
+            if (item.targetOrgId) {
+              if (!currentAccount.orgId || currentAccount.orgId !== item.targetOrgId) return false;
+            }
+          }
+        }
+
         if (!q) return true;
         const matchTitle = item.title && item.title.toLowerCase().includes(q);
         const matchAuthor = item.author && item.author.toLowerCase().includes(q);
@@ -9528,6 +9791,21 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const videos = libraryItems.filter(item => {
         const isVideo = item.category === 'medios' || Boolean(item.isVideo);
         if (!isVideo) return false;
+
+        // Multi-tenant isolation for videos
+        if (currentAccount && !currentAccount.isSuperAdmin) {
+          if (currentAccount.isOrgAdmin) {
+            if (item.targetOrgId && item.targetOrgId !== currentAccount.orgId) return false;
+            if (item.targetChurchId) return false;
+          } else {
+            // Church session (filial or independent)
+            if (item.targetChurchId && item.targetChurchId !== currentAccount.id) return false;
+            if (item.targetOrgId) {
+              if (!currentAccount.orgId || currentAccount.orgId !== item.targetOrgId) return false;
+            }
+          }
+        }
+
         const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
         if (catVidFilter === 'master' && !isMaster) return false;
         if (catVidFilter === 'local' && isMaster) return false;
@@ -14655,24 +14933,31 @@ Pues resucitaste, Rey`
 
     function switchHqSubTab(tab) {
       currentHqSubTab = tab;
+      const isOrg = currentAccount && currentAccount.isOrgAdmin;
+      const activeColorClasses = isOrg 
+        ? 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-sky-500/20 text-sky-300 border border-sky-500/40'
+        : 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/40';
+
       const tabs = ['orgs', 'churches', 'songs', 'videos', 'telemetry'];
       tabs.forEach(t => {
         const btn = document.getElementById(`hqSubTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
-        const content = document.getElementById(`hqTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        const contentEl = document.getElementById(`hqTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
         if (t === tab) {
-          if (btn) {
-            btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/40';
-          }
-          if (content) content.classList.remove('hidden');
+          if (btn) btn.className = activeColorClasses;
+          if (contentEl) contentEl.classList.remove('hidden');
         } else {
           if (btn) {
             btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent';
           }
-          if (content) content.classList.add('hidden');
+          if (contentEl) contentEl.classList.add('hidden');
         }
       });
+
       if (tab === 'orgs') renderHqOrgsList();
       if (tab === 'churches') renderHqChurchesList();
+      if (tab === 'videos') renderHqOrgVideos();
+      if (tab === 'telemetry') renderHqTelemetry();
+      updateHqKpis();
       if (window.lucide) lucide.createIcons();
     }
 
@@ -15140,6 +15425,280 @@ Resucitaste en majestad`;
       }
     }
 
+    
+    // -------------------------------------------------------------------------
+    // ORGANIZACIÓN: GESTIÓN DE VIDEOS / CAMPAÑAS CDN Y RADAR SATELITAL
+    // -------------------------------------------------------------------------
+    function publishOrgVideoCampaign() {
+      const title = (document.getElementById('hqVideoTitle')?.value || '').trim();
+      const cat = document.getElementById('hqVideoCategory')?.value || 'campaña';
+      const url = (document.getElementById('hqVideoUrl')?.value || '').trim();
+      const dur = (document.getElementById('hqVideoDuration')?.value || '').trim() || '03:00';
+      const priority = document.getElementById('hqVideoPriority')?.value || 'alta';
+
+      if (!title) {
+        showToast('⚠️ Ingresa el título del video o campaña', '⚠️');
+        return;
+      }
+      if (!url) {
+        showToast('⚠️ Ingresa la URL o ruta del video CDN', '⚠️');
+        return;
+      }
+
+      let durSec = 180;
+      if (dur.includes(':')) {
+        const parts = dur.split(':');
+        durSec = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+      } else if (!isNaN(parseInt(dur, 10))) {
+        durSec = parseInt(dur, 10);
+      }
+
+      const orgId = currentAccount ? (currentAccount.orgId || currentAccount.id) : null;
+      const orgName = currentAccount ? (currentAccount.orgName || currentAccount.name) : 'Organización';
+
+      const newVideoItem = {
+        id: `vid-org-${Date.now()}`,
+        category: 'medios',
+        isVideo: true,
+        title: title,
+        campaignType: cat,
+        videoUrl: url,
+        duration: durSec,
+        priority: priority,
+        targetOrgId: orgId,
+        scope: `🏢 ${orgName}`,
+        createdAt: new Date().toISOString()
+      };
+
+      libraryItems.push(newVideoItem);
+      saveDatabaseToServer();
+
+      if (document.getElementById('hqVideoTitle')) document.getElementById('hqVideoTitle').value = '';
+      if (document.getElementById('hqVideoUrl')) document.getElementById('hqVideoUrl').value = '';
+
+      renderHqOrgVideos();
+      updateHqKpis();
+      showToast(`🎬 Video "${title}" distribuido a todas las sedes de ${orgName}`, '🚀');
+    }
+
+    function renderHqOrgVideos() {
+      const container = document.getElementById('hqOrgVideosContainer');
+      const countBadge = document.getElementById('hqOrgVideosCountBadge');
+      if (!container) return;
+
+      const orgId = currentAccount ? (currentAccount.orgId || currentAccount.id) : null;
+      const orgVideos = libraryItems.filter(item => {
+        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+        if (!isVideo) return false;
+        if (orgId && item.targetOrgId === orgId) return true;
+        return false;
+      });
+
+      if (countBadge) {
+        countBadge.textContent = `${orgVideos.length} Distribuido${orgVideos.length === 1 ? '' : 's'}`;
+      }
+
+      if (orgVideos.length === 0) {
+        container.innerHTML = `
+          <div class="h-64 flex flex-col items-center justify-center text-center text-slate-500 p-6 border border-dashed border-slate-800 rounded-xl">
+            <i data-lucide="film" class="w-8 h-8 opacity-40 mb-2"></i>
+            <p class="text-xs">No hay videos de campaña activos en tu red institucional.</p>
+            <p class="text-[10px] text-slate-600 mt-1">Sube un video en el panel izquierdo para enviarlo automáticamente a las consolas Wirecast de tus sedes filiales.</p>
+          </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = orgVideos.map(vid => {
+        const durFmt = typeof formatTime === 'function' ? formatTime(vid.duration || 180) : `${Math.floor((vid.duration || 180)/60)}m`;
+        const isHigh = vid.priority === 'alta';
+        return `
+          <div class="bg-slate-900/80 border border-slate-800 hover:border-sky-500/30 rounded-xl p-3 flex items-center justify-between gap-3 shadow transition">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center text-base shrink-0">
+                🎬
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-white leading-tight">${vid.title}</h4>
+                <div class="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                  <span class="px-1.5 py-0.5 rounded bg-slate-800 font-mono text-slate-300">⏱ ${durFmt}</span>
+                  <span class="px-1.5 py-0.5 rounded ${isHigh ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400'} font-semibold">
+                    ${isHigh ? '⚡ Obligatorio' : 'Opcional'}
+                  </span>
+                  <span class="text-slate-500 font-mono truncate max-w-[150px]">${vid.videoUrl || ''}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="previewOrgVideo('${vid.id}')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold border border-slate-700 transition flex items-center gap-1">
+                <i data-lucide="play" class="w-3 h-3 text-emerald-400"></i>
+                <span>Probar</span>
+              </button>
+              <button onclick="deleteOrgVideo('${vid.id}')" class="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-500/20 transition">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function previewOrgVideo(vidId) {
+      const vid = libraryItems.find(i => i.id === vidId);
+      if (!vid) return;
+      showToast(`▶️ Vista previa de: ${vid.title}`, '🎬');
+      if (typeof playWirecastVideoSource === 'function' && vid.videoUrl) {
+        playWirecastVideoSource(vid.videoUrl, vid.title);
+      }
+    }
+
+    function deleteOrgVideo(vidId) {
+      if (!confirm('¿Eliminar este video de la distribución de red?')) return;
+      libraryItems = libraryItems.filter(i => i.id !== vidId);
+      saveDatabaseToServer();
+      renderHqOrgVideos();
+      updateHqKpis();
+      showToast('Video eliminado de la red', '🗑️');
+    }
+
+    function renderHqTelemetry() {
+      const container = document.getElementById('hqTelemetryContainer');
+      if (!container) return;
+
+      const orgId = currentAccount ? (currentAccount.orgId || currentAccount.id) : null;
+      const orgChurches = (churches || []).filter(c => c.orgId === orgId);
+
+      if (orgChurches.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full h-64 flex flex-col items-center justify-center text-center text-slate-500 p-6 border border-dashed border-slate-800 rounded-xl">
+            <i data-lucide="radio" class="w-8 h-8 opacity-40 mb-2"></i>
+            <p class="text-xs">No hay sedes filiales vinculadas a tu red para telemetría en vivo.</p>
+            <button onclick="openNewChurchModal()" class="mt-3 px-3.5 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-bold border border-sky-500/40 transition">
+              + Registrar Primera Sede Filial
+            </button>
+          </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = orgChurches.map((c, idx) => {
+        const isOnline = true;
+        const pingMs = 18 + (idx * 12);
+        const currentProg = idx === 0 ? 'En Vivo • Alabanza' : 'En Espera • Modo Conexión';
+
+        return `
+          <div class="bg-[#0d131f] border border-slate-800 hover:border-sky-500/40 rounded-xl p-4 flex flex-col justify-between gap-3 shadow transition">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <h4 class="text-xs font-bold text-white leading-tight">${c.name}</h4>
+                  </div>
+                  <p class="text-[10px] text-slate-400 font-mono mt-0.5">${c.city || 'Ciudad'}</p>
+                </div>
+                <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  ENLACE SATELITAL
+                </span>
+              </div>
+
+              <div class="mt-3 grid grid-cols-2 gap-2 text-[10px] font-mono">
+                <div class="p-2 rounded-lg bg-slate-950 border border-slate-800/80">
+                  <span class="text-slate-500 block text-[9px] uppercase">Ping CDN</span>
+                  <span class="text-sky-300 font-bold">${pingMs} ms</span>
+                </div>
+                <div class="p-2 rounded-lg bg-slate-950 border border-slate-800/80">
+                  <span class="text-slate-500 block text-[9px] uppercase">Wirecast Sync</span>
+                  <span class="text-emerald-300 font-bold">Sincronizado</span>
+                </div>
+              </div>
+
+              <div class="mt-2.5 p-2 rounded-lg bg-slate-950/60 border border-slate-800 flex items-center justify-between text-[10px]">
+                <span class="text-slate-400">Estado en Pantallas:</span>
+                <span class="font-bold text-slate-200">${currentProg}</span>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+              <div class="text-[10px] text-slate-400 flex items-center gap-1">
+                <i data-lucide="user" class="w-3 h-3 text-slate-500"></i>
+                <span>${c.operator || 'Operador'}</span>
+              </div>
+              <button onclick="loginDirectAs('${c.id}')" class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-[10px] font-bold transition flex items-center gap-1">
+                <i data-lucide="external-link" class="w-3 h-3"></i>
+                <span>Ver Consola</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function broadcastOrgAlert() {
+      const msgInput = document.getElementById('hqAlertMessage');
+      const msg = (msgInput ? msgInput.value : '').trim();
+      if (!msg) {
+        showToast('⚠️ Escribe un mensaje para la alerta', '⚠️');
+        return;
+      }
+      const orgName = currentAccount ? (currentAccount.orgName || currentAccount.name) : 'Organización';
+
+      fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'ORG_ALERT',
+          orgId: currentAccount?.orgId,
+          orgName: orgName,
+          message: msg,
+          timestamp: Date.now()
+        })
+      }).catch(() => {});
+
+      if (msgInput) msgInput.value = '';
+      showToast(`🚨 Alerta urgente enviada a todas las sedes de ${orgName}`, '📡');
+    }
+
+    function updateHqKpis() {
+      const isSuper = currentAccount && currentAccount.isSuperAdmin;
+      const isOrg = currentAccount && currentAccount.isOrgAdmin;
+      const currentOrgId = currentAccount ? currentAccount.orgId : null;
+
+      const kpiOrgsCount = document.getElementById('hqKpiOrgsCount');
+      if (kpiOrgsCount) {
+        const totalOrgs = (organizations || []).length;
+        kpiOrgsCount.textContent = `${totalOrgs} Red${totalOrgs === 1 ? '' : 'es'}`;
+      }
+
+      const kpiChurchesCount = document.getElementById('hqKpiChurchesCount');
+      if (kpiChurchesCount) {
+        if (isOrg) {
+          const orgFiliales = (churches || []).filter(c => c.orgId === currentOrgId).length;
+          kpiChurchesCount.textContent = `${orgFiliales} Sede${orgFiliales === 1 ? '' : 's'}`;
+        } else {
+          const totalChurches = (churches || []).length;
+          kpiChurchesCount.textContent = `${totalChurches} Activas`;
+        }
+      }
+
+      const kpiVideosCount = document.getElementById('hqKpiVideosCount');
+      if (kpiVideosCount) {
+        const orgVideos = libraryItems.filter(item => (item.category === 'medios' || item.isVideo) && (!isOrg || item.targetOrgId === currentOrgId)).length;
+        kpiVideosCount.textContent = `${orgVideos} Video${orgVideos === 1 ? '' : 's'}`;
+      }
+
+      const kpiSongsCount = document.getElementById('hqKpiSongsCount');
+      if (kpiSongsCount) {
+        const countSongs = libraryItems.filter(item => item.category !== 'medios' && !item.isVideo && item.category !== 'biblia' && (!isOrg || !item.targetOrgId || item.targetOrgId === currentOrgId)).length;
+        kpiSongsCount.textContent = `${countSongs} Oficiales`;
+      }
+    }
+
     function publishBulkSongsToNetwork() {
       const selected = parsedBulkSongs.filter(s => s.selected);
       if (selected.length === 0) {
@@ -15147,20 +15706,29 @@ Resucitaste en majestad`;
         return;
       }
 
-      const targetType = document.getElementById('bulkSongAssignTargetType') ? document.getElementById('bulkSongAssignTargetType').value : 'GLOBAL';
-      const entitySelect = document.getElementById('bulkSongAssignEntitySelect');
+      const isOrg = currentAccount && currentAccount.isOrgAdmin;
       let targetOrgId = null;
       let targetChurchId = null;
       let scopeLabel = '🌐 GLOBAL';
 
-      if (targetType === 'ORG') {
-        targetOrgId = entitySelect ? entitySelect.value : null;
-        const org = (organizations || []).find(o => o.id === targetOrgId);
-        scopeLabel = org ? `🏢 ${org.name}` : '🏢 ORGANIZACIÓN';
-      } else if (targetType === 'CHURCH') {
-        targetChurchId = entitySelect ? entitySelect.value : null;
-        const ch = (churches || []).find(c => c.id === targetChurchId);
-        scopeLabel = ch ? `⛪ ${ch.name}` : '⛪ IGLESIA';
+      if (isOrg) {
+        // Enforce strict org isolation: songs uploaded by organization are ONLY seen by its filial churches
+        targetOrgId = currentAccount.orgId;
+        targetChurchId = null;
+        scopeLabel = `🏢 ${currentAccount.orgName || 'ORGANIZACIÓN'}`;
+      } else {
+        const targetType = document.getElementById('bulkSongAssignTargetType') ? document.getElementById('bulkSongAssignTargetType').value : 'GLOBAL';
+        const entitySelect = document.getElementById('bulkSongAssignEntitySelect');
+
+        if (targetType === 'ORG') {
+          targetOrgId = entitySelect ? entitySelect.value : null;
+          const org = (organizations || []).find(o => o.id === targetOrgId);
+          scopeLabel = org ? `🏢 ${org.name}` : '🏢 ORGANIZACIÓN';
+        } else if (targetType === 'CHURCH') {
+          targetChurchId = entitySelect ? entitySelect.value : null;
+          const ch = (churches || []).find(c => c.id === targetChurchId);
+          scopeLabel = ch ? `⛪ ${ch.name}` : '⛪ IGLESIA';
+        }
       }
 
       let addedCount = 0;
@@ -15190,30 +15758,23 @@ Resucitaste en majestad`;
 
       renderSongsList();
       saveDatabaseToServer();
+      updateHqKpis();
 
-      // Push to backend server via SSE
       fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          itemIndex: currentItemIndex,
-          slideIndex: currentSlideIndex,
-          libraryItems: libraryItems,
-          persistDb: true
+          type: 'CATALOG_UPDATE',
+          targetOrgId: targetOrgId,
+          targetChurchId: targetChurchId,
+          addedCount,
+          updatedCount,
+          timestamp: Date.now()
         })
       }).catch(() => {});
 
-      // Broadcast across tabs
-      liveChannel.postMessage({
-        type: 'CATALOG_BULK_UPDATE',
-        count: selected.length,
-        addedCount,
-        updatedCount,
-        scope: scopeLabel
-      });
-
-      showToast(`🚀 ¡Éxito! ${selected.length} canciones asignadas a ${scopeLabel} y publicadas en la red`, '💼');
-      updateHqKpis();
+      const destText = isOrg ? `la red de ${currentAccount.orgName}` : scopeLabel;
+      showToast(`✅ ${selected.length} canciones publicadas en ${destText}`, '🚀');
     }
 
     const publishBulkSongsToNationalNetwork = publishBulkSongsToNetwork;
