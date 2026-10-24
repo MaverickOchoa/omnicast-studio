@@ -441,42 +441,39 @@
     <div id="viewLetras" class="w-full h-full flex flex-col md:flex-row p-3 gap-3 overflow-hidden">
       <!-- Column A: Unified Library & Minuto a Minuto Sidebar -->
       <section class="w-full md:w-80 bg-[#0d131f] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shrink-0 shadow-lg">
-        <!-- Header Unificado: Biblioteca Multimedia -->
-        <div class="p-3 border-b border-slate-800 bg-slate-900/60 flex items-center justify-between shrink-0 select-none">
+        <!-- Header: Servicio de Hoy (Setlist Activo del Culto) -->
+        <div class="p-3 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between shrink-0 select-none">
           <div class="flex items-center gap-2">
-            <i data-lucide="database" class="w-4 h-4 text-sky-400"></i>
-            <span class="text-xs font-bold text-white uppercase tracking-wider">Biblioteca Multimedia</span>
-            <span id="libCounter" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-sky-400"></span>
+            <i data-lucide="list-music" class="w-4 h-4 text-emerald-400"></i>
+            <div>
+              <span class="text-xs font-black text-white uppercase tracking-wider">Servicio de Hoy</span>
+              <span id="serviceCounterBadge" class="ml-1.5 text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">3 Activos</span>
+            </div>
           </div>
-          <div class="flex items-center gap-1.5">
-            <button onclick="openNewSongModal()" class="px-2 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition active:scale-95" title="Subir o crear nueva letra / canción">
-              <i data-lucide="music" class="w-3.5 h-3.5"></i>
-              <span>+ Letra</span>
-            </button>
-            <button onclick="openUploadVideoModal()" class="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition active:scale-95" title="Subir video (.mp4, .webm, .mov) para proyectar">
-              <i data-lucide="film" class="w-3.5 h-3.5"></i>
-              <span>+ Video</span>
-            </button>
-          </div>
+          <button onclick="openMediaCatalogModal()" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-sky-600/30 transition active:scale-95" title="Abrir catálogo general completo para agregar cantos, biblias o videos al servicio">
+            <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+            <span>+ Catálogo</span>
+          </button>
         </div>
 
-        <!-- SUB-PANEL 1: BIBLIOTECA DE CANCIONES, MEDIOS & BIBLIA -->
+        <!-- SUB-PANEL 1: ELEMENTOS DEL SERVICIO DE HOY -->
         <div id="sidebarContentLibrary" class="flex-1 flex flex-col overflow-hidden">
-          <div class="p-3 border-b border-slate-800/80 flex flex-col gap-2.5">
-
-            <!-- Search input -->
-            <div class="relative">
-              <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5"></i>
-              <input type="text" id="librarySearch" placeholder="Buscar canciones, pasajes o videos..." oninput="renderSongsList()"
-                     class="w-full bg-slate-950/80 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition">
-            </div>
-
-            <!-- Category Filter Pills -->
-            <div class="flex items-center gap-1 text-[11px] font-medium bg-slate-900/80 p-0.5 rounded-lg border border-slate-800">
-              <button onclick="filterLibrary('all')" id="libFilterAll" class="flex-1 py-1 rounded bg-sky-500/20 text-sky-300 font-semibold text-center transition">Todo</button>
-              <button onclick="filterLibrary('alabanza')" id="libFilterSongs" class="flex-1 py-1 rounded text-slate-400 hover:text-white text-center transition">Alabanza</button>
-              <button onclick="filterLibrary('biblia')" id="libFilterBible" class="flex-1 py-1 rounded text-slate-400 hover:text-white text-center transition">Biblia</button>
-              <button onclick="filterLibrary('medios')" id="libFilterMedia" class="flex-1 py-1 rounded text-slate-400 hover:text-white text-center transition">👑 Medios</button>
+          <div class="p-2.5 border-b border-slate-800/80 flex flex-col gap-2 bg-slate-950/40">
+            <!-- Header bar inside Today's Service -->
+            <div class="flex items-center justify-between gap-1.5">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <i data-lucide="calendar" class="w-3 h-3 text-sky-400"></i>
+                Orden del Culto
+              </span>
+              <div class="flex items-center gap-1.5">
+                <button onclick="openQuickBibleLauncher()" class="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[10.5px] font-bold border border-amber-500/30 transition flex items-center gap-1" title="Lanzar cita bíblica rápida">
+                  <i data-lucide="book-open" class="w-3 h-3"></i>
+                  <span>+ Biblia</span>
+                </button>
+                <button onclick="clearServiceList()" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 text-[10.5px] transition" title="Vaciar la lista del servicio de hoy">
+                  Vaciar
+                </button>
+              </div>
             </div>
 
             <!-- LANZADOR BÍBLICO RÁPIDO (Cita Bíblica Inmediata) -->
@@ -2698,6 +2695,79 @@ Te adoraré, te adoraré..."
             <span>¡Lanzar al Aire (Capa 2)!</span>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: CATÁLOGO MULTIMEDIA GENERAL (BANCO CENTRAL DE CANCIONES Y VIDEOS)  -->
+  <!-- ========================================================================= -->
+  <div id="mediaCatalogModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 md:p-6">
+    <div class="bg-[#0d131f] border border-slate-700 rounded-2xl max-w-5xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-hidden">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-400">
+            <i data-lucide="book-open" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-black text-white tracking-wide">Catálogo Multimedia General</h3>
+              <span id="catalogTotalBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold">
+                Banco Central
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">Explora todo el repertorio y agrega canciones, pasajes o videos al <strong>Servicio de Hoy</strong>.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openNewSongModal()" class="px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95" title="Crear o pegar nueva letra de canción">
+            <i data-lucide="music" class="w-3.5 h-3.5"></i>
+            <span>+ Letra</span>
+          </button>
+          <button onclick="openUploadVideoModal()" class="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95" title="Subir nuevo video MP4/WebM">
+            <i data-lucide="film" class="w-3.5 h-3.5"></i>
+            <span>+ Video</span>
+          </button>
+          <button onclick="closeMediaCatalogModal()" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls: Search & Category Pills -->
+      <div class="flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
+        <!-- Search bar -->
+        <div class="relative w-full md:w-96">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+          <input type="text" id="catalogSearchInput" placeholder="Buscar canciones, pasajes, videos..." oninput="renderMediaCatalogModal()"
+                 class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition">
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="flex items-center gap-1 text-[11px] font-medium bg-slate-900/90 p-1 rounded-lg border border-slate-800 w-full md:w-auto overflow-x-auto">
+          <button onclick="filterCatalogCategory('all')" id="catTabAll" class="px-3 py-1 rounded bg-sky-500/20 text-sky-300 font-bold transition">Todo</button>
+          <button onclick="filterCatalogCategory('alabanza')" id="catTabAlabanza" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">🎵 Canciones</button>
+          <button onclick="filterCatalogCategory('biblia')" id="catTabBiblia" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">📖 Biblia</button>
+          <button onclick="filterCatalogCategory('medios-master')" id="catTabMediosMaster" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">👑 Videos Master</button>
+          <button onclick="filterCatalogCategory('medios-local')" id="catTabMediosLocal" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">📍 Videos Locales</button>
+        </div>
+      </div>
+
+      <!-- Items Grid -->
+      <div id="catalogModalItemsList" class="flex-1 overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 custom-scrollbar min-h-[340px]">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0 text-xs">
+        <span class="text-slate-400 text-[11px] flex items-center gap-1.5">
+          <i data-lucide="info" class="w-3.5 h-3.5 text-sky-400"></i>
+          Los elementos que agregues aparecerán ordenados en tu lista de <strong>Servicio de Hoy</strong> a la izquierda.
+        </span>
+        <button onclick="closeMediaCatalogModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition">
+          Listo / Cerrar
+        </button>
       </div>
     </div>
   </div>
@@ -7733,11 +7803,265 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     }
     startRundownHeartbeat();
 
+    // =========================================================================
+    // SERVICIO DE HOY (SETLIST ACTIVO) & CATÁLOGO MULTIMEDIA GENERAL
+    // =========================================================================
+    let serviceItemIds = [];
+    let catalogModalActiveFilter = 'all';
+
+    function saveServiceItems() {
+      try {
+        localStorage.setItem('omnicast_service_item_ids', JSON.stringify(serviceItemIds));
+      } catch (e) {}
+    }
+
+    function loadServiceItems() {
+      try {
+        const raw = localStorage.getItem('omnicast_service_item_ids');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            serviceItemIds = parsed;
+            return;
+          }
+        }
+      } catch (e) {}
+      // Por defecto en servicio inicial: primera canción, primer versículo y video local si existe
+      serviceItemIds = ['song-1', 'verse-1'];
+      if (layer3Videos.length > 0 && !serviceItemIds.includes(layer3Videos[0].id)) {
+        serviceItemIds.push(layer3Videos[0].id);
+      } else {
+        const anyVid = libraryItems.find(i => (i.isVideo || i.category === 'medios') && i.videoUrl);
+        if (anyVid && !serviceItemIds.includes(anyVid.id)) serviceItemIds.push(anyVid.id);
+      }
+    }
+
+    function addToService(id, andProject = false) {
+      if (!serviceItemIds.includes(id)) {
+        serviceItemIds.push(id);
+        saveServiceItems();
+      }
+      renderSongsList();
+      renderMediaCatalogModal();
+      const item = libraryItems.find(i => i.id === id);
+      const title = item ? item.title : 'Elemento';
+      showToast(`✓ "${title}" agregado al Servicio de Hoy`, '📋');
+
+      if (andProject) {
+        const idx = libraryItems.findIndex(i => i.id === id);
+        if (idx !== -1) {
+          selectItem(idx);
+          triggerSlide(0);
+        }
+      }
+    }
+
+    function removeFromService(id, event) {
+      if (event) event.stopPropagation();
+      serviceItemIds = serviceItemIds.filter(i => i !== id);
+      saveServiceItems();
+      renderSongsList();
+      renderMediaCatalogModal();
+      showToast('Elemento quitado del Servicio de Hoy (sigue guardado en Catálogo)', 'ℹ️');
+    }
+
+    function clearServiceList() {
+      if (!confirm('¿Deseas vaciar la lista del Servicio de Hoy? Los elementos seguirán guardados en el Catálogo General.')) return;
+      serviceItemIds = [];
+      saveServiceItems();
+      renderSongsList();
+      renderMediaCatalogModal();
+      showToast('Lista del Servicio de Hoy vaciada', '🧹');
+    }
+
+    function openQuickBibleLauncher() {
+      const box = document.getElementById('quickBibleLauncherBox');
+      if (box) {
+        box.classList.toggle('hidden');
+        if (!box.classList.contains('hidden')) {
+          const inp = document.getElementById('quickBibleInput');
+          if (inp) inp.focus();
+        }
+      }
+    }
+
+    function openMediaCatalogModal() {
+      const modal = document.getElementById('mediaCatalogModal');
+      if (modal) modal.classList.remove('hidden');
+      renderMediaCatalogModal();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeMediaCatalogModal() {
+      const modal = document.getElementById('mediaCatalogModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function filterCatalogCategory(cat) {
+      catalogModalActiveFilter = cat;
+      const tabMap = {
+        'all': 'catTabAll',
+        'alabanza': 'catTabAlabanza',
+        'biblia': 'catTabBiblia',
+        'medios-master': 'catTabMediosMaster',
+        'medios-local': 'catTabMediosLocal'
+      };
+      Object.keys(tabMap).forEach(k => {
+        const btn = document.getElementById(tabMap[k]);
+        if (btn) btn.className = 'px-3 py-1 rounded text-slate-400 hover:text-white transition';
+      });
+      const activeBtn = document.getElementById(tabMap[cat]);
+      if (activeBtn) activeBtn.className = 'px-3 py-1 rounded bg-sky-500/20 text-sky-300 font-bold transition';
+      renderMediaCatalogModal();
+    }
+
+    function renderMediaCatalogModal() {
+      const list = document.getElementById('catalogModalItemsList');
+      if (!list) return;
+      list.innerHTML = '';
+
+      const searchIn = document.getElementById('catalogSearchInput');
+      const q = (searchIn ? searchIn.value : '').toLowerCase().trim();
+
+      const items = libraryItems.filter(item => {
+        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+        const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
+
+        if (catalogModalActiveFilter === 'alabanza' && item.category !== 'alabanza') return false;
+        if (catalogModalActiveFilter === 'biblia' && item.category !== 'biblia') return false;
+        if (catalogModalActiveFilter === 'medios-master' && (!isVideo || !isMaster)) return false;
+        if (catalogModalActiveFilter === 'medios-local' && (!isVideo || isMaster)) return false;
+
+        if (q) {
+          const matchTitle = item.title && item.title.toLowerCase().includes(q);
+          const matchAuthor = item.author && item.author.toLowerCase().includes(q);
+          const matchLyrics = item.slides && item.slides.some(s => (s.text && s.text.toLowerCase().includes(q)) || (s.subText && s.subText.toLowerCase().includes(q)));
+          return matchTitle || matchAuthor || matchLyrics;
+        }
+        return true;
+      });
+
+      const totalBadge = document.getElementById('catalogTotalBadge');
+      if (totalBadge) totalBadge.textContent = `${items.length} de ${libraryItems.length} en Banco`;
+
+      if (items.length === 0) {
+        list.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-500 flex flex-col items-center gap-2">
+            <i data-lucide="search-x" class="w-8 h-8 opacity-40"></i>
+            <span class="text-xs">No se encontraron elementos en esta categoría</span>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      items.forEach(item => {
+        const inService = serviceItemIds.includes(item.id);
+        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+        const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
+
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl border flex flex-col justify-between gap-3 transition ${
+          inService 
+            ? 'bg-slate-900/90 border-emerald-500/40 shadow-sm' 
+            : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+        }`;
+
+        const typeIcon = isVideo ? (isMaster ? '👑' : '🎬') : (item.category === 'biblia' ? '📖' : '🎵');
+        let meta = item.author || '';
+        if (isVideo && item.durationFormatted) {
+          meta = `${item.durationFormatted}${item.sizeMb ? ` • ${item.sizeMb} MB` : ''}`;
+        }
+
+        const badgeClass = isMaster 
+          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' 
+          : (isVideo ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : 'bg-slate-800 text-slate-400 border-slate-700');
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-start gap-2.5 min-w-0">
+              <span class="text-base select-none mt-0.5">${typeIcon}</span>
+              <div class="flex flex-col min-w-0">
+                <span class="text-xs font-bold text-white leading-snug line-clamp-1">${item.title}</span>
+                <span class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${meta}</span>
+              </div>
+            </div>
+            <span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded border ${badgeClass} shrink-0">
+              ${isMaster ? '👑 MASTER' : (isVideo ? '📍 LOCAL' : (item.scope || 'LOCAL'))}
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+            <button onclick="addToService('${item.id}', true); closeMediaCatalogModal();" class="text-[10.5px] text-slate-400 hover:text-sky-300 flex items-center gap-1 transition" title="Seleccionar y proyectar de inmediato">
+              <i data-lucide="play" class="w-3 h-3 text-sky-400"></i>
+              <span>Proyectar</span>
+            </button>
+            <div class="flex items-center gap-1.5">
+              ${inService ? `
+                <span class="text-[10px] font-bold text-emerald-400 flex items-center gap-1 mr-1">
+                  <i data-lucide="check" class="w-3 h-3"></i> En Servicio
+                </span>
+                <button onclick="removeFromService('${item.id}', event)" class="px-2 py-1 rounded bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 text-[10.5px] font-bold border border-rose-800/40 transition">
+                  Quitar
+                </button>
+              ` : `
+                <button onclick="addToService('${item.id}', false)" class="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[10.5px] font-bold flex items-center gap-1 shadow transition active:scale-95">
+                  <i data-lucide="plus" class="w-3 h-3"></i>
+                  <span>+ Agregar al Servicio</span>
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    // =========================================================================
+    // REPRODUCCIÓN FLUIDA DE VIDEO PARA COMPOSITOR Y TRANSMISIÓN A 60 FPS
+    // =========================================================================
+    function playMediaVideoElement(vidEl, url, options = {}) {
+      if (!vidEl || !url) return;
+      const loop = options.loop !== undefined ? options.loop : true;
+      const muted = options.muted !== undefined ? options.muted : false;
+
+      vidEl.loop = loop;
+      vidEl.muted = muted;
+
+      if (vidEl.getAttribute('data-src') !== url) {
+        vidEl.src = url;
+        vidEl.setAttribute('data-src', url);
+        vidEl.load();
+      }
+
+      const attemptPlay = () => {
+        const p = vidEl.play();
+        if (p !== undefined) {
+          p.catch(err => {
+            console.warn('[OmniCast Video Engine] Autoplay audio restringido por navegador, reproduciendo en modo protegido (muted):', err);
+            vidEl.muted = true;
+            vidEl.play().catch(e => console.warn('[OmniCast Video Engine] Muted retry error:', e));
+          });
+        }
+      };
+
+      if (vidEl.readyState >= 2) {
+        attemptPlay();
+      } else {
+        vidEl.oncanplay = () => {
+          vidEl.oncanplay = null;
+          attemptPlay();
+        };
+        attemptPlay();
+      }
+    }
+
     async function deleteLibraryItem(id, event) {
       if (event) event.stopPropagation();
       const item = libraryItems.find(i => i.id === id);
       const name = item ? item.title : 'este elemento';
-      if (!confirm(`¿Estás seguro de eliminar "${name}" de la biblioteca?`)) return;
+      if (!confirm(`¿Estás seguro de eliminar permanentemente "${name}" del Catálogo?`)) return;
 
       try {
         const res = await fetch('/api/db/delete', {
@@ -7747,10 +8071,14 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         });
         const data = await res.json();
         if (res.ok && data.success) {
-          showToast(`Elemento "${name}" eliminado`, '🗑️');
+          showToast(`Elemento "${name}" eliminado del catálogo`, '🗑️');
+          serviceItemIds = serviceItemIds.filter(i => i !== id);
+          saveServiceItems();
           if (libraryItems[currentItemIndex] && libraryItems[currentItemIndex].id === id) {
             currentItemIndex = 0;
           }
+          renderSongsList();
+          renderMediaCatalogModal();
         } else {
           showToast(`Error al eliminar: ${data.error || 'Desconocido'}`, '⚠️');
         }
@@ -7759,156 +8087,92 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       }
     }
 
-    function createLibraryItemCard(item) {
-      const originalIndex = libraryItems.indexOf(item);
-      const isSelected = originalIndex === currentItemIndex;
-      const isVideo = item.category === 'medios' || Boolean(item.isVideo);
-      const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
-      const isLocal = !isMaster;
-
-      const div = document.createElement('div');
-      div.className = `p-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between gap-2 group ${
-        isSelected 
-          ? 'bg-sky-500/15 border-sky-500/40 text-white' 
-          : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/50 hover:text-white'
-      }`;
-      div.onclick = () => selectItem(originalIndex);
-
-      const typeIcon = isVideo ? (isMaster ? '👑' : '🎬') : (item.category === 'biblia' ? '📖' : '🎵');
-      
-      let metaText = item.author || '';
-      if (isVideo && item.durationFormatted) {
-        metaText = `${item.durationFormatted}${item.sizeMb ? ` • ${item.sizeMb} MB` : ''}`;
-      }
-
-      let badgeHtml = '';
-      if (isVideo) {
-        if (isMaster) {
-          badgeHtml = `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold shrink-0">👑 MASTER</span>`;
-        } else {
-          badgeHtml = `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold shrink-0">📍 LOCAL</span>`;
-        }
-      } else {
-        badgeHtml = `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded ${
-          isMaster 
-            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
-            : 'bg-slate-800 text-slate-400 border border-slate-700'
-        } shrink-0">${item.scope || 'LOCAL'}</span>`;
-      }
-
-      const deleteBtnHtml = isLocal ? `
-        <button onclick="deleteLibraryItem('${item.id}', event)" title="Eliminar de la biblioteca"
-                class="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition shrink-0">
-          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-        </button>
-      ` : '';
-
-      div.innerHTML = `
-        <div class="flex flex-col pr-1 min-w-0 flex-1">
-          <span class="text-xs font-bold leading-tight truncate">${typeIcon} ${item.title}</span>
-          <span class="text-[10px] text-slate-400 mt-0.5 truncate">${metaText}</span>
-        </div>
-        <div class="flex items-center gap-1 shrink-0">
-          ${badgeHtml}
-          ${deleteBtnHtml}
-        </div>
-      `;
-      return div;
-    }
-
+    // Renderiza EXCLUSIVAMENTE los elementos del Servicio de Hoy en el menú lateral
     function renderSongsList() {
       const container = document.getElementById('songsList');
+      if (!container) return;
       container.innerHTML = '';
 
-      const searchInput = document.getElementById('librarySearch');
-      const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+      if (serviceItemIds.length === 0) {
+        loadServiceItems();
+      }
 
-      const filtered = libraryItems.filter(item => {
-        if (activeFilter !== 'all' && item.category !== activeFilter) return false;
-        if (query) {
-          const matchTitle = item.title && item.title.toLowerCase().includes(query);
-          const matchAuthor = item.author && item.author.toLowerCase().includes(query);
-          const matchLyrics = item.slides && item.slides.some(s => (s.text && s.text.toLowerCase().includes(query)) || (s.subText && s.subText.toLowerCase().includes(query)));
-          return matchTitle || matchAuthor || matchLyrics;
-        }
-        return true;
-      });
+      // Filtrar elementos activos del servicio desde libraryItems
+      const activeServiceItems = serviceItemIds
+        .map(id => libraryItems.find(item => item.id === id))
+        .filter(Boolean);
 
-      document.getElementById('libCounter').textContent = `${filtered.length} Activas`;
+      const counterBadge = document.getElementById('serviceCounterBadge');
+      if (counterBadge) counterBadge.textContent = `${activeServiceItems.length} Activos`;
 
-      if (filtered.length === 0) {
+      if (activeServiceItems.length === 0) {
         container.innerHTML = `
-          <div class="p-6 text-center text-slate-500 flex flex-col items-center gap-2">
-            <i data-lucide="search-x" class="w-6 h-6 opacity-40"></i>
-            <span class="text-xs">No se encontraron elementos</span>
-            ${query ? `<button onclick="document.getElementById('librarySearch').value=''; renderSongsList();" class="text-[10px] text-sky-400 hover:underline">Limpiar búsqueda</button>` : ''}
+          <div class="p-6 text-center text-slate-400 flex flex-col items-center justify-center gap-3 my-auto">
+            <div class="p-3 rounded-full bg-slate-800/80 border border-slate-700/80 text-sky-400">
+              <i data-lucide="calendar-plus" class="w-8 h-8 opacity-60"></i>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-slate-200">El Servicio de Hoy está vacío</p>
+              <p class="text-[11px] text-slate-500 mt-0.5 max-w-[200px]">Abre el catálogo general para agregar canciones, pasajes o videos.</p>
+            </div>
+            <button onclick="openMediaCatalogModal()" class="mt-1 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-1.5 shadow transition active:scale-95">
+              <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+              <span>Abrir Catálogo</span>
+            </button>
           </div>
         `;
         lucide.createIcons();
         return;
       }
 
-      // Si el filtro activo es "medios", organizamos en 2 secciones: Oficiales Nacionales vs Locales de la Iglesia
-      if (activeFilter === 'medios') {
-        const masterVideos = filtered.filter(item => item.scope && item.scope.includes('NACIONAL'));
-        const localVideos = filtered.filter(item => !item.scope || !item.scope.includes('NACIONAL'));
+      activeServiceItems.forEach((item, index) => {
+        const originalIndex = libraryItems.indexOf(item);
+        const isSelected = originalIndex === currentItemIndex;
+        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+        const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
 
-        // Sección 1: Videos Oficiales Nacionales (Master HQ)
-        const masterHeader = document.createElement('div');
-        masterHeader.className = 'px-1 pt-1 pb-1.5 flex items-center justify-between text-[11px] font-bold text-amber-400 border-b border-amber-500/20 mb-1 select-none';
-        masterHeader.innerHTML = `
-          <span class="flex items-center gap-1.5 tracking-wider uppercase">
-            <i data-lucide="crown" class="w-3.5 h-3.5"></i>
-            Videos Oficiales (Master HQ)
-          </span>
-          <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">${masterVideos.length} Disponibles</span>
-        `;
-        container.appendChild(masterHeader);
+        const div = document.createElement('div');
+        div.className = `p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between gap-2 group ${
+          isSelected 
+            ? 'bg-sky-500/20 border-sky-400 text-white shadow-md shadow-sky-500/10' 
+            : 'bg-slate-900/70 border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:text-white'
+        }`;
+        div.onclick = () => selectItem(originalIndex);
 
-        if (masterVideos.length === 0) {
-          const emptyDiv = document.createElement('div');
-          emptyDiv.className = 'p-2 text-center text-[11px] text-slate-500 mb-2';
-          emptyDiv.textContent = 'No hay videos nacionales cargados.';
-          container.appendChild(emptyDiv);
-        } else {
-          masterVideos.forEach(item => container.appendChild(createLibraryItemCard(item)));
+        const typeIcon = isVideo ? (isMaster ? '👑' : '🎬') : (item.category === 'biblia' ? '📖' : '🎵');
+        let metaText = item.author || '';
+        if (isVideo && item.durationFormatted) {
+          metaText = `${item.durationFormatted}${item.sizeMb ? ` • ${item.sizeMb} MB` : ''}`;
         }
 
-        // Sección 2: Videos Locales de esta Iglesia
-        const localHeader = document.createElement('div');
-        localHeader.className = 'px-1 pt-3 pb-1.5 flex items-center justify-between text-[11px] font-bold text-rose-400 border-b border-rose-500/20 my-1 select-none';
-        localHeader.innerHTML = `
-          <span class="flex items-center gap-1.5 tracking-wider uppercase">
-            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
-            Videos Locales (Esta Iglesia)
-          </span>
-          <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20">${localVideos.length} Subidos</span>
-        `;
-        container.appendChild(localHeader);
+        let badgeHtml = '';
+        if (isVideo) {
+          badgeHtml = isMaster
+            ? `<span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold shrink-0">👑 MASTER</span>`
+            : `<span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold shrink-0">📍 LOCAL</span>`;
+        } else {
+          badgeHtml = `<span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded ${
+            isMaster ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'
+          } shrink-0">${item.scope || 'LOCAL'}</span>`;
+        }
 
-        if (localVideos.length === 0) {
-          const uploadPrompt = document.createElement('div');
-          uploadPrompt.className = 'p-4 rounded-lg border border-dashed border-slate-700 text-center flex flex-col items-center gap-2 my-2';
-          uploadPrompt.innerHTML = `
-            <i data-lucide="film" class="w-5 h-5 text-slate-500"></i>
-            <span class="text-xs text-slate-400">Esta sede aún no tiene videos locales</span>
-            <button onclick="openUploadVideoModal()" class="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1 transition">
-              <i data-lucide="upload" class="w-3 h-3"></i>
-              <span>+ Subir Video Local</span>
+        div.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <span class="text-sm shrink-0 select-none">${typeIcon}</span>
+            <div class="flex flex-col min-w-0 flex-1">
+              <span class="text-xs font-bold leading-tight truncate">${item.title}</span>
+              <span class="text-[10px] text-slate-400 truncate mt-0.5">${metaText}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            ${badgeHtml}
+            <button onclick="removeFromService('${item.id}', event)" title="Quitar de la lista del servicio de hoy (sigue en el catálogo)"
+                    class="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
             </button>
-          `;
-          container.appendChild(uploadPrompt);
-        } else {
-          localVideos.forEach(item => container.appendChild(createLibraryItemCard(item)));
-        }
-
-        lucide.createIcons();
-        return;
-      }
-
-      // Vista general (Todo / Alabanza / Biblia)
-      filtered.forEach(item => {
-        container.appendChild(createLibraryItemCard(item));
+          </div>
+        `;
+        container.appendChild(div);
       });
       lucide.createIcons();
     }
@@ -8868,11 +9132,14 @@ Pues resucitaste, Rey`
 
       saveDatabaseToServer();
 
-      if (activeFilter !== 'all' && activeFilter !== category) {
-        filterLibrary(category);
-      } else {
-        renderSongsList();
+      const savedItem = libraryItems[targetIndex];
+      if (savedItem && !serviceItemIds.includes(savedItem.id)) {
+        serviceItemIds.unshift(savedItem.id);
+        saveServiceItems();
       }
+
+      renderSongsList();
+      renderMediaCatalogModal();
       renderSlidesGrid();
 
       closeNewSongModal();
@@ -8938,9 +9205,11 @@ Pues resucitaste, Rey`
             }
           }
         });
+        loadServiceItems();
         renderSongsList();
         renderSlidesGrid();
         renderLayer3VideoShots();
+        renderMediaCatalogModal();
         updateHqKpis();
       } catch (err) {
         console.warn('[OmniCast DB] Fallback to localStorage:', err);
@@ -8954,9 +9223,11 @@ Pues resucitaste, Rey`
             if (Array.isArray(parsed.layer3Videos)) {
               layer3Videos = parsed.layer3Videos;
             }
+            loadServiceItems();
             renderSongsList();
             renderSlidesGrid();
             renderLayer3VideoShots();
+            renderMediaCatalogModal();
           }
         } catch (e) {}
       }
@@ -9198,18 +9469,23 @@ Pues resucitaste, Rey`
             if (Array.isArray(resp.layer3Videos)) {
               layer3Videos = resp.layer3Videos;
             }
+            if (resp.item && !serviceItemIds.includes(resp.item.id)) {
+              serviceItemIds.unshift(resp.item.id);
+              saveServiceItems();
+            }
             renderSongsList();
             renderSlidesGrid();
             renderLayer3VideoShots();
+            renderMediaCatalogModal();
             closeUploadVideoModal();
 
             if (goToLive) {
               switchAtemTab('letras');
-              filterLibrary('medios');
               selectItem(0);
               showToast(`⚡ Video "${title}" subido y proyectándose en vivo`, '🎬');
             } else {
-              filterLibrary('medios');
+              showToast(`✓ Video "${title}" guardado en Catálogo y agregado al Servicio`, '🎬');
+            }
               showToast(`💾 Video "${title}" guardado en Base de Datos y Capa 3`, '🎬');
             }
           } catch (parseErr) {
@@ -10475,19 +10751,17 @@ Pues resucitaste, Rey`
         updateLayerPowerUI(layer);
       }
       if (layer === 3) {
+        layerPower[3] = true;
+        updateLayerPowerUI(3);
         videoPlayback.program.currentTime = 0;
         videoPlayback.program.isPlaying = true;
         const progVid = document.getElementById('programMediaVideo');
         const customVid = shotId >= 3 ? layer3Videos[shotId - 3] : null;
         if (progVid && customVid && customVid.videoUrl) {
-          if (progVid.getAttribute('data-src') !== customVid.videoUrl) {
-            progVid.src = customVid.videoUrl;
-            progVid.setAttribute('data-src', customVid.videoUrl);
-          }
-          progVid.currentTime = 0;
-          progVid.muted = Boolean(activeVideoMuted);
-          progVid.loop = Boolean(activeVideoLoopEnabled);
-          progVid.play().catch(() => {});
+          playMediaVideoElement(progVid, customVid.videoUrl, {
+            loop: true,
+            muted: Boolean(activeVideoMuted)
+          });
           videoPlayback.program.duration = customVid.duration || 120;
           sendProjectorVideoCommand({ action: 'play', videoUrl: customVid.videoUrl });
         }
@@ -10532,21 +10806,20 @@ Pues resucitaste, Rey`
         wirecastState.program[l] = wirecastState.preview[l];
       }
 
-      // If Capa 3 is active in program, reset video to 0:00 and start playing!
-      if (layerPower[3]) {
+      // If Capa 3 has a selected shot, activate layer and start playback immediately!
+      if (wirecastState.program[3]) {
+        layerPower[3] = true;
+        updateLayerPowerUI(3);
         videoPlayback.program.currentTime = 0;
         videoPlayback.program.isPlaying = true;
         const progShot = wirecastState.program[3];
         const customVid = progShot >= 3 ? layer3Videos[progShot - 3] : null;
         const progVid = document.getElementById('programMediaVideo');
         if (progVid && customVid && customVid.videoUrl) {
-          if (progVid.getAttribute('data-src') !== customVid.videoUrl) {
-            progVid.src = customVid.videoUrl;
-            progVid.setAttribute('data-src', customVid.videoUrl);
-          }
-          progVid.currentTime = 0;
-          progVid.muted = Boolean(activeVideoMuted);
-          progVid.play().catch(() => {});
+          playMediaVideoElement(progVid, customVid.videoUrl, {
+            loop: true,
+            muted: Boolean(activeVideoMuted)
+          });
           sendProjectorVideoCommand({ action: 'play', videoUrl: customVid.videoUrl });
         }
       }
@@ -10777,8 +11050,15 @@ Pues resucitaste, Rey`
 
         if (customVid && customVid.videoUrl && vidEl) {
           if (vidEl.getAttribute('data-src') !== customVid.videoUrl) {
-            vidEl.src = customVid.videoUrl;
-            vidEl.setAttribute('data-src', customVid.videoUrl);
+            playMediaVideoElement(vidEl, customVid.videoUrl, {
+              loop: true,
+              muted: isProgram ? Boolean(activeVideoMuted) : true
+            });
+          } else if (isProgram && pb.isPlaying && vidEl.paused && vidEl.readyState >= 2) {
+            vidEl.play().catch(() => {
+              vidEl.muted = true;
+              vidEl.play().catch(() => {});
+            });
           }
           pb.currentTime = vidEl.currentTime || 0;
           pb.duration = (vidEl.duration && isFinite(vidEl.duration)) ? vidEl.duration : (customVid.duration || 120);
@@ -10935,8 +11215,15 @@ Pues resucitaste, Rey`
             const progVid = document.getElementById('programMediaVideo');
             if (item.videoUrl && progVid) {
               if (progVid.getAttribute('data-src') !== item.videoUrl) {
-                progVid.src = item.videoUrl;
-                progVid.setAttribute('data-src', item.videoUrl);
+                playMediaVideoElement(progVid, item.videoUrl, {
+                  loop: Boolean(activeVideoLoopEnabled),
+                  muted: Boolean(activeVideoMuted)
+                });
+              } else if (progVid.paused && progVid.readyState >= 2) {
+                progVid.play().catch(() => {
+                  progVid.muted = true;
+                  progVid.play().catch(() => {});
+                });
               }
               ctx.fillStyle = '#000000';
               ctx.fillRect(0, 0, w, h);
@@ -11973,11 +12260,13 @@ Pues resucitaste, Rey`
         existingIndex = 0;
       }
 
-      if (activeFilter !== 'biblia') {
-        filterLibrary('biblia');
-      } else {
-        renderSongsList();
+      const targetItem = libraryItems[existingIndex];
+      if (targetItem && !serviceItemIds.includes(targetItem.id)) {
+        serviceItemIds.unshift(targetItem.id);
+        saveServiceItems();
       }
+      renderSongsList();
+      renderMediaCatalogModal();
 
       if (andProjectNow) {
         selectItem(existingIndex);
@@ -13460,10 +13749,12 @@ Resucitaste en majestad`;
     loadSavedCampusSettings();
     loadSavedLyricsStyle();
     loadDatabaseFromServer();
+    loadServiceItems();
     updateHqKpis();
     renderSongsList();
     renderSlidesGrid();
     renderLayer3VideoShots();
+    renderMediaCatalogModal();
     updateWirecastRackUI();
     updateDestinationsLiveBadge();
     broadcastSlide();
