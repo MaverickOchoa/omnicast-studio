@@ -3140,7 +3140,12 @@ Te adoraré, te adoraré..."
     <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-    <div class="relative w-full max-w-md bg-[#0f172a]/95 border border-slate-800 rounded-3xl p-7 sm:p-8 shadow-2xl backdrop-blur-xl flex flex-col gap-6">
+    <div class="relative w-full max-w-md bg-[#0f172a]/95 border border-slate-800 rounded-3xl p-7 sm:p-8 shadow-2xl backdrop-blur-xl flex flex-col gap-5">
+      <!-- Direct Skip to Studio Button -->
+      <button type="button" onclick="loginDirectAs('gdl')" title="Entrar directo al estudio" class="absolute top-4 right-4 text-slate-500 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
       <!-- Brand Header -->
       <div class="flex flex-col items-center text-center gap-2">
         <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-sky-500/20 mb-1">
@@ -3154,23 +3159,64 @@ Te adoraré, te adoraré..."
         </p>
       </div>
 
+      <!-- Quick 1-Click Access Buttons (Immediate login without typing) -->
+      <div class="flex flex-col gap-2 p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+          Acceso Rápido en 1-Clic:
+        </span>
+        <div class="flex flex-col gap-1.5">
+          <button type="button" onclick="loginDirectAs('hq')"
+                  class="w-full p-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-left transition flex items-center justify-between group active:scale-[0.99]">
+            <div class="flex items-center gap-2.5">
+              <span class="text-base select-none">👑</span>
+              <div>
+                <div class="text-xs font-black text-amber-300">Oficinas Nacionales (Master HQ)</div>
+                <div class="text-[10px] text-amber-400/80">Consola Satelital, Búnker & Red Nacional</div>
+              </div>
+            </div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform"></i>
+          </button>
+
+          <div class="grid grid-cols-2 gap-1.5">
+            <button type="button" onclick="loginDirectAs('gdl')"
+                    class="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-sky-500 text-left transition flex items-center justify-between group active:scale-[0.99]">
+              <div>
+                <div class="text-[11px] font-bold text-sky-400">📍 Guadalajara</div>
+                <div class="text-[9px] text-slate-400">Sede Local Demo 1</div>
+              </div>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-400 transition-colors"></i>
+            </button>
+
+            <button type="button" onclick="loginDirectAs('mty')"
+                    class="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500 text-left transition flex items-center justify-between group active:scale-[0.99]">
+              <div>
+                <div class="text-[11px] font-bold text-emerald-400">📍 Monterrey</div>
+                <div class="text-[9px] text-slate-400">Sede Local Demo 2</div>
+              </div>
+              <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Auth Error Alert -->
       <div id="loginErrorAlert" class="hidden p-3 rounded-xl bg-red-950/70 border border-red-500/50 flex items-center gap-2.5 text-red-200 text-xs animate-shake">
         <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 shrink-0"></i>
         <span id="loginErrorMsg">Credenciales inválidas. Verifica tu correo institucional.</span>
       </div>
 
-      <!-- Login Form -->
-      <form id="loginForm" onsubmit="event.preventDefault(); submitLoginForm();" class="flex flex-col gap-4">
+      <!-- Login Form (Manual input supported) -->
+      <form id="loginForm" onsubmit="event.preventDefault(); submitLoginForm();" class="flex flex-col gap-3.5">
         <div>
           <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-            Correo Institucional o Usuario
+            Correo Institucional o Alias (ej: admin, oficinas, gdl, mty)
           </label>
           <div class="relative">
             <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-            <input type="text" id="loginEmailInput" autocomplete="username" required
-                   placeholder="tu-sede@iglesianacional.org"
-                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition font-mono">
+            <input type="text" id="loginEmailInput" autocomplete="username"
+                   placeholder="admin, oficinas, o gdl@iglesianacional.org"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition font-mono">
           </div>
         </div>
 
@@ -3179,65 +3225,30 @@ Te adoraré, te adoraré..."
             <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
               Contraseña
             </label>
-            <span class="text-[10px] text-slate-500">Acceso Seguro SSL</span>
+            <span class="text-[10px] text-slate-500">Cualquier contraseña es válida</span>
           </div>
           <div class="relative">
             <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-            <input type="password" id="loginPasswordInput" required
+            <input type="password" id="loginPasswordInput"
                    placeholder="••••••••"
-                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition font-mono">
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition font-mono">
             <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
               <i id="togglePasswordIcon" data-lucide="eye" class="w-4 h-4"></i>
             </button>
           </div>
         </div>
 
-        <div class="flex items-center justify-between text-xs pt-1">
-          <label class="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200 select-none">
-            <input type="checkbox" id="loginRememberMe" checked class="rounded border-slate-800 bg-slate-950 text-sky-500 focus:ring-0">
-            <span class="text-[11px]">Recordar estación de control</span>
-          </label>
-          <span class="text-[10px] text-sky-400/80 font-mono">Multi-Sede v2.5</span>
-        </div>
-
         <button type="submit" id="loginSubmitBtn"
-                class="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-sky-500/25 transition active:scale-[0.98] flex items-center justify-center gap-2">
-          <span>Ingresar a Mi Sede</span>
+                class="w-full mt-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-sky-500/25 transition active:scale-[0.98] flex items-center justify-center gap-2">
+          <span>Ingresar</span>
           <i data-lucide="arrow-right" class="w-4 h-4"></i>
         </button>
       </form>
 
-      <!-- Quick Demo Accounts (Helper for instant testing without manual typing) -->
-      <div class="border-t border-slate-800/80 pt-4 flex flex-col gap-2">
-        <div class="flex items-center justify-between">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">⚡ Cuentas Demo de Prueba:</span>
-          <span class="text-[10px] text-slate-500 font-mono">1-Click</span>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <button type="button" onclick="quickFillLogin('gdl@iglesianacional.org', 'gdl123')"
-                  class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition group">
-            <div class="text-[10px] font-bold text-sky-400 group-hover:text-sky-300 truncate">📍 Guadalajara</div>
-            <div class="text-[9px] text-slate-500 truncate">gdl@...</div>
-          </button>
-
-          <button type="button" onclick="quickFillLogin('mty@iglesianacional.org', 'mty123')"
-                  class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left transition group">
-            <div class="text-[10px] font-bold text-emerald-400 group-hover:text-emerald-300 truncate">📍 Monterrey</div>
-            <div class="text-[9px] text-slate-500 truncate">mty@...</div>
-          </button>
-
-          <button type="button" onclick="quickFillLogin('admin@iglesianacional.org', 'admin777')"
-                  class="px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-left transition group">
-            <div class="text-[10px] font-bold text-amber-400 group-hover:text-amber-300 truncate">🏛️ Oficinas HQ</div>
-            <div class="text-[9px] text-amber-500/70 truncate">admin@...</div>
-          </button>
-        </div>
-      </div>
-
       <!-- Security Notice -->
-      <div class="text-center pt-1 border-t border-slate-800/40">
+      <div class="text-center border-t border-slate-800/40 pt-2">
         <p class="text-[10px] text-slate-500">
-          🔒 Aislamiento criptográfico de sedes. Los datos locales nunca se comparten con otras iglesias.
+          🔒 Acceso comercial multi-sede. Selecciona tu sede o pulsa cualquier botón de arriba para ingresar de inmediato.
         </p>
       </div>
     </div>
@@ -6819,6 +6830,16 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       lucide.createIcons();
     }
 
+    function loginDirectAs(key) {
+      if (key === 'hq') {
+        applyTenantSession(accountsDatabase['admin@iglesianacional.org'], true);
+      } else if (key === 'mty') {
+        applyTenantSession(accountsDatabase['mty@iglesianacional.org'], true);
+      } else {
+        applyTenantSession(accountsDatabase['gdl@iglesianacional.org'], true);
+      }
+    }
+
     function quickFillLogin(email, password) {
       const emailInput = document.getElementById('loginEmailInput');
       const pwdInput = document.getElementById('loginPasswordInput');
@@ -6830,48 +6851,38 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     function submitLoginForm() {
       const emailInput = document.getElementById('loginEmailInput');
       const pwdInput = document.getElementById('loginPasswordInput');
-      const rememberCheckbox = document.getElementById('loginRememberMe');
       const errorAlert = document.getElementById('loginErrorAlert');
-      const errorMsg = document.getElementById('loginErrorMsg');
 
-      if (!emailInput || !pwdInput) return;
+      const rawEmail = (emailInput ? emailInput.value : '').trim().toLowerCase();
 
-      const rawEmail = emailInput.value.trim().toLowerCase();
-      const rawPassword = pwdInput.value.trim();
-
-      // Look up account by email or username alias (e.g. 'admin', 'gdl', 'mty')
+      // Búsqueda flexible de cuenta: acepta 'oficinas', 'admin', 'hq', 'master', 'gdl', 'mty', etc.
       let matchedAccount = accountsDatabase[rawEmail];
       if (!matchedAccount) {
-        if (rawEmail === 'admin') matchedAccount = accountsDatabase['admin@iglesianacional.org'];
-        else if (rawEmail === 'gdl') matchedAccount = accountsDatabase['gdl@iglesianacional.org'];
-        else if (rawEmail === 'mty') matchedAccount = accountsDatabase['mty@iglesianacional.org'];
-      }
-
-      if (!matchedAccount) {
-        if (errorAlert) {
-          errorAlert.classList.remove('hidden');
-          if (errorMsg) errorMsg.textContent = '⚠️ Usuario o correo no registrado. Contacta al administrador.';
+        if (['admin', 'oficinas', 'oficina', 'oficinas nacionales', 'hq', 'master', 'bunker', 'superadmin', 'admin@iglesianacional.org'].some(k => rawEmail.includes(k))) {
+          matchedAccount = accountsDatabase['admin@iglesianacional.org'];
+        } else if (['mty', 'monterrey', 'monterrey sur', 'mty@iglesianacional.org'].some(k => rawEmail.includes(k))) {
+          matchedAccount = accountsDatabase['mty@iglesianacional.org'];
+        } else if (['gdl', 'guadalajara', 'guadalajara norte', 'sede', 'iglesia', 'gdl@iglesianacional.org'].some(k => rawEmail.includes(k))) {
+          matchedAccount = accountsDatabase['gdl@iglesianacional.org'];
+        } else {
+          // Si el usuario escribe cualquier otra cosa o deja vacío, ingresa como Oficinas Nacionales
+          matchedAccount = accountsDatabase['admin@iglesianacional.org'];
         }
-        return;
       }
 
-      // Validate password
-      const isValidPassword = matchedAccount.passwords.includes(rawPassword) || rawPassword === '';
-      if (!isValidPassword) {
-        if (errorAlert) {
-          errorAlert.classList.remove('hidden');
-          if (errorMsg) errorMsg.textContent = '⚠️ Contraseña incorrecta. Intenta nuevamente o usa las credenciales demo.';
-        }
-        return;
-      }
-
-      // Success
       if (errorAlert) errorAlert.classList.add('hidden');
 
-      if (rememberCheckbox && rememberCheckbox.checked) {
-        try {
-          localStorage.setItem('omnicast_session', JSON.stringify({
-            email: matchedAccount.email,
+      try {
+        localStorage.setItem('omnicast_session', JSON.stringify({
+          email: matchedAccount.email,
+          tenantKey: matchedAccount.tenantKey,
+          operator: matchedAccount.operator,
+          timestamp: Date.now()
+        }));
+      } catch (e) {}
+
+      applyTenantSession(matchedAccount, true);
+    }
             tenantKey: matchedAccount.tenantKey,
             operator: matchedAccount.operator,
             timestamp: Date.now()
