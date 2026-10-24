@@ -441,46 +441,28 @@
     <div id="viewLetras" class="w-full h-full flex flex-col md:flex-row p-3 gap-3 overflow-hidden">
       <!-- Column A: Unified Library & Minuto a Minuto Sidebar -->
       <section class="w-full md:w-80 bg-[#0d131f] border border-slate-800/80 rounded-xl flex flex-col overflow-hidden shrink-0 shadow-lg">
-        <!-- Header Limpio de Biblioteca -->
+        <!-- Header Unificado: Biblioteca Multimedia -->
         <div class="p-3 border-b border-slate-800 bg-slate-900/60 flex items-center justify-between shrink-0 select-none">
-          <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <div class="flex items-center gap-2">
             <i data-lucide="database" class="w-4 h-4 text-sky-400"></i>
-            Base de Datos Multimedia
-          </span>
+            <span class="text-xs font-bold text-white uppercase tracking-wider">Biblioteca Multimedia</span>
+            <span id="libCounter" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-sky-400"></span>
+          </div>
           <div class="flex items-center gap-1.5">
             <button onclick="openNewSongModal()" class="px-2 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition active:scale-95" title="Subir o crear nueva letra / canción">
-              <i data-lucide="plus" class="w-3 h-3"></i>
-              <span>Letra</span>
+              <i data-lucide="music" class="w-3.5 h-3.5"></i>
+              <span>+ Letra</span>
             </button>
-            <button onclick="openUploadVideoModal()" class="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition active:scale-95" title="Subir archivo de video (.mp4, .webm, .mov) para proyectar">
-              <i data-lucide="film" class="w-3 h-3"></i>
-              <span>Video</span>
+            <button onclick="openUploadVideoModal()" class="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition active:scale-95" title="Subir video (.mp4, .webm, .mov) para proyectar">
+              <i data-lucide="film" class="w-3.5 h-3.5"></i>
+              <span>+ Video</span>
             </button>
           </div>
         </div>
 
-        <!-- SUB-PANEL 1: BIBLIOTECA DE CANCIONES & BIBLIA -->
+        <!-- SUB-PANEL 1: BIBLIOTECA DE CANCIONES, MEDIOS & BIBLIA -->
         <div id="sidebarContentLibrary" class="flex-1 flex flex-col overflow-hidden">
           <div class="p-3 border-b border-slate-800/80 flex flex-col gap-2.5">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                <i data-lucide="library" class="w-4 h-4 text-sky-400"></i>
-                Biblioteca del Servicio
-              </span>
-              <div class="flex items-center gap-1.5">
-                <span id="libCounter" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                  6 Activas
-                </span>
-                <button onclick="openNewSongModal()" class="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-[10.5px] font-bold flex items-center gap-1 transition shadow active:scale-95" title="Importar o agregar nueva canción">
-                  <i data-lucide="plus" class="w-3 h-3"></i>
-                  <span>+ Letra</span>
-                </button>
-                <button onclick="openUploadVideoModal()" class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10.5px] font-bold flex items-center gap-1 transition shadow active:scale-95" title="Subir video MP4/WebM desde tu computadora">
-                  <i data-lucide="upload" class="w-3 h-3"></i>
-                  <span>+ Video</span>
-                </button>
-              </div>
-            </div>
 
             <!-- Search input -->
             <div class="relative">
@@ -2977,9 +2959,9 @@ Te adoraré, te adoraré..."
     </div>
   </div>
 
-  <!-- Hidden HTML5 Video Elements for Compositor (1080p Broadcast & Preview) -->
-  <video id="programMediaVideo" playsinline crossorigin="anonymous" class="hidden"></video>
-  <video id="previewMediaVideo" muted playsinline crossorigin="anonymous" class="hidden"></video>
+  <!-- Active Off-Screen HTML5 Video Elements for Compositor (Hardware-accelerated 60fps rendering without Chrome display:none throttling) -->
+  <video id="programMediaVideo" playsinline crossorigin="anonymous" style="position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;"></video>
+  <video id="previewMediaVideo" muted playsinline crossorigin="anonymous" style="position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;"></video>
 
   <!-- ========================================================================= -->
   <!-- MODAL: AGREGAR / EDITAR BLOQUE DE MINUTO A MINUTO (SERVICE RUNDOWN)        -->
@@ -7751,6 +7733,89 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     }
     startRundownHeartbeat();
 
+    async function deleteLibraryItem(id, event) {
+      if (event) event.stopPropagation();
+      const item = libraryItems.find(i => i.id === id);
+      const name = item ? item.title : 'este elemento';
+      if (!confirm(`¿Estás seguro de eliminar "${name}" de la biblioteca?`)) return;
+
+      try {
+        const res = await fetch('/api/db/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, deleteFile: true })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(`Elemento "${name}" eliminado`, '🗑️');
+          if (libraryItems[currentItemIndex] && libraryItems[currentItemIndex].id === id) {
+            currentItemIndex = 0;
+          }
+        } else {
+          showToast(`Error al eliminar: ${data.error || 'Desconocido'}`, '⚠️');
+        }
+      } catch (err) {
+        showToast('Error de conexión al eliminar', '⚠️');
+      }
+    }
+
+    function createLibraryItemCard(item) {
+      const originalIndex = libraryItems.indexOf(item);
+      const isSelected = originalIndex === currentItemIndex;
+      const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+      const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
+      const isLocal = !isMaster;
+
+      const div = document.createElement('div');
+      div.className = `p-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between gap-2 group ${
+        isSelected 
+          ? 'bg-sky-500/15 border-sky-500/40 text-white' 
+          : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/50 hover:text-white'
+      }`;
+      div.onclick = () => selectItem(originalIndex);
+
+      const typeIcon = isVideo ? (isMaster ? '👑' : '🎬') : (item.category === 'biblia' ? '📖' : '🎵');
+      
+      let metaText = item.author || '';
+      if (isVideo && item.durationFormatted) {
+        metaText = `${item.durationFormatted}${item.sizeMb ? ` • ${item.sizeMb} MB` : ''}`;
+      }
+
+      let badgeHtml = '';
+      if (isVideo) {
+        if (isMaster) {
+          badgeHtml = `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold shrink-0">👑 MASTER</span>`;
+        } else {
+          badgeHtml = `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold shrink-0">📍 LOCAL</span>`;
+        }
+      } else {
+        badgeHtml = `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded ${
+          isMaster 
+            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+            : 'bg-slate-800 text-slate-400 border border-slate-700'
+        } shrink-0">${item.scope || 'LOCAL'}</span>`;
+      }
+
+      const deleteBtnHtml = isLocal ? `
+        <button onclick="deleteLibraryItem('${item.id}', event)" title="Eliminar de la biblioteca"
+                class="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition shrink-0">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        </button>
+      ` : '';
+
+      div.innerHTML = `
+        <div class="flex flex-col pr-1 min-w-0 flex-1">
+          <span class="text-xs font-bold leading-tight truncate">${typeIcon} ${item.title}</span>
+          <span class="text-[10px] text-slate-400 mt-0.5 truncate">${metaText}</span>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          ${badgeHtml}
+          ${deleteBtnHtml}
+        </div>
+      `;
+      return div;
+    }
+
     function renderSongsList() {
       const container = document.getElementById('songsList');
       container.innerHTML = '';
@@ -7783,38 +7848,69 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         return;
       }
 
-      filtered.forEach((item) => {
-        const originalIndex = libraryItems.indexOf(item);
-        const isSelected = originalIndex === currentItemIndex;
-        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
-        const div = document.createElement('div');
-        div.className = `p-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between gap-2 group ${
-          isSelected 
-            ? 'bg-sky-500/15 border-sky-500/40 text-white' 
-            : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/50 hover:text-white'
-        }`;
-        div.onclick = () => selectItem(originalIndex);
+      // Si el filtro activo es "medios", organizamos en 2 secciones: Oficiales Nacionales vs Locales de la Iglesia
+      if (activeFilter === 'medios') {
+        const masterVideos = filtered.filter(item => item.scope && item.scope.includes('NACIONAL'));
+        const localVideos = filtered.filter(item => !item.scope || !item.scope.includes('NACIONAL'));
 
-        const typeIcon = isVideo ? '🎬' : (item.category === 'biblia' ? '📖' : '🎵');
-        div.innerHTML = `
-          <div class="flex flex-col pr-1 min-w-0 flex-1">
-            <span class="text-xs font-bold leading-tight truncate">${typeIcon} ${item.title}</span>
-            <span class="text-[10px] text-slate-400 mt-0.5 truncate">${item.author || ''}</span>
-          </div>
-          <div class="flex items-center gap-1 shrink-0">
-            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded ${
-              isVideo
-                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold'
-                : (item.scope && item.scope.includes('NACIONAL') 
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
-                    : 'bg-slate-800 text-slate-400 border border-slate-700')
-            }">
-              ${isVideo && item.videoUrl ? '🎬 VIDEO MP4' : (item.scope || 'LOCAL')}
-            </span>
-          </div>
+        // Sección 1: Videos Oficiales Nacionales (Master HQ)
+        const masterHeader = document.createElement('div');
+        masterHeader.className = 'px-1 pt-1 pb-1.5 flex items-center justify-between text-[11px] font-bold text-amber-400 border-b border-amber-500/20 mb-1 select-none';
+        masterHeader.innerHTML = `
+          <span class="flex items-center gap-1.5 tracking-wider uppercase">
+            <i data-lucide="crown" class="w-3.5 h-3.5"></i>
+            Videos Oficiales (Master HQ)
+          </span>
+          <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">${masterVideos.length} Disponibles</span>
         `;
-        container.appendChild(div);
+        container.appendChild(masterHeader);
+
+        if (masterVideos.length === 0) {
+          const emptyDiv = document.createElement('div');
+          emptyDiv.className = 'p-2 text-center text-[11px] text-slate-500 mb-2';
+          emptyDiv.textContent = 'No hay videos nacionales cargados.';
+          container.appendChild(emptyDiv);
+        } else {
+          masterVideos.forEach(item => container.appendChild(createLibraryItemCard(item)));
+        }
+
+        // Sección 2: Videos Locales de esta Iglesia
+        const localHeader = document.createElement('div');
+        localHeader.className = 'px-1 pt-3 pb-1.5 flex items-center justify-between text-[11px] font-bold text-rose-400 border-b border-rose-500/20 my-1 select-none';
+        localHeader.innerHTML = `
+          <span class="flex items-center gap-1.5 tracking-wider uppercase">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+            Videos Locales (Esta Iglesia)
+          </span>
+          <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20">${localVideos.length} Subidos</span>
+        `;
+        container.appendChild(localHeader);
+
+        if (localVideos.length === 0) {
+          const uploadPrompt = document.createElement('div');
+          uploadPrompt.className = 'p-4 rounded-lg border border-dashed border-slate-700 text-center flex flex-col items-center gap-2 my-2';
+          uploadPrompt.innerHTML = `
+            <i data-lucide="film" class="w-5 h-5 text-slate-500"></i>
+            <span class="text-xs text-slate-400">Esta sede aún no tiene videos locales</span>
+            <button onclick="openUploadVideoModal()" class="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1 transition">
+              <i data-lucide="upload" class="w-3 h-3"></i>
+              <span>+ Subir Video Local</span>
+            </button>
+          `;
+          container.appendChild(uploadPrompt);
+        } else {
+          localVideos.forEach(item => container.appendChild(createLibraryItemCard(item)));
+        }
+
+        lucide.createIcons();
+        return;
+      }
+
+      // Vista general (Todo / Alabanza / Biblia)
+      filtered.forEach(item => {
+        container.appendChild(createLibraryItemCard(item));
       });
+      lucide.createIcons();
     }
 
     function renderSlidesGrid() {
