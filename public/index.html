@@ -463,9 +463,8 @@
               <span id="serviceCounterBadge" class="ml-1.5 text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">3 Activos</span>
             </div>
           </div>
-          <button onclick="openMediaCatalogModal()" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-sky-600/30 transition active:scale-95" title="Abrir catálogo general completo para agregar cantos, biblias o videos al servicio">
-            <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
-            <span>+ Catálogo</span>
+          <button onclick="openMediaCatalogModal()" class="w-7 h-7 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-sm flex items-center justify-center shadow-md shadow-sky-600/30 transition active:scale-95" title="Añadir canciones, videos o biblias al Servicio de Hoy">
+            <span class="text-sm font-black leading-none select-none">+</span>
           </button>
         </div>
 
@@ -2799,70 +2798,263 @@ Te adoraré, te adoraré..."
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: CATÁLOGO MULTIMEDIA GENERAL (BANCO CENTRAL DE CANCIONES Y VIDEOS)  -->
+  <!-- MODAL: AÑADIR AL SERVICIO DE HOY (SELECCIÓN LIMPIA: CANCIONES / VIDEOS / BIBLIAS) -->
   <!-- ========================================================================= -->
   <div id="mediaCatalogModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 md:p-6">
     <div class="bg-[#0d131f] border border-slate-700 rounded-2xl max-w-5xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-hidden">
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
         <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-400">
-            <i data-lucide="book-open" class="w-6 h-6"></i>
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-md shadow-sky-500/20">
+            +
           </div>
           <div>
-            <div class="flex items-center gap-2">
-              <h3 class="text-base font-black text-white tracking-wide">Catálogo Multimedia General</h3>
-              <span id="catalogTotalBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold">
-                Banco Central
-              </span>
-            </div>
-            <p class="text-xs text-slate-400 mt-0.5">Explora todo el repertorio y agrega canciones, pasajes o videos al <strong>Servicio de Hoy</strong>.</p>
+            <h3 class="text-base font-black text-white tracking-wide">Añadir al Servicio de Hoy</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Selecciona el módulo para incorporar elementos al culto</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button onclick="openNewSongModal()" class="px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95" title="Crear o pegar nueva letra de canción">
+        
+        <!-- 3 Primary Clean Section Tabs (Zero Clutter / No Mixed View) -->
+        <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 gap-1">
+          <button type="button" onclick="switchCatalogSection('songs')" id="catalogNavBtnSongs"
+                  class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/30">
             <i data-lucide="music" class="w-3.5 h-3.5"></i>
-            <span>+ Letra</span>
+            <span>🎵 Canciones</span>
           </button>
-          <button onclick="openUploadVideoModal()" class="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95" title="Subir nuevo video MP4/WebM">
+          <button type="button" onclick="switchCatalogSection('videos')" id="catalogNavBtnVideos"
+                  class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5 border border-transparent">
             <i data-lucide="film" class="w-3.5 h-3.5"></i>
-            <span>+ Video</span>
+            <span>🎬 Videos</span>
           </button>
-          <button onclick="closeMediaCatalogModal()" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
-            <i data-lucide="x" class="w-5 h-5"></i>
+          <button type="button" onclick="switchCatalogSection('bibles')" id="catalogNavBtnBibles"
+                  class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5 border border-transparent">
+            <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+            <span>📖 Sagradas Escrituras</span>
           </button>
+        </div>
+
+        <button onclick="closeMediaCatalogModal()" class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- SECTION 1: CANCIONES & LETRAS -->
+      <div id="catalogSectionSongs" class="flex-1 flex flex-col gap-3 overflow-hidden">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+          <div class="relative w-full sm:w-80">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+            <input type="text" id="catalogSongsSearchInput" placeholder="Buscar canción por título, coro o letra..." oninput="renderCatalogSongs()"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition">
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <span id="catalogSongsCountBadge" class="text-[11px] font-mono text-slate-400">0 canciones</span>
+            <button onclick="openNewSongModal()" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>+ Nueva Canción</span>
+            </button>
+          </div>
+        </div>
+        <div id="catalogSongsGrid" class="flex-1 overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 custom-scrollbar min-h-[300px]">
+          <!-- Rendered by JS -->
         </div>
       </div>
 
-      <!-- Controls: Search & Category Pills -->
-      <div class="flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
-        <!-- Search bar -->
-        <div class="relative w-full md:w-96">
-          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
-          <input type="text" id="catalogSearchInput" placeholder="Buscar canciones, pasajes, videos..." oninput="renderMediaCatalogModal()"
-                 class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition">
+      <!-- SECTION 2: VIDEOS & MULTIMEDIA -->
+      <div id="catalogSectionVideos" class="flex-1 flex flex-col gap-3 overflow-hidden hidden">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+          <div class="relative w-full sm:w-80">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+            <input type="text" id="catalogVideosSearchInput" placeholder="Buscar video por título..." oninput="renderCatalogVideos()"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition">
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div class="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 text-xs">
+              <button type="button" onclick="setCatalogVideoFilter('all')" id="catVidFilterAll" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-sky-500/20 text-sky-300">Todos</button>
+              <button type="button" onclick="setCatalogVideoFilter('master')" id="catVidFilterMaster" class="px-2.5 py-1 rounded-md text-[11px] text-slate-400 hover:text-white">👑 Master</button>
+              <button type="button" onclick="setCatalogVideoFilter('local')" id="catVidFilterLocal" class="px-2.5 py-1 rounded-md text-[11px] text-slate-400 hover:text-white">📍 Locales</button>
+            </div>
+            <button onclick="openUploadVideoModal()" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95">
+              <i data-lucide="film" class="w-3.5 h-3.5"></i>
+              <span>+ Subir Video</span>
+            </button>
+          </div>
         </div>
-
-        <!-- Filter tabs -->
-        <div class="flex items-center gap-1 text-[11px] font-medium bg-slate-900/90 p-1 rounded-lg border border-slate-800 w-full md:w-auto overflow-x-auto">
-          <button onclick="filterCatalogCategory('all')" id="catTabAll" class="px-3 py-1 rounded bg-sky-500/20 text-sky-300 font-bold transition">Todo</button>
-          <button onclick="filterCatalogCategory('alabanza')" id="catTabAlabanza" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">🎵 Canciones</button>
-          <button onclick="filterCatalogCategory('biblia')" id="catTabBiblia" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">📖 Biblia</button>
-          <button onclick="filterCatalogCategory('medios-master')" id="catTabMediosMaster" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">👑 Videos Master</button>
-          <button onclick="filterCatalogCategory('medios-local')" id="catTabMediosLocal" class="px-3 py-1 rounded text-slate-400 hover:text-white transition">📍 Videos Locales</button>
+        <div id="catalogVideosGrid" class="flex-1 overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 custom-scrollbar min-h-[300px]">
+          <!-- Rendered by JS -->
         </div>
       </div>
 
-      <!-- Items Grid -->
-      <div id="catalogModalItemsList" class="flex-1 overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 custom-scrollbar min-h-[340px]">
-        <!-- Rendered by JS -->
+      <!-- SECTION 3: SAGRADAS ESCRITURAS (MENU DE VERSIONES OFICIALES) -->
+      <div id="catalogSectionBibles" class="flex-1 flex flex-col gap-3 overflow-hidden hidden">
+        <!-- 4 Official Installed Bible Versions Menu Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
+          <!-- 1. Reina Valera 1909 -->
+          <div onclick="selectActiveBibleVersion('rva1909')" id="bibleCard_rva1909"
+               class="p-3 rounded-xl border border-slate-800 bg-slate-950/80 hover:border-amber-500/60 cursor-pointer transition flex flex-col justify-between gap-2 shadow select-none group">
+            <div class="flex items-start justify-between">
+              <span class="text-xl">📜</span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">RVA 1909</span>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-white group-hover:text-amber-300 transition">Reina-Valera 1909</h4>
+              <p class="text-[10px] text-slate-400 mt-0.5">Versión Antigua Tradicional</p>
+            </div>
+            <span class="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> INSTALADA
+            </span>
+          </div>
+
+          <!-- 2. Reina Valera 1960 -->
+          <div onclick="selectActiveBibleVersion('rvr1960')" id="bibleCard_rvr1960"
+               class="p-3 rounded-xl border border-emerald-500/60 bg-emerald-500/10 cursor-pointer transition flex flex-col justify-between gap-2 shadow select-none group">
+            <div class="flex items-start justify-between">
+              <span class="text-xl">📖</span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">RVR 1960</span>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-emerald-200 group-hover:text-emerald-100 transition">Reina-Valera 1960</h4>
+              <p class="text-[10px] text-emerald-300/80 mt-0.5">Estándar Congregacional</p>
+            </div>
+            <span class="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ACTIVA
+            </span>
+          </div>
+
+          <!-- 3. King James Version -->
+          <div onclick="selectActiveBibleVersion('kjv')" id="bibleCard_kjv"
+               class="p-3 rounded-xl border border-slate-800 bg-slate-950/80 hover:border-sky-500/60 cursor-pointer transition flex flex-col justify-between gap-2 shadow select-none group">
+            <div class="flex items-start justify-between">
+              <span class="text-xl">👑</span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">KJV 1611</span>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-white group-hover:text-sky-300 transition">King James Version</h4>
+              <p class="text-[10px] text-slate-400 mt-0.5">Authorized English Bible</p>
+            </div>
+            <span class="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> INSTALADA
+            </span>
+          </div>
+
+          <!-- 4. Kadosh Israelita Mesiánica -->
+          <div onclick="selectActiveBibleVersion('kadosh')" id="bibleCard_kadosh"
+               class="p-3 rounded-xl border border-slate-800 bg-slate-950/80 hover:border-purple-500/60 cursor-pointer transition flex flex-col justify-between gap-2 shadow select-none group">
+            <div class="flex items-start justify-between">
+              <span class="text-xl">✡️</span>
+              <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">KADOSH</span>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-white group-hover:text-purple-300 transition">Kadosh Mesiánica</h4>
+              <p class="text-[10px] text-slate-400 mt-0.5">Nombres Hebreos Originales</p>
+            </div>
+            <span class="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> INSTALADA
+            </span>
+          </div>
+        </div>
+
+        <!-- Bible Navigator / Passage Builder -->
+        <div class="flex-1 bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 flex flex-col lg:flex-row gap-4 overflow-hidden">
+          <!-- Columna Izquierda: Selectores -->
+          <div class="w-full lg:w-5/12 flex flex-col gap-3 shrink-0">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <i data-lucide="compass" class="w-3.5 h-3.5 text-sky-400"></i>
+                <span>Navegador de Pasajes</span>
+              </span>
+              <span id="activeBibleBadgeDisplay" class="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30">
+                Reina-Valera 1960
+              </span>
+            </div>
+
+            <!-- Entrada rápida / Búsqueda -->
+            <div>
+              <label class="block text-[10.5px] font-bold text-slate-400 uppercase mb-1">Búsqueda rápida por cita:</label>
+              <div class="relative">
+                <input type="text" id="bibleSearchCitationInput" placeholder="Ej: Salmos 23, Juan 3:16, Bereshit 1, Rom 8..."
+                       oninput="handleBibleCitationSearch(this.value)"
+                       class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-8 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition font-mono">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-2.5"></i>
+              </div>
+            </div>
+
+            <!-- Selectores de Libro y Capítulo -->
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[10.5px] font-bold text-slate-400 uppercase mb-1">Libro Bíblico:</label>
+                <select id="bibleBookSelect" onchange="handleBibleBookChange()"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 transition font-sans">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10.5px] font-bold text-slate-400 uppercase mb-1">Capítulo y Versículo:</label>
+                <select id="bibleChapterSelect" onchange="handleBibleChapterChange()"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500 transition font-mono">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Pasajes Populares del Culto -->
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Pasajes Frecuentes del Servicio:</label>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" onclick="loadBibleQuickPreset('salmos 23:1-3')" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10.5px] text-slate-300 hover:text-white transition">Salmo 23</button>
+                <button type="button" onclick="loadBibleQuickPreset('juan 3:16')" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10.5px] text-slate-300 hover:text-white transition">Juan 3:16</button>
+                <button type="button" onclick="loadBibleQuickPreset('salmos 91:1-2')" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10.5px] text-slate-300 hover:text-white transition">Salmo 91</button>
+                <button type="button" onclick="loadBibleQuickPreset('filipenses 4:13')" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10.5px] text-slate-300 hover:text-white transition">Filipenses 4:13</button>
+                <button type="button" onclick="loadBibleQuickPreset('romanos 8:28')" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10.5px] text-slate-300 hover:text-white transition">Romanos 8:28</button>
+                <button type="button" onclick="loadBibleQuickPreset('mateo 6:33')" class="px-2 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10.5px] text-slate-300 hover:text-white transition">Mateo 6:33</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna Derecha: Vista Previa del Pasaje & Botón Añadir -->
+          <div class="flex-1 flex flex-col justify-between bg-slate-900/90 border border-slate-800 rounded-xl p-4 gap-3">
+            <div class="space-y-2.5">
+              <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <div class="flex items-center gap-2">
+                  <h4 id="biblePreviewTitle" class="text-sm font-black text-amber-300 tracking-wide">Salmos 23:1-3</h4>
+                  <span id="biblePreviewVersionBadge" class="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">RVR1960</span>
+                </div>
+                <span class="text-[10px] text-slate-400">Listo para Proyección HDMI y Capa 2</span>
+              </div>
+              <div class="bg-black/40 border border-slate-800/80 rounded-xl p-4 shadow-inner">
+                <p id="biblePreviewText" class="text-sm sm:text-base leading-relaxed text-slate-100 font-serif italic">
+                  "Jehová es mi pastor; nada me faltará. En lugares de delicados pastos me hará descansar; Junto a aguas de reposo me pastoreará. Confortará mi alma;"
+                </p>
+                <div id="biblePreviewSubText" class="mt-2 text-right text-[11px] font-sans font-bold text-amber-400/90">
+                  Salmos 23:1-3 (Reina Valera 1960)
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800">
+              <span class="text-[11px] text-slate-400">Se agregará al <strong>Servicio de Hoy</strong> en la capa de escrituras.</span>
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="addCurrentBibleToService(false)"
+                        class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-sky-500/20 transition active:scale-95">
+                  <i data-lucide="plus" class="w-4 h-4"></i>
+                  <span>Añadir al Servicio de Hoy</span>
+                </button>
+                <button type="button" onclick="addCurrentBibleToService(true)"
+                        class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition active:scale-95">
+                  <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+                  <span>Proyectar Ahora</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Footer -->
       <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0 text-xs">
         <span class="text-slate-400 text-[11px] flex items-center gap-1.5">
           <i data-lucide="info" class="w-3.5 h-3.5 text-sky-400"></i>
-          Los elementos que agregues aparecerán ordenados en tu lista de <strong>Servicio de Hoy</strong> a la izquierda.
+          Los elementos añadidos se ordenan directamente en tu panel izquierdo de <strong>Servicio de Hoy</strong>.
         </span>
         <button onclick="closeMediaCatalogModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition">
           Listo / Cerrar
@@ -8763,10 +8955,353 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       }
     }
 
+    // -------------------------------------------------------------------------
+    // CLEAN MEDIA & BIBLES INGESTION ENGINE (ZERO MIXED CLUTTER)
+    // -------------------------------------------------------------------------
+    let catalogActiveSection = 'songs'; // 'songs', 'videos', 'bibles'
+    let catVidFilter = 'all'; // 'all', 'master', 'local'
+    let activeBibleVersion = 'rvr1960'; // 'rva1909', 'rvr1960', 'kjv', 'kadosh'
+    let activeBibleCitationKey = 'salmos 23:1-3';
+
+    const bibleVersionsMetadata = {
+      'rva1909': {
+        name: 'Reina-Valera 1909',
+        shortName: 'RVA 1909',
+        tag: 'Versión Antigua Tradicional',
+        badge: 'RVA 1909'
+      },
+      'rvr1960': {
+        name: 'Reina-Valera 1960',
+        shortName: 'RVR 1960',
+        tag: 'Estándar Congregacional',
+        badge: 'RVR 1960'
+      },
+      'kjv': {
+        name: 'King James Version',
+        shortName: 'KJV 1611',
+        tag: 'Authorized English Bible',
+        badge: 'KJV 1611'
+      },
+      'kadosh': {
+        name: 'Biblia Kadosh Israelita Mesiánica',
+        shortName: 'Kadosh',
+        tag: 'Nombres Hebreos Originales Restaurados',
+        badge: 'KADOSH'
+      }
+    };
+
+    const canonicalBibleBooks = [
+      { id: 'genesis', es: 'Génesis', he: 'Bereshit', en: 'Genesis', chapters: 50 },
+      { id: 'exodo', es: 'Éxodo', he: 'Shemot', en: 'Exodus', chapters: 40 },
+      { id: 'levitico', es: 'Levítico', he: 'Vayikrá', en: 'Leviticus', chapters: 27 },
+      { id: 'numeros', es: 'Números', he: 'Bamidbar', en: 'Numbers', chapters: 36 },
+      { id: 'deuteronomio', es: 'Deuteronomio', he: 'Devarim', en: 'Deuteronomy', chapters: 34 },
+      { id: 'josue', es: 'Josué', he: 'Yehoshúa', en: 'Joshua', chapters: 24 },
+      { id: 'jueces', es: 'Jueces', he: 'Shoftim', en: 'Judges', chapters: 21 },
+      { id: 'rut', es: 'Rut', he: 'Rut', en: 'Ruth', chapters: 4 },
+      { id: '1samuel', es: '1 Samuel', he: '1 Shmuel', en: '1 Samuel', chapters: 31 },
+      { id: '2samuel', es: '2 Samuel', he: '2 Shmuel', en: '2 Samuel', chapters: 24 },
+      { id: '1reyes', es: '1 Reyes', he: '1 Melajim', en: '1 Kings', chapters: 22 },
+      { id: '2reyes', es: '2 Reyes', he: '2 Melajim', en: '2 Kings', chapters: 25 },
+      { id: 'salmos', es: 'Salmos', he: 'Tehilim', en: 'Psalms', chapters: 150 },
+      { id: 'proverbios', es: 'Proverbios', he: 'Mishlei', en: 'Proverbs', chapters: 31 },
+      { id: 'eclesiastes', es: 'Eclesiastés', he: 'Qohelet', en: 'Ecclesiastes', chapters: 12 },
+      { id: 'cantares', es: 'Cantares', he: 'Shir HaShirim', en: 'Song of Solomon', chapters: 8 },
+      { id: 'isaias', es: 'Isaías', he: 'Yeshayahu', en: 'Isaiah', chapters: 66 },
+      { id: 'jeremias', es: 'Jeremías', he: 'Yirmeyahu', en: 'Jeremiah', chapters: 52 },
+      { id: 'lamentaciones', es: 'Lamentaciones', he: 'Eijah', en: 'Lamentations', chapters: 5 },
+      { id: 'ezequiel', es: 'Ezequiel', he: 'Yejezqel', en: 'Ezekiel', chapters: 48 },
+      { id: 'daniel', es: 'Daniel', he: 'Daniye’l', en: 'Daniel', chapters: 12 },
+      { id: 'mateo', es: 'Mateo', he: 'Mattityahu', en: 'Matthew', chapters: 28 },
+      { id: 'marcos', es: 'Marcos', he: 'Marqos', en: 'Mark', chapters: 16 },
+      { id: 'lucas', es: 'Lucas', he: 'Luqas', en: 'Luke', chapters: 24 },
+      { id: 'juan', es: 'Juan', he: 'Yojanán', en: 'John', chapters: 21 },
+      { id: 'hechos', es: 'Hechos', he: 'Ma’asei HaShlujim', en: 'Acts', chapters: 28 },
+      { id: 'romanos', es: 'Romanos', he: 'Romiyim', en: 'Romans', chapters: 16 },
+      { id: '1corintios', es: '1 Corintios', he: '1 Qorintiyim', en: '1 Corinthians', chapters: 16 },
+      { id: '2corintios', es: '2 Corintios', he: '2 Qorintiyim', en: '2 Corinthians', chapters: 13 },
+      { id: 'galatas', es: 'Gálatas', he: 'Galatiyim', en: 'Galatians', chapters: 6 },
+      { id: 'efesios', es: 'Efesios', he: 'Efesiyim', en: 'Ephesians', chapters: 6 },
+      { id: 'filipenses', es: 'Filipenses', he: 'Filipiyim', en: 'Philippians', chapters: 4 },
+      { id: 'colosenses', es: 'Colosenses', he: 'Qolasiyim', en: 'Colossians', chapters: 4 },
+      { id: 'hebreos', es: 'Hebreos', he: 'Ivrim', en: 'Hebrews', chapters: 13 },
+      { id: 'santiago', es: 'Santiago', he: 'Ya’akov', en: 'James', chapters: 5 },
+      { id: '1pedro', es: '1 Pedro', he: '1 Kefa', en: '1 Peter', chapters: 5 },
+      { id: '1juan', es: '1 Juan', he: '1 Yojanán', en: '1 John', chapters: 5 },
+      { id: 'apocalipsis', es: 'Apocalipsis', he: 'Gilyana', en: 'Revelation', chapters: 22 }
+    ];
+
+    const multiVersionBibleDatabase = {
+      'salmos 23:1-3': {
+        title: 'Salmos 23:1-3',
+        badge: 'SALMO 23',
+        rva1909: {
+          title: 'Salmo 23:1-3',
+          text: 'Jehová es mi pastor; nada me faltará. En lugares de delicados pastos me hará yacer: Junto á aguas de reposo me pastoreará. Confortará mi alma;',
+          subText: 'Salmo 23:1-3 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: 'Salmos 23:1-3',
+          text: 'Jehová es mi pastor; nada me faltará. En lugares de delicados pastos me hará descansar; Junto a aguas de reposo me pastoreará. Confortará mi alma;',
+          subText: 'Salmos 23:1-3 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: 'Psalm 23:1-3',
+          text: 'The LORD is my shepherd; I shall not want. He maketh me to lie down in green pastures: he leadeth me beside the still waters. He restoreth my soul;',
+          subText: 'Psalm 23:1-3 (King James Version)'
+        },
+        kadosh: {
+          title: 'Tehilim 23:1-3',
+          text: 'YAHWEH es mi pastor; nada me faltará. En prados de tierna hierba me hace reposar; me guía hacia aguas tranquilas. El restaura mi alma;',
+          subText: 'Tehilim 23:1-3 (Kadosh Israelita Mesiánica)'
+        }
+      },
+      'juan 3:16': {
+        title: 'Juan 3:16',
+        badge: 'JUAN 3:16',
+        rva1909: {
+          title: 'Juan 3:16',
+          text: 'Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.',
+          subText: 'Juan 3:16 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: 'Juan 3:16',
+          text: 'Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.',
+          subText: 'Juan 3:16 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: 'John 3:16',
+          text: 'For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life.',
+          subText: 'John 3:16 (King James Version)'
+        },
+        kadosh: {
+          title: 'Yojanán 3:16',
+          text: 'Porque de tal manera amó YAHWEH al mundo, que dio a su Hijo Unigénito, para que todo aquel que en El confía, no perezca, mas tenga vida eterna.',
+          subText: 'Yojanán 3:16 (Kadosh Israelita Mesiánica)'
+        }
+      },
+      'salmos 91:1-2': {
+        title: 'Salmos 91:1-2',
+        badge: 'SALMO 91',
+        rva1909: {
+          title: 'Salmo 91:1-2',
+          text: 'El que habita al abrigo del Altísimo, Morará bajo la sombra del Omnipotente. Diré yo de Jehová: Esperanza mía, y castillo mío; Mi Dios, en él confiaré.',
+          subText: 'Salmo 91:1-2 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: 'Salmos 91:1-2',
+          text: 'El que habita al abrigo del Altísimo morará bajo la sombra del Omnipotente. Diré yo a Jehová: Esperanza mía, y castillo mío; Mi Dios, en quien confiaré.',
+          subText: 'Salmos 91:1-2 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: 'Psalm 91:1-2',
+          text: 'He that dwelleth in the secret place of the most High shall abide under the shadow of the Almighty. I will say of the LORD, He is my refuge and my fortress: my God; in him will I trust.',
+          subText: 'Psalm 91:1-2 (King James Version)'
+        },
+        kadosh: {
+          title: 'Tehilim 91:1-2',
+          text: 'Tú que vives en el lugar secreto de Elyón, que moras bajo la sombra de Shaddai; dirás de YAHWEH: El es mi refugio y fortaleza, mi Elohim, en quien confío.',
+          subText: 'Tehilim 91:1-2 (Kadosh Israelita Mesiánica)'
+        }
+      },
+      'filipenses 4:13': {
+        title: 'Filipenses 4:13',
+        badge: 'FILIPENSES 4:13',
+        rva1909: {
+          title: 'Filipenses 4:13',
+          text: 'Todo lo puedo en Cristo que me conforta.',
+          subText: 'Filipenses 4:13 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: 'Filipenses 4:13',
+          text: 'Todo lo puedo en Cristo que me fortalece.',
+          subText: 'Filipenses 4:13 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: 'Philippians 4:13',
+          text: 'I can do all things through Christ which strengtheneth me.',
+          subText: 'Philippians 4:13 (King James Version)'
+        },
+        kadosh: {
+          title: 'Filipenses 4:13',
+          text: 'Puedo enfrentar cualquier situación con la ayuda de Mashíaj, quien me da el poder.',
+          subText: 'Filipenses 4:13 (Kadosh Israelita Mesiánica)'
+        }
+      },
+      'romanos 8:28': {
+        title: 'Romanos 8:28',
+        badge: 'ROMANOS 8:28',
+        rva1909: {
+          title: 'Romanos 8:28',
+          text: 'Y sabemos que á los que á Dios aman, todas las cosas les ayudan á bien, es á saber, á los que conforme al propósito son llamados.',
+          subText: 'Romanos 8:28 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: 'Romanos 8:28',
+          text: 'Y sabemos que a los que aman a Dios, todas las cosas les ayudan a bien, esto es, a los que conforme a su propósito son llamados.',
+          subText: 'Romanos 8:28 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: 'Romans 8:28',
+          text: 'And we know that all things work together for good to them that love God, to them who are the called according to his purpose.',
+          subText: 'Romans 8:28 (King James Version)'
+        },
+        kadosh: {
+          title: 'Romanos 8:28',
+          text: 'Además, sabemos que para aquellos que aman a YAHWEH, El hace que todas las cosas cooperen para el bien de aquellos que han sido llamados de acuerdo a Su propósito.',
+          subText: 'Romanos 8:28 (Kadosh Israelita Mesiánica)'
+        }
+      },
+      'mateo 6:33': {
+        title: 'Mateo 6:33',
+        badge: 'MATEO 6:33',
+        rva1909: {
+          title: 'Mateo 6:33',
+          text: 'Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas.',
+          subText: 'Mateo 6:33 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: 'Mateo 6:33',
+          text: 'Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas.',
+          subText: 'Mateo 6:33 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: 'Matthew 6:33',
+          text: 'But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.',
+          subText: 'Matthew 6:33 (King James Version)'
+        },
+        kadosh: {
+          title: 'Mattityahu 6:33',
+          text: 'Busquen primero el Reino de YAHWEH y su justicia, y todas estas cosas les serán añadidas.',
+          subText: 'Mattityahu 6:33 (Kadosh Israelita Mesiánica)'
+        }
+      },
+      'genesis 1:1': {
+        title: 'Génesis 1:1',
+        badge: 'GÉNESIS 1:1',
+        rva1909: {
+          title: 'Génesis 1:1',
+          text: 'En el principio crió Dios los cielos y la tierra.',
+          subText: 'Génesis 1:1 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: 'Génesis 1:1',
+          text: 'En el principio creó Dios los cielos y la tierra.',
+          subText: 'Génesis 1:1 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: 'Genesis 1:1',
+          text: 'In the beginning God created the heaven and the earth.',
+          subText: 'Genesis 1:1 (King James Version)'
+        },
+        kadosh: {
+          title: 'Bereshit 1:1',
+          text: 'En el principio creó Elohim los cielos y la tierra.',
+          subText: 'Bereshit 1:1 (Kadosh Israelita Mesiánica)'
+        }
+      },
+      'isaias 40:31': {
+        title: 'Isaías 40:31',
+        badge: 'ISAÍAS 40:31',
+        rva1909: {
+          title: 'Isaías 40:31',
+          text: 'Mas los que esperan á Jehová tendrán nuevas fuerzas; levantarán las alas como águilas; correrán, y no se cansarán; caminarán, y no se fatigarán.',
+          subText: 'Isaías 40:31 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: 'Isaías 40:31',
+          text: 'Pero los que esperan a Jehová tendrán nuevas fuerzas; levantarán alas como las águilas; correrán, y no se cansarán; caminarán, y no se fatigarán.',
+          subText: 'Isaías 40:31 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: 'Isaiah 40:31',
+          text: 'But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.',
+          subText: 'Isaiah 40:31 (King James Version)'
+        },
+        kadosh: {
+          title: 'Yeshayahu 40:31',
+          text: 'Pero aquellos que esperan en YAHWEH renovarán sus fuerzas, levantarán vuelo como las águilas; correrán y no se cansarán, caminarán y no desfallecerán.',
+          subText: 'Yeshayahu 40:31 (Kadosh Israelita Mesiánica)'
+        }
+      },
+      'proverbios 3:5-6': {
+        title: 'Proverbios 3:5-6',
+        badge: 'PROVERBIOS 3:5',
+        rva1909: {
+          title: 'Proverbios 3:5-6',
+          text: 'Fíate de Jehová de todo tu corazón, Y no estribes en tu prudencia. Reconócelo en todos tus caminos, Y él enderezará tus veredas.',
+          subText: 'Proverbios 3:5-6 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: 'Proverbios 3:5-6',
+          text: 'Fíate de Jehová de todo tu corazón, y no te apoyes en tu propia prudencia. Reconócelo en todos tus caminos, y él enderezará tus veredas.',
+          subText: 'Proverbios 3:5-6 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: 'Proverbs 3:5-6',
+          text: 'Trust in the LORD with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.',
+          subText: 'Proverbs 3:5-6 (King James Version)'
+        },
+        kadosh: {
+          title: 'Mishlei 3:5-6',
+          text: 'Confía en YAHWEH de todo corazón, no te apoyes en tu propio entendimiento. Reconócelo en todos tus caminos, y El allanará tus sendas.',
+          subText: 'Mishlei 3:5-6 (Kadosh Israelita Mesiánica)'
+        }
+      },
+      'josue 1:9': {
+        title: 'Josué 1:9',
+        badge: 'JOSUÉ 1:9',
+        rva1909: {
+          title: 'Josué 1:9',
+          text: 'Mira que te mando que te esfuerces y seas valiente: no temas ni desmayes, porque Jehová tu Dios será contigo en donde quiera que fueres.',
+          subText: 'Josué 1:9 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: 'Josué 1:9',
+          text: 'Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo en dondequiera que vayas.',
+          subText: 'Josué 1:9 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: 'Joshua 1:9',
+          text: 'Have not I commanded thee? Be strong and of a good courage; be not afraid, neither be thou dismayed: for the LORD thy God is with thee whithersoever thou goest.',
+          subText: 'Joshua 1:9 (King James Version)'
+        },
+        kadosh: {
+          title: 'Yehoshúa 1:9',
+          text: '¿No te lo he ordenado? ¡Sé fuerte, y sé valiente! No temas ni te acobardes, porque YAHWEH tu Elohim está contigo dondequiera que vayas.',
+          subText: 'Yehoshúa 1:9 (Kadosh Israelita Mesiánica)'
+        }
+      },
+      '1 corintios 13:4-7': {
+        title: '1 Corintios 13:4-7',
+        badge: '1 CORINTIOS 13',
+        rva1909: {
+          title: '1 Corintios 13:4-7',
+          text: 'La caridad es sufrida, es benigna; la caridad no tiene envidia, la caridad no hace sinrazón, no se ensorbebece; No es injuriosa, no busca lo suyo, todo lo sufre, todo lo cree.',
+          subText: '1 Corintios 13:4-7 (Reina-Valera 1909 Antigua)'
+        },
+        rvr1960: {
+          title: '1 Corintios 13:4-7',
+          text: 'El amor es sufrido, es benigno; el amor no tiene envidia, el amor no es jactancioso, no se envanece; no hace nada indebido, no busca lo suyo, todo lo sufre, todo lo cree.',
+          subText: '1 Corintios 13:4-7 (Reina-Valera 1960)'
+        },
+        kjv: {
+          title: '1 Corinthians 13:4-7',
+          text: 'Charity suffereth long, and is kind; charity envieth not; charity vaunteth not itself, is not puffed up, Doth not behave itself unseemly, seeketh not her own, beareth all things, believeth all things.',
+          subText: '1 Corinthians 13:4-7 (King James Version)'
+        },
+        kadosh: {
+          title: '1 Qorintiyim 13:4-7',
+          text: 'El amor es paciente y bondadoso, no es celoso ni jactancioso, no es arrogante ni rudo; no busca lo suyo, todo lo soporta, todo lo cree, todo lo espera.',
+          subText: '1 Qorintiyim 13:4-7 (Kadosh Israelita Mesiánica)'
+        }
+      }
+    };
+
     function openMediaCatalogModal() {
       const modal = document.getElementById('mediaCatalogModal');
       if (modal) modal.classList.remove('hidden');
-      renderMediaCatalogModal();
+      switchCatalogSection(catalogActiveSection || 'songs');
       if (window.lucide) lucide.createIcons();
     }
 
@@ -8775,97 +9310,82 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (modal) modal.classList.add('hidden');
     }
 
-    function filterCatalogCategory(cat) {
-      catalogModalActiveFilter = cat;
-      const tabMap = {
-        'all': 'catTabAll',
-        'alabanza': 'catTabAlabanza',
-        'biblia': 'catTabBiblia',
-        'medios-master': 'catTabMediosMaster',
-        'medios-local': 'catTabMediosLocal'
-      };
-      Object.keys(tabMap).forEach(k => {
-        const btn = document.getElementById(tabMap[k]);
-        if (btn) btn.className = 'px-3 py-1 rounded text-slate-400 hover:text-white transition';
+    function switchCatalogSection(sec) {
+      catalogActiveSection = sec;
+      const sections = ['songs', 'videos', 'bibles'];
+      sections.forEach(s => {
+        const btn = document.getElementById(`catalogNavBtn${s.charAt(0).toUpperCase() + s.slice(1)}`);
+        const content = document.getElementById(`catalogSection${s.charAt(0).toUpperCase() + s.slice(1)}`);
+        if (s === sec) {
+          if (btn) {
+            btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/30';
+          }
+          if (content) content.classList.remove('hidden');
+        } else {
+          if (btn) {
+            btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5 border border-transparent';
+          }
+          if (content) content.classList.add('hidden');
+        }
       });
-      const activeBtn = document.getElementById(tabMap[cat]);
-      if (activeBtn) activeBtn.className = 'px-3 py-1 rounded bg-sky-500/20 text-sky-300 font-bold transition';
-      renderMediaCatalogModal();
+
+      if (sec === 'songs') renderCatalogSongs();
+      if (sec === 'videos') renderCatalogVideos();
+      if (sec === 'bibles') initBibleSection();
+      if (window.lucide) lucide.createIcons();
     }
 
-    function renderMediaCatalogModal() {
-      const list = document.getElementById('catalogModalItemsList');
-      if (!list) return;
-      list.innerHTML = '';
+    function renderCatalogSongs() {
+      const grid = document.getElementById('catalogSongsGrid');
+      const badge = document.getElementById('catalogSongsCountBadge');
+      if (!grid) return;
+      grid.innerHTML = '';
 
-      const searchIn = document.getElementById('catalogSearchInput');
+      const searchIn = document.getElementById('catalogSongsSearchInput');
       const q = (searchIn ? searchIn.value : '').toLowerCase().trim();
 
-      const items = libraryItems.filter(item => {
-        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
-        const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
-
-        if (catalogModalActiveFilter === 'alabanza' && item.category !== 'alabanza') return false;
-        if (catalogModalActiveFilter === 'biblia' && item.category !== 'biblia') return false;
-        if (catalogModalActiveFilter === 'medios-master' && (!isVideo || !isMaster)) return false;
-        if (catalogModalActiveFilter === 'medios-local' && (!isVideo || isMaster)) return false;
-
-        if (q) {
-          const matchTitle = item.title && item.title.toLowerCase().includes(q);
-          const matchAuthor = item.author && item.author.toLowerCase().includes(q);
-          const matchLyrics = item.slides && item.slides.some(s => (s.text && s.text.toLowerCase().includes(q)) || (s.subText && s.subText.toLowerCase().includes(q)));
-          return matchTitle || matchAuthor || matchLyrics;
-        }
-        return true;
+      const songs = libraryItems.filter(item => {
+        if (item.category === 'medios' || Boolean(item.isVideo) || item.category === 'biblia') return false;
+        if (!q) return true;
+        const matchTitle = item.title && item.title.toLowerCase().includes(q);
+        const matchAuthor = item.author && item.author.toLowerCase().includes(q);
+        const matchLyrics = item.slides && item.slides.some(s => (s.text && s.text.toLowerCase().includes(q)) || (s.subText && s.subText.toLowerCase().includes(q)));
+        return matchTitle || matchAuthor || matchLyrics;
       });
 
-      const totalBadge = document.getElementById('catalogTotalBadge');
-      if (totalBadge) totalBadge.textContent = `${items.length} de ${libraryItems.length} en Banco`;
+      if (badge) badge.textContent = `${songs.length} canciones`;
 
-      if (items.length === 0) {
-        list.innerHTML = `
+      if (songs.length === 0) {
+        grid.innerHTML = `
           <div class="col-span-full py-12 text-center text-slate-500 flex flex-col items-center gap-2">
-            <i data-lucide="search-x" class="w-8 h-8 opacity-40"></i>
-            <span class="text-xs">No se encontraron elementos en esta categoría</span>
-          </div>
-        `;
-        lucide.createIcons();
+            <i data-lucide="music" class="w-8 h-8 opacity-40"></i>
+            <span class="text-xs">No se encontraron canciones en el catálogo</span>
+            <button onclick="openNewSongModal()" class="mt-2 px-3 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-bold border border-sky-500/30 transition">
+              + Agregar Nueva Letra
+            </button>
+          </div>`;
+        if (window.lucide) lucide.createIcons();
         return;
       }
 
-      items.forEach(item => {
+      songs.forEach(item => {
         const inService = serviceItemIds.includes(item.id);
-        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
-        const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
-
+        const slideCount = item.slides ? item.slides.length : 0;
         const card = document.createElement('div');
         card.className = `p-3 rounded-xl border flex flex-col justify-between gap-3 transition ${
-          inService 
-            ? 'bg-slate-900/90 border-emerald-500/40 shadow-sm' 
-            : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+          inService ? 'bg-slate-900/90 border-emerald-500/40 shadow-sm' : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
         }`;
-
-        const typeIcon = isVideo ? (isMaster ? '👑' : '🎬') : (item.category === 'biblia' ? '📖' : '🎵');
-        let meta = item.author || '';
-        if (isVideo && item.durationFormatted) {
-          meta = `${item.durationFormatted}${item.sizeMb ? ` • ${item.sizeMb} MB` : ''}`;
-        }
-
-        const badgeClass = isMaster 
-          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' 
-          : (isVideo ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : 'bg-slate-800 text-slate-400 border-slate-700');
-
         card.innerHTML = `
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-start gap-2.5 min-w-0">
-              <span class="text-base select-none mt-0.5">${typeIcon}</span>
+              <span class="text-base select-none mt-0.5">🎵</span>
               <div class="flex flex-col min-w-0">
                 <span class="text-xs font-bold text-white leading-snug line-clamp-1">${item.title}</span>
-                <span class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${meta}</span>
+                <span class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${item.author || 'Autor desconocido'} • ${slideCount} diapositivas</span>
               </div>
             </div>
-            <span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded border ${badgeClass} shrink-0">
-              ${isMaster ? '👑 MASTER' : (isVideo ? '📍 LOCAL' : (item.scope || 'LOCAL'))}
+            <span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded border bg-sky-500/10 text-sky-300 border-sky-500/20 shrink-0">
+              ${item.scope || 'REPERTORIO'}
             </span>
           </div>
 
@@ -8879,11 +9399,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
                 <span class="text-[10px] font-bold text-emerald-400 flex items-center gap-1 mr-1">
                   <i data-lucide="check" class="w-3 h-3"></i> En Servicio
                 </span>
-                <button onclick="removeFromService('${item.id}', event)" class="px-2 py-1 rounded bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 text-[10.5px] font-bold border border-rose-800/40 transition">
+                <button onclick="removeFromService('${item.id}', event); renderCatalogSongs();" class="px-2 py-1 rounded bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 text-[10.5px] font-bold border border-rose-800/40 transition">
                   Quitar
                 </button>
               ` : `
-                <button onclick="addToService('${item.id}', false)" class="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[10.5px] font-bold flex items-center gap-1 shadow transition active:scale-95">
+                <button onclick="addToService('${item.id}', false); renderCatalogSongs();" class="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[10.5px] font-bold flex items-center gap-1 shadow transition active:scale-95">
                   <i data-lucide="plus" class="w-3 h-3"></i>
                   <span>+ Agregar al Servicio</span>
                 </button>
@@ -8891,9 +9411,364 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             </div>
           </div>
         `;
-        list.appendChild(card);
+        grid.appendChild(card);
       });
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function setCatalogVideoFilter(filter) {
+      catVidFilter = filter;
+      ['all', 'master', 'local'].forEach(f => {
+        const btn = document.getElementById(`catVidFilter${f.charAt(0).toUpperCase() + f.slice(1)}`);
+        if (btn) {
+          if (f === filter) {
+            btn.className = 'px-2.5 py-1 rounded-md text-[11px] font-bold bg-sky-500/20 text-sky-300';
+          } else {
+            btn.className = 'px-2.5 py-1 rounded-md text-[11px] text-slate-400 hover:text-white';
+          }
+        }
+      });
+      renderCatalogVideos();
+    }
+
+    function renderCatalogVideos() {
+      const grid = document.getElementById('catalogVideosGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      const searchIn = document.getElementById('catalogVideosSearchInput');
+      const q = (searchIn ? searchIn.value : '').toLowerCase().trim();
+
+      const videos = libraryItems.filter(item => {
+        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+        if (!isVideo) return false;
+        const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
+        if (catVidFilter === 'master' && !isMaster) return false;
+        if (catVidFilter === 'local' && isMaster) return false;
+        if (q) {
+          return item.title && item.title.toLowerCase().includes(q);
+        }
+        return true;
+      });
+
+      if (videos.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-500 flex flex-col items-center gap-2">
+            <i data-lucide="film" class="w-8 h-8 opacity-40"></i>
+            <span class="text-xs">No se encontraron videos disponibles</span>
+            <button onclick="openUploadVideoModal()" class="mt-2 px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold border border-rose-500/30 transition">
+              + Subir Primer Video
+            </button>
+          </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      videos.forEach(item => {
+        const inService = serviceItemIds.includes(item.id);
+        const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
+        const card = document.createElement('div');
+        card.className = `p-3 rounded-xl border flex flex-col justify-between gap-3 transition ${
+          inService ? 'bg-slate-900/90 border-emerald-500/40 shadow-sm' : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+        }`;
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-start gap-2.5 min-w-0">
+              <span class="text-base select-none mt-0.5">${isMaster ? '👑' : '🎬'}</span>
+              <div class="flex flex-col min-w-0">
+                <span class="text-xs font-bold text-white leading-snug line-clamp-1">${item.title}</span>
+                <span class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${item.durationFormatted || '02:00'}${item.sizeMb ? ` • ${item.sizeMb} MB` : ''}</span>
+              </div>
+            </div>
+            <span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded border ${isMaster ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30'} shrink-0">
+              ${isMaster ? '👑 MASTER' : '📍 LOCAL'}
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
+            <button onclick="addToService('${item.id}', true); closeMediaCatalogModal();" class="text-[10.5px] text-slate-400 hover:text-sky-300 flex items-center gap-1 transition" title="Seleccionar y reproducir en Capa 3">
+              <i data-lucide="play" class="w-3 h-3 text-sky-400"></i>
+              <span>Lanzar Capa 3</span>
+            </button>
+            <div class="flex items-center gap-1.5">
+              ${inService ? `
+                <span class="text-[10px] font-bold text-emerald-400 flex items-center gap-1 mr-1">
+                  <i data-lucide="check" class="w-3 h-3"></i> En Servicio
+                </span>
+                <button onclick="removeFromService('${item.id}', event); renderCatalogVideos();" class="px-2 py-1 rounded bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 text-[10.5px] font-bold border border-rose-800/40 transition">
+                  Quitar
+                </button>
+              ` : `
+                <button onclick="addToService('${item.id}', false); renderCatalogVideos();" class="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[10.5px] font-bold flex items-center gap-1 shadow transition active:scale-95">
+                  <i data-lucide="plus" class="w-3 h-3"></i>
+                  <span>+ Agregar al Servicio</span>
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // -------------------------------------------------------------------------
+    // BIBLE VERSIONS CONTROLLER (RVA1909, RVR1960, KJV, KADOSH)
+    // -------------------------------------------------------------------------
+    function initBibleSection() {
+      selectActiveBibleVersion(activeBibleVersion || 'rvr1960');
+      populateBibleBooksSelect();
+    }
+
+    function selectActiveBibleVersion(verKey) {
+      activeBibleVersion = verKey;
+      const versions = ['rva1909', 'rvr1960', 'kjv', 'kadosh'];
+      versions.forEach(v => {
+        const card = document.getElementById(`bibleCard_${v}`);
+        if (card) {
+          if (v === verKey) {
+            card.className = 'p-3 rounded-xl border border-emerald-500/60 bg-emerald-500/10 cursor-pointer transition flex flex-col justify-between gap-2 shadow select-none group';
+            const status = card.querySelector('span:last-child');
+            if (status) status.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ACTIVA';
+          } else {
+            card.className = 'p-3 rounded-xl border border-slate-800 bg-slate-950/80 hover:border-slate-700 cursor-pointer transition flex flex-col justify-between gap-2 shadow select-none group';
+            const status = card.querySelector('span:last-child');
+            if (status) status.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400/60"></span> INSTALADA';
+          }
+        }
+      });
+
+      const meta = bibleVersionsMetadata[verKey];
+      const badgeDisplay = document.getElementById('activeBibleBadgeDisplay');
+      if (badgeDisplay && meta) {
+        badgeDisplay.textContent = meta.name;
+      }
+
+      populateBibleBooksSelect();
+      updateBiblePreviewUI();
+    }
+
+    function populateBibleBooksSelect() {
+      const select = document.getElementById('bibleBookSelect');
+      if (!select) return;
+      const currentSelected = select.value;
+      select.innerHTML = '';
+
+      canonicalBibleBooks.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        if (activeBibleVersion === 'kadosh') {
+          opt.textContent = `${b.he} (${b.es})`;
+        } else if (activeBibleVersion === 'kjv') {
+          opt.textContent = `${b.en} (${b.es})`;
+        } else {
+          opt.textContent = b.es;
+        }
+        select.appendChild(opt);
+      });
+
+      if (currentSelected && canonicalBibleBooks.some(b => b.id === currentSelected)) {
+        select.value = currentSelected;
+      } else {
+        select.value = 'salmos';
+      }
+
+      handleBibleBookChange();
+    }
+
+    function handleBibleBookChange() {
+      const bookSelect = document.getElementById('bibleBookSelect');
+      const chapterSelect = document.getElementById('bibleChapterSelect');
+      if (!bookSelect || !chapterSelect) return;
+
+      const book = canonicalBibleBooks.find(b => b.id === bookSelect.value) || canonicalBibleBooks[12]; // Salmos
+      chapterSelect.innerHTML = '';
+
+      // Populate common verse presets for that book
+      if (book.id === 'salmos') {
+        chapterSelect.innerHTML = `
+          <option value="salmos 23:1-3">Salmo 23:1-3 (Pastor)</option>
+          <option value="salmos 91:1-2">Salmo 91:1-2 (Abrigo del Altísimo)</option>
+          <option value="salmos 121:1-2">Salmo 121:1-2 (Mi Socorro)</option>
+          <option value="salmos 100:1-3">Salmo 100:1-3 (Alabanza)</option>
+        `;
+      } else if (book.id === 'juan') {
+        chapterSelect.innerHTML = `
+          <option value="juan 3:16">Juan 3:16 (Amor de Dios)</option>
+          <option value="juan 14:6">Juan 14:6 (El Camino, la Verdad y la Vida)</option>
+          <option value="juan 1:1-3">Juan 1:1-3 (El Verbo)</option>
+        `;
+      } else if (book.id === 'romanos') {
+        chapterSelect.innerHTML = `
+          <option value="romanos 8:28">Romanos 8:28 (Todas las cosas ayudan)</option>
+          <option value="romanos 8:38-39">Romanos 8:38-39 (Nada nos separará)</option>
+          <option value="romanos 12:1-2">Romanos 12:1-2 (Culto Racional)</option>
+        `;
+      } else if (book.id === 'mateo') {
+        chapterSelect.innerHTML = `
+          <option value="mateo 6:33">Mateo 6:33 (Buscad primeramente)</option>
+          <option value="mateo 5:3-10">Mateo 5:3-10 (Las Bienaventuranzas)</option>
+          <option value="mateo 28:19-20">Mateo 28:19-20 (La Gran Comisión)</option>
+        `;
+      } else if (book.id === 'filipenses') {
+        chapterSelect.innerHTML = `
+          <option value="filipenses 4:13">Filipenses 4:13 (Todo lo puedo)</option>
+          <option value="filipenses 4:6-7">Filipenses 4:6-7 (La paz de Dios)</option>
+        `;
+      } else if (book.id === '1corintios') {
+        chapterSelect.innerHTML = `
+          <option value="1 corintios 13:4-7">1 Corintios 13:4-7 (El Amor)</option>
+        `;
+      } else if (book.id === 'isaias') {
+        chapterSelect.innerHTML = `
+          <option value="isaias 40:31">Isaías 40:31 (Nuevas Fuerzas)</option>
+        `;
+      } else if (book.id === 'proverbios') {
+        chapterSelect.innerHTML = `
+          <option value="proverbios 3:5-6">Proverbios 3:5-6 (Fíate de Jehová)</option>
+        `;
+      } else if (book.id === 'josue') {
+        chapterSelect.innerHTML = `
+          <option value="josue 1:9">Josué 1:9 (Esfuérzate y sé valiente)</option>
+        `;
+      } else if (book.id === 'genesis') {
+        chapterSelect.innerHTML = `
+          <option value="genesis 1:1">Génesis 1:1 (La Creación)</option>
+        `;
+      } else {
+        chapterSelect.innerHTML = `
+          <option value="${book.id} 1:1">Capítulo 1 : Versículo 1</option>
+          <option value="${book.id} 1:2">Capítulo 1 : Versículo 2</option>
+          <option value="${book.id} 2:1">Capítulo 2 : Versículo 1</option>
+        `;
+      }
+
+      handleBibleChapterChange();
+    }
+
+    function handleBibleChapterChange() {
+      const chapterSelect = document.getElementById('bibleChapterSelect');
+      if (chapterSelect && chapterSelect.value) {
+        activeBibleCitationKey = chapterSelect.value;
+        updateBiblePreviewUI();
+      }
+    }
+
+    function handleBibleCitationSearch(val) {
+      if (!val) return;
+      const norm = normalizeBibleQuery(val);
+      const foundKey = Object.keys(multiVersionBibleDatabase).find(k => k.includes(norm) || norm.includes(k));
+      if (foundKey) {
+        activeBibleCitationKey = foundKey;
+        updateBiblePreviewUI();
+      }
+    }
+
+    function loadBibleQuickPreset(presetKey) {
+      activeBibleCitationKey = presetKey;
+      const searchInput = document.getElementById('bibleSearchCitationInput');
+      if (searchInput) searchInput.value = presetKey;
+      updateBiblePreviewUI();
+    }
+
+    function updateBiblePreviewUI() {
+      const titleEl = document.getElementById('biblePreviewTitle');
+      const badgeEl = document.getElementById('biblePreviewVersionBadge');
+      const textEl = document.getElementById('biblePreviewText');
+      const subTextEl = document.getElementById('biblePreviewSubText');
+
+      const meta = bibleVersionsMetadata[activeBibleVersion] || bibleVersionsMetadata['rvr1960'];
+      const citationData = multiVersionBibleDatabase[activeBibleCitationKey];
+
+      if (citationData && citationData[activeBibleVersion]) {
+        const passage = citationData[activeBibleVersion];
+        if (titleEl) titleEl.textContent = passage.title;
+        if (badgeEl) badgeEl.textContent = meta.badge;
+        if (textEl) textEl.textContent = `"${passage.text}"`;
+        if (subTextEl) subTextEl.textContent = passage.subText;
+      } else if (citationData && citationData['rvr1960']) {
+        const passage = citationData['rvr1960'];
+        if (titleEl) titleEl.textContent = passage.title;
+        if (badgeEl) badgeEl.textContent = meta.badge;
+        if (textEl) textEl.textContent = `"${passage.text}"`;
+        if (subTextEl) subTextEl.textContent = `${passage.title} (${meta.name})`;
+      } else {
+        const formattedTitle = activeBibleCitationKey.toUpperCase();
+        if (titleEl) titleEl.textContent = formattedTitle;
+        if (badgeEl) badgeEl.textContent = meta.badge;
+        if (textEl) textEl.textContent = `"Lectura bíblica del pasaje ${formattedTitle} en versión ${meta.name}"`;
+        if (subTextEl) subTextEl.textContent = `${formattedTitle} (${meta.name})`;
+      }
+    }
+
+    function addCurrentBibleToService(andProjectNow = false) {
+      const meta = bibleVersionsMetadata[activeBibleVersion] || bibleVersionsMetadata['rvr1960'];
+      const citationData = multiVersionBibleDatabase[activeBibleCitationKey];
+
+      let title = activeBibleCitationKey.toUpperCase();
+      let text = `Lectura de ${title}`;
+      let subText = `${title} (${meta.name})`;
+      let badge = title;
+
+      if (citationData && citationData[activeBibleVersion]) {
+        const p = citationData[activeBibleVersion];
+        title = p.title;
+        text = p.text;
+        subText = p.subText;
+        badge = citationData.badge || title;
+      } else if (citationData && citationData['rvr1960']) {
+        const p = citationData['rvr1960'];
+        title = p.title;
+        text = p.text;
+        subText = `${p.title} (${meta.name})`;
+        badge = citationData.badge || title;
+      }
+
+      // Check if already in libraryItems
+      let existingIndex = libraryItems.findIndex(it => it.title.toLowerCase() === title.toLowerCase() && it.author === meta.name);
+      if (existingIndex === -1) {
+        const newItem = {
+          id: 'bible-' + Date.now(),
+          category: 'biblia',
+          title: title,
+          author: meta.name,
+          scope: 'SAGRADAS ESCRITURAS',
+          slides: [
+            { text: text, subText: subText, badge: badge }
+          ]
+        };
+        libraryItems.unshift(newItem);
+        existingIndex = 0;
+      }
+
+      const targetItem = libraryItems[existingIndex];
+      if (targetItem && !serviceItemIds.includes(targetItem.id)) {
+        serviceItemIds.unshift(targetItem.id);
+        saveServiceItems();
+      }
+
+      renderSongsList();
+      saveDatabaseToServer();
+
+      if (andProjectNow) {
+        selectItem(existingIndex);
+        if (!layerPower[2]) {
+          layerPower[2] = true;
+          updateLayerPowerUI(2);
+          updateWirecastRackUI();
+        }
+        closeMediaCatalogModal();
+        showToast(`⚡ ${title} proyectado en pantalla (${meta.shortName})`, '📖');
+      } else {
+        showToast(`📖 ${title} agregado al Servicio de Hoy (${meta.shortName})`, '✓');
+      }
+    }
+
+    // Master render coordinator for backward compatibility
+    function renderMediaCatalogModal() {
+      if (catalogActiveSection === 'songs') renderCatalogSongs();
+      else if (catalogActiveSection === 'videos') renderCatalogVideos();
+      else if (catalogActiveSection === 'bibles') initBibleSection();
     }
 
     // =========================================================================
