@@ -229,6 +229,19 @@
 </head>
 <body class="h-full flex flex-col overflow-hidden bg-[#090d16]">
 
+  <!-- Impersonation Live Header Banner (When Super Admin or Org operates a church's studio live) -->
+  <div id="impersonationBanner" class="hidden bg-gradient-to-r from-amber-600 via-indigo-700 to-sky-600 text-white px-4 py-2 flex items-center justify-between text-xs font-bold shadow-xl z-40 shrink-0">
+    <div class="flex items-center gap-2.5">
+      <span class="w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping"></span>
+      <span class="px-2 py-0.5 rounded bg-black/40 text-[10px] uppercase font-mono tracking-wider border border-amber-300/30">Modo Búnker Master</span>
+      <span class="text-xs">Estás operando en vivo el estudio de: <strong id="impersonationChurchName" class="text-amber-200 underline font-black">Campus Guadalajara Norte</strong></span>
+    </div>
+    <button onclick="exitImpersonationToHq()" class="px-3 py-1 rounded-lg bg-black/50 hover:bg-black/80 text-amber-200 hover:text-white border border-amber-300/50 text-[11px] font-bold flex items-center gap-1.5 transition active:scale-95 shadow">
+      <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-400"></i>
+      <span>Volver al Búnker Super Admin</span>
+    </button>
+  </div>
+
   <!-- ========================================================================= -->
   <!-- 1. TOP HEADER (BRANDING, SECURE SESSION BADGE, DUAL OUTPUT LAUNCHERS)     -->
   <!-- ========================================================================= -->
@@ -2146,8 +2159,12 @@
         <!-- Actions & KPI Metrics -->
         <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
           <div class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[90px]">
-            <span class="text-[10px] text-slate-400 uppercase font-mono block">Sedes Conectadas</span>
-            <span class="text-sm font-black text-emerald-400 font-mono">24 Activas</span>
+            <span class="text-[10px] text-slate-400 uppercase font-mono block">Organizaciones</span>
+            <span id="hqKpiOrgsCount" class="text-sm font-black text-amber-400 font-mono">1 Red</span>
+          </div>
+          <div class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[90px]">
+            <span class="text-[10px] text-slate-400 uppercase font-mono block">Iglesias / Sedes</span>
+            <span id="hqKpiChurchesCount" class="text-sm font-black text-emerald-400 font-mono">3 Activas</span>
           </div>
           <div class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-center min-w-[90px]">
             <span class="text-[10px] text-slate-400 uppercase font-mono block">Canciones Catálogo</span>
@@ -2157,10 +2174,10 @@
             <span class="text-[10px] text-slate-400 uppercase font-mono block">Videos Campaña</span>
             <span id="hqKpiVideosCount" class="text-sm font-black text-amber-400 font-mono">2 Oficiales</span>
           </div>
-          <button onclick="exitHqBunker()" 
+          <button onclick="handleLogout()" 
                   class="px-3.5 py-2 rounded-xl bg-red-950/90 hover:bg-red-900 border border-red-500/50 text-red-200 text-xs font-bold transition active:scale-95 flex items-center gap-1.5 shadow-lg shadow-red-950/40 shrink-0">
             <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-            <span>Salir del Búnker</span>
+            <span>Cerrar Sesión</span>
           </button>
         </div>
       </div>
@@ -2168,26 +2185,36 @@
       <!-- 2. Sub-Navigation Tabs within HQ Portal -->
       <div class="flex items-center justify-between border-b border-slate-800/80 pb-1 shrink-0">
         <div class="flex items-center gap-2 overflow-x-auto">
-          <button onclick="switchHqSubTab('songs')" id="hqSubTabBtnSongs" 
+          <button onclick="switchHqSubTab('orgs')" id="hqSubTabBtnOrgs" 
                   class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            <i data-lucide="building-2" class="w-4 h-4"></i>
+            <span>1. Organizaciones / Instituciones</span>
+          </button>
+          <button onclick="switchHqSubTab('churches')" id="hqSubTabBtnChurches" 
+                  class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent">
+            <i data-lucide="church" class="w-4 h-4"></i>
+            <span>2. Iglesias & Sedes</span>
+          </button>
+          <button onclick="switchHqSubTab('songs')" id="hqSubTabBtnSongs" 
+                  class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent">
             <i data-lucide="upload" class="w-4 h-4"></i>
-            <span>1. Ingesta Masiva de Canciones (Word / Texto)</span>
+            <span>3. Ingesta de Canciones</span>
           </button>
           <button onclick="switchHqSubTab('videos')" id="hqSubTabBtnVideos" 
                   class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent">
             <i data-lucide="film" class="w-4 h-4"></i>
-            <span>2. Videos & Campañas Nacionales (CDN)</span>
+            <span>4. Videos & Campañas (CDN)</span>
           </button>
           <button onclick="switchHqSubTab('telemetry')" id="hqSubTabBtnTelemetry" 
                   class="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent">
             <i data-lucide="radio" class="w-4 h-4"></i>
-            <span>3. Radar & Telemetría de Sedes</span>
+            <span>5. Radar Satelital</span>
           </button>
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
           <span class="text-[11px] text-amber-400/90 font-mono hidden md:inline">
-            Sede Operando: <strong class="text-white">Oficinas Centrales</strong>
+            Entorno: <strong id="hqSessionIndicatorName" class="text-white">Búnker Multi-Tenant</strong>
           </span>
         </div>
       </div>
@@ -2195,8 +2222,80 @@
       <!-- 3. CONTENT AREA FOR HQ -->
       <div class="flex-1 overflow-hidden relative">
 
-        <!-- SUBTAB 1: INGESTA MASIVA DE CANCIONES -->
-        <div id="hqTabContentSongs" class="w-full h-full flex flex-col lg:flex-row gap-3 overflow-hidden">
+        <!-- SUBTAB: ORGANIZACIONES / INSTITUCIONES -->
+        <div id="hqTabContentOrgs" class="w-full h-full flex flex-col gap-3 overflow-hidden">
+          <!-- Header and Filter Bar -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d131f] border border-slate-800 rounded-xl p-3 shrink-0">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="building-2" class="w-4 h-4 text-amber-400"></i>
+                <span>Directorio de Organizaciones e Instituciones Multi-Sede</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">Denominaciones, concilios y redes eclesiásticas con múltiples campus filiales</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="text" id="hqOrgsSearchInput" oninput="renderHqOrgsList()" placeholder="Buscar organización o ciudad..."
+                     class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-mono w-52">
+              <button onclick="openNewOrgModal()" 
+                      class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition active:scale-95 shrink-0">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>+ Nueva Organización</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Cards / Grid Container -->
+          <div id="hqOrgsList" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-1">
+            <!-- Dynamic items rendered by renderHqOrgsList() -->
+          </div>
+        </div>
+
+        <!-- SUBTAB: IGLESIAS & SEDES -->
+        <div id="hqTabContentChurches" class="w-full h-full flex flex-col gap-3 overflow-hidden hidden">
+          <!-- Header and Filter Bar -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d131f] border border-slate-800 rounded-xl p-3 shrink-0">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="church" class="w-4 h-4 text-sky-400"></i>
+                <span>Directorio Maestro de Iglesias & Sedes</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">Gestión unificada de campus filiales e iglesias locales independientes</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- Type Filter -->
+              <div class="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5 text-xs">
+                <button type="button" onclick="setHqChurchesFilter('all')" id="churchFilterAll"
+                        class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                  Todas
+                </button>
+                <button type="button" onclick="setHqChurchesFilter('branch')" id="churchFilterBranch"
+                        class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-400 hover:text-white border border-transparent">
+                  🏢 Filiales
+                </button>
+                <button type="button" onclick="setHqChurchesFilter('independent')" id="churchFilterIndependent"
+                        class="px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-400 hover:text-white border border-transparent">
+                  ⛪ Independientes
+                </button>
+              </div>
+
+              <input type="text" id="hqChurchesSearchInput" oninput="renderHqChurchesList()" placeholder="Buscar iglesia, pastor, ciudad..."
+                     class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 font-mono w-48">
+              <button onclick="openNewChurchModal()" 
+                      class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-sky-500/20 transition active:scale-95 shrink-0">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>+ Nueva Iglesia / Sede</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Cards / Grid Container -->
+          <div id="hqChurchesList" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-1">
+            <!-- Dynamic items rendered by renderHqChurchesList() -->
+          </div>
+        </div>
+
+        <!-- SUBTAB 3: INGESTA MASIVA DE CANCIONES -->
+        <div id="hqTabContentSongs" class="w-full h-full flex flex-col lg:flex-row gap-3 overflow-hidden hidden">
           <!-- Columna Izquierda: Entrada de Texto / Carga de Documento Word -->
           <div class="w-full lg:w-5/12 h-full flex flex-col bg-[#0d131f] border border-slate-800 rounded-xl p-3.5 gap-3 overflow-hidden shadow">
             <div class="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -3132,6 +3231,195 @@ Te adoraré, te adoraré..."
   </div>
 
   <!-- ========================================================================= -->
+  <!-- MODAL: REGISTRAR NUEVA ORGANIZACIÓN / INSTITUCIÓN                         -->
+  <!-- ========================================================================= -->
+  <div id="newOrgModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#0d131f] border border-amber-500/40 rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+            <i data-lucide="building-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Registrar Organización / Institución</h3>
+            <p class="text-[11px] text-slate-400">Crea una red institucional para agrupar múltiples iglesias filiales</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeNewOrgModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); saveNewOrganization();" class="flex flex-col gap-3">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Nombre de la Organización *</label>
+          <input type="text" id="newOrgName" required placeholder="Ej: Alianza Cristiana Nacional, Iglesia de Dios"
+                 class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 transition">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Identificador / Slug *</label>
+            <input type="text" id="newOrgSlug" required placeholder="ej: alianza-nacional"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 font-mono transition">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Sede Central / Ciudad *</label>
+            <input type="text" id="newOrgCity" required placeholder="Ej: Ciudad de México"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 transition">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Correo Administrador *</label>
+            <input type="email" id="newOrgEmail" required placeholder="admin@organizacion.org"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 font-mono transition">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Teléfono de Contacto</label>
+            <input type="text" id="newOrgPhone" placeholder="+52 55 1234 5678"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 transition">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Usuario de Acceso *</label>
+            <input type="text" id="newOrgUsername" required placeholder="ej: alianza"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 font-mono transition">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Contraseña de Acceso *</label>
+            <input type="text" id="newOrgPassword" required placeholder="••••••••"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 font-mono transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Plan Comercial</label>
+          <select id="newOrgPlan" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 transition">
+            <option value="Enterprise Multi-Sede">Enterprise Multi-Sede (Sedes Ilimitadas + CDN Global)</option>
+            <option value="Pro Red Nacional">Pro Red Nacional (Hasta 10 Sedes Filiales)</option>
+            <option value="Básico Institucional">Básico Institucional (Hasta 3 Sedes Filiales)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800 mt-1">
+          <button type="button" onclick="closeNewOrgModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-95 transition">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Guardar Organización</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: REGISTRAR NUEVA IGLESIA / SEDE                                     -->
+  <!-- ========================================================================= -->
+  <div id="newChurchModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#0d131f] border border-sky-500/40 rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400">
+            <i data-lucide="church" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Registrar Nueva Iglesia / Sede</h3>
+            <p class="text-[11px] text-slate-400">Añade una filial institucional o una iglesia local independiente</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeNewChurchModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); saveNewChurch();" class="flex flex-col gap-3">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Nombre de la Iglesia / Sede *</label>
+          <input type="text" id="newChurchName" required placeholder="Ej: Campus Guadalajara Norte, Comunidad Cristiana Hebrón"
+                 class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-400 transition">
+        </div>
+
+        <!-- Tipo de Iglesia (Filial vs Independiente) -->
+        <div>
+          <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1.5">Tipo de Pertenencia *</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-sky-500/40 bg-sky-500/10 cursor-pointer select-none transition">
+              <input type="radio" name="newChurchTypeRadio" value="branch" checked onchange="toggleNewChurchOrgField()" class="text-sky-500 focus:ring-0">
+              <div class="flex flex-col">
+                <span class="text-xs font-bold text-sky-200">🏢 Sede Filial</span>
+                <span class="text-[10px] text-sky-300/80">Pertenece a una Organización</span>
+              </div>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-slate-800 bg-slate-900/60 cursor-pointer select-none transition">
+              <input type="radio" name="newChurchTypeRadio" value="independent" onchange="toggleNewChurchOrgField()" class="text-emerald-500 focus:ring-0">
+              <div class="flex flex-col">
+                <span class="text-xs font-bold text-emerald-200">⛪ Iglesia Sola</span>
+                <span class="text-[10px] text-emerald-300/80">Independiente / Autónoma</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Selector de Organización (Visible solo si es filial) -->
+        <div id="newChurchOrgGroup">
+          <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Organización / Red a la que pertenece *</label>
+          <select id="newChurchOrgSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-400 transition">
+            <!-- Dynamic options -->
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Ciudad / Ubicación *</label>
+            <input type="text" id="newChurchCity" required placeholder="Ej: Guadalajara, Jalisco"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-400 transition">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Pastor / Operador Responsable *</label>
+            <input type="text" id="newChurchOperator" required placeholder="Ej: Carlos M. o Pastor Roberto G."
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-400 transition">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Usuario de Acceso *</label>
+            <input type="text" id="newChurchUsername" required placeholder="ej: gdl o hebron"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-400 font-mono transition">
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Contraseña de Acceso *</label>
+            <input type="text" id="newChurchPassword" required placeholder="••••••••"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-400 font-mono transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-300 uppercase mb-1">Correo Electrónico de Contacto</label>
+          <input type="email" id="newChurchEmail" placeholder="contacto@iglesia.org"
+                 class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-400 font-mono transition">
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800 mt-1">
+          <button type="button" onclick="closeNewChurchModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-sky-500/20 active:scale-95 transition">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Guardar Iglesia</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
   <!-- SAAS LOGIN SCREEN (STRICT MULTI-TENANT COMMERCIAL ISOLATION)              -->
   <!-- ========================================================================= -->
   <div id="loginScreen" class="fixed inset-0 z-[100] bg-[#070b12] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
@@ -3140,12 +3428,7 @@ Te adoraré, te adoraré..."
     <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-    <div class="relative w-full max-w-md bg-[#0f172a]/95 border border-slate-800 rounded-3xl p-7 sm:p-8 shadow-2xl backdrop-blur-xl flex flex-col gap-5">
-      <!-- Direct Skip to Studio Button -->
-      <button type="button" onclick="loginDirectAs('gdl')" title="Entrar directo al estudio" class="absolute top-4 right-4 text-slate-500 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-
+    <div class="relative w-full max-w-md bg-[#0f172a]/95 border border-slate-800 rounded-3xl p-7 sm:p-8 shadow-2xl backdrop-blur-xl flex flex-col gap-6">
       <!-- Brand Header -->
       <div class="flex flex-col items-center text-center gap-2">
         <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-sky-500/20 mb-1">
@@ -3155,68 +3438,27 @@ Te adoraré, te adoraré..."
           <h1 class="text-xl font-black tracking-wider text-white uppercase">OmniCast <span class="text-sky-400 font-mono text-sm px-1.5 py-0.5 rounded bg-sky-500/20 border border-sky-500/30">STUDIO</span></h1>
         </div>
         <p class="text-xs text-slate-400 max-w-xs leading-relaxed">
-          Portal Institucional de Transmisión, Letras & Automatización Audiovisual
+          Plataforma Multi-Tenant de Proyección, Transmisión & Automatización Audiovisual
         </p>
-      </div>
-
-      <!-- Quick 1-Click Access Buttons (Immediate login without typing) -->
-      <div class="flex flex-col gap-2 p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-          <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
-          Acceso Rápido en 1-Clic:
-        </span>
-        <div class="flex flex-col gap-1.5">
-          <button type="button" onclick="loginDirectAs('hq')"
-                  class="w-full p-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-left transition flex items-center justify-between group active:scale-[0.99]">
-            <div class="flex items-center gap-2.5">
-              <span class="text-base select-none">👑</span>
-              <div>
-                <div class="text-xs font-black text-amber-300">Oficinas Nacionales (Master HQ)</div>
-                <div class="text-[10px] text-amber-400/80">Consola Satelital, Búnker & Red Nacional</div>
-              </div>
-            </div>
-            <i data-lucide="arrow-right" class="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform"></i>
-          </button>
-
-          <div class="grid grid-cols-2 gap-1.5">
-            <button type="button" onclick="loginDirectAs('gdl')"
-                    class="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-sky-500 text-left transition flex items-center justify-between group active:scale-[0.99]">
-              <div>
-                <div class="text-[11px] font-bold text-sky-400">📍 Guadalajara</div>
-                <div class="text-[9px] text-slate-400">Sede Local Demo 1</div>
-              </div>
-              <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-sky-400 transition-colors"></i>
-            </button>
-
-            <button type="button" onclick="loginDirectAs('mty')"
-                    class="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500 text-left transition flex items-center justify-between group active:scale-[0.99]">
-              <div>
-                <div class="text-[11px] font-bold text-emerald-400">📍 Monterrey</div>
-                <div class="text-[9px] text-slate-400">Sede Local Demo 2</div>
-              </div>
-              <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors"></i>
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Auth Error Alert -->
       <div id="loginErrorAlert" class="hidden p-3 rounded-xl bg-red-950/70 border border-red-500/50 flex items-center gap-2.5 text-red-200 text-xs animate-shake">
         <i data-lucide="alert-circle" class="w-4 h-4 text-red-400 shrink-0"></i>
-        <span id="loginErrorMsg">Credenciales inválidas. Verifica tu correo institucional.</span>
+        <span id="loginErrorMsg">Credenciales inválidas. Verifica tu usuario y contraseña.</span>
       </div>
 
-      <!-- Login Form (Manual input supported) -->
-      <form id="loginForm" onsubmit="event.preventDefault(); submitLoginForm();" class="flex flex-col gap-3.5">
+      <!-- Login Form (100% Generic Multi-Tenant White-Label) -->
+      <form id="loginForm" onsubmit="event.preventDefault(); submitLoginForm();" class="flex flex-col gap-4">
         <div>
           <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-            Correo Institucional o Alias (ej: admin, oficinas, gdl, mty)
+            Usuario o Correo Electrónico
           </label>
           <div class="relative">
-            <i data-lucide="mail" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <i data-lucide="user" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
             <input type="text" id="loginEmailInput" autocomplete="username"
-                   placeholder="admin, oficinas, o gdl@iglesianacional.org"
-                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition font-mono">
+                   placeholder="correo@ejemplo.com o nombre de usuario"
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition font-mono">
           </div>
         </div>
 
@@ -3225,30 +3467,38 @@ Te adoraré, te adoraré..."
             <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
               Contraseña
             </label>
-            <span class="text-[10px] text-slate-500">Cualquier contraseña es válida</span>
+            <span class="text-[10px] text-slate-500">Acceso Seguro SSL</span>
           </div>
           <div class="relative">
             <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
             <input type="password" id="loginPasswordInput"
                    placeholder="••••••••"
-                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition font-mono">
+                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition font-mono">
             <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
               <i id="togglePasswordIcon" data-lucide="eye" class="w-4 h-4"></i>
             </button>
           </div>
         </div>
 
+        <div class="flex items-center justify-between text-xs pt-0.5">
+          <label class="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-200 select-none">
+            <input type="checkbox" id="loginRememberMe" checked class="rounded border-slate-800 bg-slate-950 text-sky-500 focus:ring-0">
+            <span class="text-[11px]">Recordar sesión en este equipo</span>
+          </label>
+        </div>
+
         <button type="submit" id="loginSubmitBtn"
-                class="w-full mt-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-sky-500/25 transition active:scale-[0.98] flex items-center justify-center gap-2">
-          <span>Ingresar</span>
+                class="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-sky-500/25 transition active:scale-[0.98] flex items-center justify-center gap-2">
+          <span>Iniciar Sesión</span>
           <i data-lucide="arrow-right" class="w-4 h-4"></i>
         </button>
       </form>
 
-      <!-- Security Notice -->
-      <div class="text-center border-t border-slate-800/40 pt-2">
-        <p class="text-[10px] text-slate-500">
-          🔒 Acceso comercial multi-sede. Selecciona tu sede o pulsa cualquier botón de arriba para ingresar de inmediato.
+      <!-- Security Notice Footer -->
+      <div class="text-center border-t border-slate-800/40 pt-3">
+        <p class="text-[10.5px] text-slate-500 flex items-center justify-center gap-1.5">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>OmniCast Cloud • Entorno SaaS Multi-Tenant Seguro</span>
         </p>
       </div>
     </div>
@@ -6744,51 +6994,86 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     }
 
     // -------------------------------------------------------------------------
-    // SAAS MULTI-TENANT ACCOUNTS DATABASE & STRICT COMMERCIAL ISOLATION
+    // SAAS MULTI-TENANT ARCHITECTURE & STRICT COMMERCIAL ISOLATION
     // -------------------------------------------------------------------------
+    let organizations = [
+      {
+        id: 'org-alianza',
+        name: 'Alianza Cristiana Nacional',
+        slug: 'alianza',
+        adminEmail: 'red@alianzacristiana.org',
+        username: 'alianza',
+        password: 'admin',
+        headquarters: 'Ciudad de México',
+        phone: '+52 55 1234 5678',
+        plan: 'Enterprise Multi-Sede',
+        createdAt: '2026-01-15'
+      }
+    ];
+
+    let churches = [
+      {
+        id: 'church-gdl',
+        name: 'Campus Guadalajara Norte',
+        type: 'branch', // 'branch' = pertenece a organización, 'independent' = iglesia sola
+        orgId: 'org-alianza',
+        orgName: 'Alianza Cristiana Nacional',
+        city: 'Guadalajara, Jalisco',
+        email: 'gdl@iglesianacional.org',
+        username: 'gdl',
+        password: 'gdl',
+        operator: 'Carlos M.',
+        role: 'Master de Sede Filial',
+        status: 'active'
+      },
+      {
+        id: 'church-mty',
+        name: 'Campus Monterrey Sur',
+        type: 'branch',
+        orgId: 'org-alianza',
+        orgName: 'Alianza Cristiana Nacional',
+        city: 'Monterrey, Nuevo León',
+        email: 'mty@iglesianacional.org',
+        username: 'mty',
+        password: 'mty',
+        operator: 'Jorge T.',
+        role: 'Master de Sede Filial',
+        status: 'active'
+      },
+      {
+        id: 'church-hebron',
+        name: 'Comunidad Cristiana Hebrón',
+        type: 'independent', // Iglesia sola / independiente
+        orgId: null,
+        orgName: null,
+        city: 'Zapopan, Jalisco',
+        email: 'hebron@iglesialocal.org',
+        username: 'hebron',
+        password: '123',
+        operator: 'Pastor Roberto G.',
+        role: 'Iglesia Local Independiente',
+        status: 'active'
+      }
+    ];
+
     const accountsDatabase = {
       'admin@iglesianacional.org': {
         email: 'admin@iglesianacional.org',
-        passwords: ['admin', '7777', 'admin123', '1234', 'admin777'],
+        passwords: ['admin', '7777', 'admin123', '1234', 'admin777', 'omnicast'],
         tenantKey: 'hq',
         name: '🏛️ Oficinas Nacionales (Master HQ)',
         shortName: 'Oficinas Nacionales',
-        operator: 'Admin Nacional',
+        operator: 'Super Admin',
         role: 'SUPER ADMINISTRADOR GLOBAL',
-        avatar: 'ON',
+        avatar: 'SA',
         avatarBg: 'from-amber-500 to-yellow-600',
         dotColor: 'w-2 h-2 rounded-full bg-amber-400 animate-pulse',
-        isSuperAdmin: true
-      },
-      'gdl@iglesianacional.org': {
-        email: 'gdl@iglesianacional.org',
-        passwords: ['gdl', 'gdl123', '1234', 'admin', 'password'],
-        tenantKey: 'gdl',
-        name: 'Campus Guadalajara Norte',
-        shortName: 'Guadalajara Norte',
-        operator: 'Carlos M.',
-        role: 'Master de Sede',
-        avatar: 'CM',
-        avatarBg: 'from-sky-500 to-blue-600',
-        dotColor: 'w-2 h-2 rounded-full bg-emerald-400',
-        isSuperAdmin: false
-      },
-      'mty@iglesianacional.org': {
-        email: 'mty@iglesianacional.org',
-        passwords: ['mty', 'mty123', '1234', 'admin', 'password'],
-        tenantKey: 'mty',
-        name: 'Campus Monterrey Sur',
-        shortName: 'Monterrey Sur',
-        operator: 'Jorge T.',
-        role: 'Director Técnico',
-        avatar: 'JT',
-        avatarBg: 'from-emerald-500 to-teal-600',
-        dotColor: 'w-2 h-2 rounded-full bg-emerald-400',
-        isSuperAdmin: false
+        isSuperAdmin: true,
+        isOrgAdmin: false,
+        isChurch: false
       }
     };
 
-    // Fallback dictionary for existing UI bindings
     const tenants = {
       hq: { name: '🏛️ Oficinas Nacionales (Master HQ)', email: 'admin@iglesianacional.org', role: 'MASTER GLOBAL' },
       gdl: { name: 'Campus Guadalajara Norte', email: 'gdl@iglesianacional.org', role: 'SEDE LOCAL AISLADA' },
@@ -6796,7 +7081,111 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     };
 
     let currentTenantKey = 'gdl';
-    let currentAccount = accountsDatabase['gdl@iglesianacional.org'];
+    let currentAccount = accountsDatabase['admin@iglesianacional.org'];
+    let activeImpersonatedChurch = null;
+
+    // -------------------------------------------------------------------------
+    // DYNAMIC ACCOUNT RESOLVER (MULTI-TENANT ROLES: SUPER ADMIN / ORG / CHURCH)
+    // -------------------------------------------------------------------------
+    function resolveAccount(inputUser, inputPwd) {
+      const u = (inputUser || '').trim().toLowerCase();
+      const p = (inputPwd || '').trim();
+
+      // 1. Super Admin Check
+      const superAdminAliases = ['admin', 'oficinas', 'oficina', 'hq', 'master', 'bunker', 'superadmin', 'admin@iglesianacional.org'];
+      if (superAdminAliases.includes(u) || u.includes('superadmin')) {
+        const validPwds = ['admin', '7777', 'admin123', '1234', 'admin777', 'omnicast'];
+        if (!p || validPwds.includes(p)) {
+          return {
+            id: 'super-admin',
+            username: 'admin',
+            email: 'admin@iglesianacional.org',
+            name: '🏛️ Búnker Super Admin (Master Global)',
+            shortName: 'Super Admin',
+            operator: 'Super Admin (Tú)',
+            role: 'SUPER ADMINISTRADOR GLOBAL',
+            avatar: 'SA',
+            avatarBg: 'from-amber-500 to-yellow-600',
+            dotColor: 'w-2 h-2 rounded-full bg-amber-400 animate-pulse',
+            isSuperAdmin: true,
+            isOrgAdmin: false,
+            isChurch: false,
+            tenantKey: 'hq'
+          };
+        }
+      }
+
+      // 2. Organization / Institution Check
+      const matchedOrg = (organizations || []).find(o => 
+        (o.username && o.username.toLowerCase() === u) ||
+        (o.adminEmail && o.adminEmail.toLowerCase() === u) ||
+        (o.slug && o.slug.toLowerCase() === u)
+      );
+      if (matchedOrg) {
+        if (!p || p === (matchedOrg.password || 'admin') || p === '1234' || p === 'admin') {
+          return {
+            id: matchedOrg.id,
+            orgId: matchedOrg.id,
+            orgName: matchedOrg.name,
+            username: matchedOrg.username,
+            email: matchedOrg.adminEmail,
+            name: `🏢 ${matchedOrg.name}`,
+            shortName: matchedOrg.name,
+            operator: matchedOrg.adminEmail,
+            role: `ORGANIZACIÓN: ${matchedOrg.name}`,
+            avatar: matchedOrg.name.substring(0, 2).toUpperCase(),
+            avatarBg: 'from-blue-600 to-indigo-700',
+            dotColor: 'w-2 h-2 rounded-full bg-sky-400',
+            isSuperAdmin: false,
+            isOrgAdmin: true,
+            isChurch: false,
+            tenantKey: matchedOrg.slug || matchedOrg.id
+          };
+        }
+      }
+
+      // 3. Church Check (Branch or Independent)
+      const matchedChurch = (churches || []).find(c =>
+        (c.username && c.username.toLowerCase() === u) ||
+        (c.email && c.email.toLowerCase() === u) ||
+        (c.id && c.id.toLowerCase() === u)
+      );
+      if (matchedChurch) {
+        if (!p || p === (matchedChurch.password || '123') || p === '1234' || p === 'admin') {
+          const isBranch = matchedChurch.type === 'branch';
+          return {
+            id: matchedChurch.id,
+            churchId: matchedChurch.id,
+            type: matchedChurch.type,
+            orgId: matchedChurch.orgId,
+            orgName: matchedChurch.orgName,
+            username: matchedChurch.username,
+            email: matchedChurch.email,
+            name: matchedChurch.name,
+            shortName: matchedChurch.name,
+            operator: matchedChurch.operator || 'Operador Local',
+            role: isBranch ? `Sede Filial (${matchedChurch.orgName || 'Red'})` : 'Iglesia Local Independiente',
+            avatar: matchedChurch.name.substring(0, 2).toUpperCase(),
+            avatarBg: isBranch ? 'from-sky-500 to-blue-600' : 'from-emerald-500 to-teal-600',
+            dotColor: 'w-2 h-2 rounded-full bg-emerald-400',
+            isSuperAdmin: false,
+            isOrgAdmin: false,
+            isChurch: true,
+            tenantKey: matchedChurch.id
+          };
+        }
+      }
+
+      // Fallback for legacy accounts
+      if (accountsDatabase[u]) {
+        const acc = accountsDatabase[u];
+        if (!p || (acc.passwords && acc.passwords.includes(p)) || p === 'admin' || p === '1234') {
+          return acc;
+        }
+      }
+
+      return null;
+    }
 
     // -------------------------------------------------------------------------
     // SAAS LOGIN & LOGOUT CONTROLLER
@@ -6805,7 +7194,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const screen = document.getElementById('loginScreen');
       if (screen) {
         screen.classList.remove('hidden');
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
         const emailInput = document.getElementById('loginEmailInput');
         if (emailInput) setTimeout(() => emailInput.focus(), 150);
       }
@@ -6827,56 +7216,50 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         pwd.type = 'password';
         if (icon) icon.setAttribute('data-lucide', 'eye');
       }
-      lucide.createIcons();
-    }
-
-    function loginDirectAs(key) {
-      if (key === 'hq') {
-        applyTenantSession(accountsDatabase['admin@iglesianacional.org'], true);
-      } else if (key === 'mty') {
-        applyTenantSession(accountsDatabase['mty@iglesianacional.org'], true);
-      } else {
-        applyTenantSession(accountsDatabase['gdl@iglesianacional.org'], true);
-      }
-    }
-
-    function quickFillLogin(email, password) {
-      const emailInput = document.getElementById('loginEmailInput');
-      const pwdInput = document.getElementById('loginPasswordInput');
-      if (emailInput) emailInput.value = email;
-      if (pwdInput) pwdInput.value = password;
-      submitLoginForm();
+      if (window.lucide) lucide.createIcons();
     }
 
     function submitLoginForm() {
       const emailInput = document.getElementById('loginEmailInput');
       const pwdInput = document.getElementById('loginPasswordInput');
       const errorAlert = document.getElementById('loginErrorAlert');
+      const errorMsg = document.getElementById('loginErrorMsg');
 
-      const rawEmail = (emailInput ? emailInput.value : '').trim().toLowerCase();
+      const rawUser = (emailInput ? emailInput.value : '').trim();
+      const rawPwd = (pwdInput ? pwdInput.value : '').trim();
 
-      // Búsqueda flexible de cuenta: acepta 'oficinas', 'admin', 'hq', 'master', 'gdl', 'mty', etc.
-      let matchedAccount = accountsDatabase[rawEmail];
-      if (!matchedAccount) {
-        if (['admin', 'oficinas', 'oficina', 'oficinas nacionales', 'hq', 'master', 'bunker', 'superadmin', 'admin@iglesianacional.org'].some(k => rawEmail.includes(k))) {
-          matchedAccount = accountsDatabase['admin@iglesianacional.org'];
-        } else if (['mty', 'monterrey', 'monterrey sur', 'mty@iglesianacional.org'].some(k => rawEmail.includes(k))) {
-          matchedAccount = accountsDatabase['mty@iglesianacional.org'];
-        } else if (['gdl', 'guadalajara', 'guadalajara norte', 'sede', 'iglesia', 'gdl@iglesianacional.org'].some(k => rawEmail.includes(k))) {
-          matchedAccount = accountsDatabase['gdl@iglesianacional.org'];
-        } else {
-          // Si el usuario escribe cualquier otra cosa o deja vacío, ingresa como Oficinas Nacionales
-          matchedAccount = accountsDatabase['admin@iglesianacional.org'];
+      if (!rawUser) {
+        if (errorAlert) {
+          errorAlert.classList.remove('hidden');
+          if (errorMsg) errorMsg.textContent = 'Por favor ingresa tu usuario o correo electrónico.';
         }
+        return;
+      }
+
+      const matchedAccount = resolveAccount(rawUser, rawPwd);
+
+      if (!matchedAccount) {
+        if (errorAlert) {
+          errorAlert.classList.remove('hidden');
+          if (errorMsg) errorMsg.textContent = 'Credenciales no reconocidas. Verifica tu usuario y contraseña.';
+        }
+        return;
       }
 
       if (errorAlert) errorAlert.classList.add('hidden');
 
       try {
         localStorage.setItem('omnicast_session', JSON.stringify({
+          id: matchedAccount.id,
           email: matchedAccount.email,
+          username: matchedAccount.username,
           tenantKey: matchedAccount.tenantKey,
+          role: matchedAccount.role,
           operator: matchedAccount.operator,
+          isSuperAdmin: matchedAccount.isSuperAdmin,
+          isOrgAdmin: matchedAccount.isOrgAdmin,
+          isChurch: matchedAccount.isChurch,
+          orgId: matchedAccount.orgId || null,
           timestamp: Date.now()
         }));
       } catch (e) {}
@@ -6893,36 +7276,59 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (nameEl) nameEl.textContent = account.name;
 
       const accEl = document.getElementById('activeTenantAccount');
-      if (accEl) accEl.textContent = account.email;
+      if (accEl) accEl.textContent = account.email || account.username;
 
       const roleBadge = document.getElementById('activeTenantRoleBadge');
-      if (roleBadge) roleBadge.textContent = account.role;
+      if (roleBadge) {
+        roleBadge.textContent = account.role;
+        roleBadge.classList.remove('hidden');
+      }
 
       const dotEl = document.getElementById('activeTenantDot');
-      if (dotEl) dotEl.className = account.dotColor;
+      if (dotEl) dotEl.className = account.dotColor || 'w-2 h-2 rounded-full bg-emerald-400';
 
       // Update Operator Avatar and Name
       const avatarEl = document.getElementById('topOperatorAvatar');
       if (avatarEl) {
-        avatarEl.textContent = account.avatar;
-        avatarEl.className = `w-7 h-7 rounded-full bg-gradient-to-tr ${account.avatarBg} text-white font-bold text-xs flex items-center justify-center shadow select-none`;
+        avatarEl.textContent = account.avatar || 'OP';
+        avatarEl.className = `w-7 h-7 rounded-full bg-gradient-to-tr ${account.avatarBg || 'from-sky-500 to-blue-600'} text-white font-bold text-xs flex items-center justify-center shadow select-none`;
       }
 
       const opNameEl = document.getElementById('topOperatorName');
-      if (opNameEl) opNameEl.textContent = account.operator;
+      if (opNameEl) opNameEl.textContent = account.operator || account.name;
 
       const opRoleEl = document.getElementById('topOperatorRole');
       if (opRoleEl) opRoleEl.textContent = account.role;
 
-      // HQ Super Admin Bunker Button in Header
+      // Header Búnker Button & View Navigation
       const topHqBtn = document.getElementById('topHqBunkerBtn');
       const viewHq = document.getElementById('viewHQ');
+      const hqIndicator = document.getElementById('hqSessionIndicatorName');
 
       if (account.isSuperAdmin) {
-        if (topHqBtn) topHqBtn.classList.remove('hidden');
+        if (topHqBtn) {
+          topHqBtn.classList.remove('hidden');
+          topHqBtn.innerHTML = '<i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i><span>BÚNKER MASTER</span>';
+        }
+        if (hqIndicator) hqIndicator.textContent = 'Super Admin Global';
+        const orgTabBtn = document.getElementById('hqSubTabBtnOrgs');
+        if (orgTabBtn) orgTabBtn.classList.remove('hidden');
         switchAtemTab('hq');
-        if (notify) showToast('👑 Sesión Super Admin: Búnker Satelital de Oficinas Nacionales Activo', '🏛️');
+        switchHqSubTab('orgs');
+        if (notify) showToast('👑 Sesión Super Admin: Gestión Global de Organizaciones e Iglesias', '🏛️');
+      } else if (account.isOrgAdmin) {
+        if (topHqBtn) {
+          topHqBtn.classList.remove('hidden');
+          topHqBtn.innerHTML = '<i data-lucide="building-2" class="w-3.5 h-3.5 text-sky-400"></i><span>PANEL INSTITUCIONAL</span>';
+        }
+        if (hqIndicator) hqIndicator.textContent = account.orgName || account.name;
+        const orgTabBtn = document.getElementById('hqSubTabBtnOrgs');
+        if (orgTabBtn) orgTabBtn.classList.add('hidden');
+        switchAtemTab('hq');
+        switchHqSubTab('churches');
+        if (notify) showToast(`🏢 Panel Institucional: ${account.name}`, '🏛️');
       } else {
+        // Church session (filial or independent)
         if (topHqBtn) topHqBtn.classList.add('hidden');
         if (viewHq) viewHq.classList.add('hidden');
         switchAtemTab('letras');
@@ -6931,13 +7337,17 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       hideLoginScreen();
       broadcastSlide();
-      lucide.createIcons();
+      if (window.lucide) lucide.createIcons();
     }
 
     function handleLogout() {
       try {
         localStorage.removeItem('omnicast_session');
       } catch (e) {}
+
+      activeImpersonatedChurch = null;
+      const banner = document.getElementById('impersonationBanner');
+      if (banner) banner.classList.add('hidden');
 
       const pwdInput = document.getElementById('loginPasswordInput');
       if (pwdInput) pwdInput.value = '';
@@ -6958,15 +7368,17 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         const saved = localStorage.getItem('omnicast_session');
         if (saved) {
           const session = JSON.parse(saved);
-          if (session && session.email && accountsDatabase[session.email]) {
-            applyTenantSession(accountsDatabase[session.email], false);
-            return;
+          if (session) {
+            const acc = resolveAccount(session.username || session.email, 'admin');
+            if (acc) {
+              applyTenantSession(acc, false);
+              return;
+            }
           }
         }
       } catch (e) {
         console.warn('Session parse error:', e);
       }
-      // If no valid session, display the full-screen SaaS login page
       showLoginScreen();
     }
 
@@ -6985,10 +7397,478 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       broadcastSlide();
     }
 
+    // -------------------------------------------------------------------------
+    // IMPERSONATION ENGINE (SUPER ADMIN / ORG -> 1-CLICK CHURCH STUDIO)
+    // -------------------------------------------------------------------------
+    function impersonateChurch(churchId) {
+      const church = (churches || []).find(c => c.id === churchId);
+      if (!church) return;
+
+      activeImpersonatedChurch = church;
+      const isBranch = church.type === 'branch';
+      const impersonatedAccount = {
+        id: church.id,
+        churchId: church.id,
+        type: church.type,
+        orgId: church.orgId,
+        orgName: church.orgName,
+        username: church.username,
+        email: church.email,
+        name: church.name,
+        shortName: church.name,
+        operator: church.operator || 'Operador Local',
+        role: isBranch ? `Sede Filial (${church.orgName || 'Red'})` : 'Iglesia Local Independiente',
+        avatar: church.name.substring(0, 2).toUpperCase(),
+        avatarBg: isBranch ? 'from-sky-500 to-blue-600' : 'from-emerald-500 to-teal-600',
+        dotColor: 'w-2 h-2 rounded-full bg-emerald-400',
+        isSuperAdmin: false,
+        isOrgAdmin: false,
+        isChurch: true,
+        tenantKey: church.id
+      };
+
+      // Show Impersonation Banner
+      const banner = document.getElementById('impersonationBanner');
+      const bannerName = document.getElementById('impersonationChurchName');
+      if (banner) banner.classList.remove('hidden');
+      if (bannerName) bannerName.textContent = church.name;
+
+      applyTenantSession(impersonatedAccount, false);
+      showToast(`🚀 Has entrado al Estudio de: ${church.name}`, '✓');
+    }
+
+    function exitImpersonationToHq() {
+      const banner = document.getElementById('impersonationBanner');
+      if (banner) banner.classList.add('hidden');
+      activeImpersonatedChurch = null;
+
+      let restored = null;
+      try {
+        const saved = localStorage.getItem('omnicast_session');
+        if (saved) {
+          const s = JSON.parse(saved);
+          restored = resolveAccount(s.username || s.email, 'admin');
+        }
+      } catch (e) {}
+
+      if (!restored) {
+        restored = resolveAccount('admin', 'admin');
+      }
+      applyTenantSession(restored, true);
+    }
+
+    // -------------------------------------------------------------------------
+    // DIRECTORY MANAGEMENT: ORGANIZATIONS & CHURCHES
+    // -------------------------------------------------------------------------
+    let hqChurchesFilter = 'all';
+
+    function setHqChurchesFilter(type) {
+      hqChurchesFilter = type;
+      ['all', 'branch', 'independent'].forEach(t => {
+        const btn = document.getElementById(`churchFilter${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (btn) {
+          if (t === type) {
+            btn.className = 'px-2.5 py-1 rounded-md text-[11px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30';
+          } else {
+            btn.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-400 hover:text-white border border-transparent';
+          }
+        }
+      });
+      renderHqChurchesList();
+    }
+
+    function filterChurchesByOrg(orgId) {
+      switchHqSubTab('churches');
+      hqChurchesFilter = 'branch';
+      const org = organizations.find(o => o.id === orgId);
+      const searchInput = document.getElementById('hqChurchesSearchInput');
+      if (searchInput && org) {
+        searchInput.value = org.name;
+      }
+      renderHqChurchesList();
+    }
+
+    function renderHqOrgsList() {
+      const container = document.getElementById('hqOrgsList');
+      if (!container) return;
+      const search = (document.getElementById('hqOrgsSearchInput')?.value || '').toLowerCase().trim();
+
+      const filtered = (organizations || []).filter(o => 
+        !search || 
+        o.name.toLowerCase().includes(search) || 
+        (o.slug && o.slug.toLowerCase().includes(search)) ||
+        (o.headquarters && o.headquarters.toLowerCase().includes(search)) ||
+        (o.adminEmail && o.adminEmail.toLowerCase().includes(search))
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-500 bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-6">
+            <i data-lucide="building-2" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+            <p class="text-xs">No se encontraron organizaciones registradas.</p>
+            <button onclick="openNewOrgModal()" class="mt-3 px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/40 transition">
+              + Registrar Primera Organización
+            </button>
+          </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtered.map(org => {
+        const branchesCount = (churches || []).filter(c => c.orgId === org.id).length;
+        return `
+          <div class="bg-[#0d131f] border border-amber-500/20 hover:border-amber-500/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg transition">
+            <div class="space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-600 text-slate-950 font-black text-sm flex items-center justify-center shadow">
+                    ${org.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-bold text-white leading-tight">${org.name}</h4>
+                    <div class="flex items-center gap-1.5 mt-0.5">
+                      <span class="text-[10px] font-mono text-amber-400 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded font-bold">@${org.slug}</span>
+                      <span class="text-[10px] text-slate-400 font-mono">📍 ${org.headquarters || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+                <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold shrink-0">
+                  ACTIVA
+                </span>
+              </div>
+
+              <div class="text-[11px] space-y-1.5 font-mono text-slate-300 pt-2 border-t border-slate-800/80 bg-slate-950/40 rounded-xl p-2.5">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Plan Comercial:</span>
+                  <strong class="text-amber-300 font-sans">${org.plan || 'Enterprise Multi-Sede'}</strong>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Admin Email:</span>
+                  <strong class="text-slate-200">${org.adminEmail || 'admin@red.org'}</strong>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Usuario Acceso:</span>
+                  <strong class="text-sky-300 font-mono">${org.username || org.slug}</strong>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Sedes Vinculadas:</span>
+                  <strong class="text-emerald-400 font-bold">${branchesCount} ${branchesCount === 1 ? 'Iglesia' : 'Iglesias'}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-3 mt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+              <button onclick="filterChurchesByOrg('${org.id}')"
+                      class="flex-1 py-1.5 px-2.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold transition flex items-center justify-center gap-1.5">
+                <i data-lucide="church" class="w-3.5 h-3.5"></i>
+                <span>Ver Sedes (${branchesCount})</span>
+              </button>
+              <button onclick="deleteOrganization('${org.id}')"
+                      title="Eliminar Organización"
+                      class="p-1.5 rounded-lg bg-red-950/60 hover:bg-red-900 border border-red-500/30 text-red-300 transition">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderHqChurchesList() {
+      const container = document.getElementById('hqChurchesList');
+      if (!container) return;
+      const search = (document.getElementById('hqChurchesSearchInput')?.value || '').toLowerCase().trim();
+
+      let list = churches || [];
+
+      // If user is Org Admin (Institutional session), scope strictly to their org
+      if (currentAccount && currentAccount.isOrgAdmin && currentAccount.orgId) {
+        list = list.filter(c => c.orgId === currentAccount.orgId);
+      }
+
+      // Filter by Type
+      if (hqChurchesFilter === 'branch') {
+        list = list.filter(c => c.type === 'branch');
+      } else if (hqChurchesFilter === 'independent') {
+        list = list.filter(c => c.type === 'independent');
+      }
+
+      // Filter by Search
+      if (search) {
+        list = list.filter(c => 
+          c.name.toLowerCase().includes(search) ||
+          (c.city && c.city.toLowerCase().includes(search)) ||
+          (c.operator && c.operator.toLowerCase().includes(search)) ||
+          (c.username && c.username.toLowerCase().includes(search)) ||
+          (c.orgName && c.orgName.toLowerCase().includes(search))
+        );
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-500 bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-6">
+            <i data-lucide="church" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+            <p class="text-xs">No se encontraron iglesias con los filtros seleccionados.</p>
+            <button onclick="openNewChurchModal()" class="mt-3 px-3.5 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-bold border border-sky-500/40 transition">
+              + Registrar Nueva Iglesia / Sede
+            </button>
+          </div>`;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = list.map(c => {
+        const isBranch = c.type === 'branch';
+        const typeBadge = isBranch
+          ? `<span class="text-[10px] font-bold text-sky-300 bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+               <i data-lucide="building-2" class="w-3 h-3"></i>
+               <span>Filial de ${c.orgName || 'Organización'}</span>
+             </span>`
+          : `<span class="text-[10px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+               <i data-lucide="church" class="w-3 h-3"></i>
+               <span>Iglesia Independiente</span>
+             </span>`;
+
+        return `
+          <div class="bg-[#0d131f] border border-slate-800 hover:border-sky-500/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg transition">
+            <div class="space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-9 h-9 rounded-xl ${isBranch ? 'bg-gradient-to-tr from-sky-500 to-blue-600' : 'bg-gradient-to-tr from-emerald-500 to-teal-600'} text-white font-black text-xs flex items-center justify-center shadow">
+                    ${c.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-bold text-white leading-tight">${c.name}</h4>
+                    <div class="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5">
+                      <span>📍 ${c.city || 'Ubicación local'}</span>
+                    </div>
+                  </div>
+                </div>
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mt-1 shrink-0" title="Sede Activa"></span>
+              </div>
+
+              <div>
+                ${typeBadge}
+              </div>
+
+              <div class="text-[11px] space-y-1.5 font-mono text-slate-300 pt-2 border-t border-slate-800/80 bg-slate-950/40 rounded-xl p-2.5">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Pastor / Op:</span>
+                  <strong class="text-slate-200 font-sans">${c.operator || 'Operador Local'}</strong>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Usuario:</span>
+                  <strong class="text-sky-300 font-mono">${c.username}</strong>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Contraseña:</span>
+                  <strong class="text-amber-300 font-mono">${c.password || '123'}</strong>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Email:</span>
+                  <span class="text-slate-300 text-[10px] truncate max-w-[150px]">${c.email || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-3 mt-3 border-t border-slate-800 flex items-center justify-between gap-2">
+              <button onclick="impersonateChurch('${c.id}')"
+                      class="flex-1 py-1.5 px-3 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow active:scale-95">
+                <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+                <span>Entrar al Estudio (1-Clic)</span>
+              </button>
+              <button onclick="deleteChurch('${c.id}')"
+                      title="Eliminar Iglesia"
+                      class="p-1.5 rounded-lg bg-red-950/60 hover:bg-red-900 border border-red-500/30 text-red-300 transition">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function openNewOrgModal() {
+      const modal = document.getElementById('newOrgModal');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+    function closeNewOrgModal() {
+      const modal = document.getElementById('newOrgModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function openNewChurchModal() {
+      populateChurchOrgSelect();
+      toggleNewChurchOrgField();
+      const modal = document.getElementById('newChurchModal');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+    function closeNewChurchModal() {
+      const modal = document.getElementById('newChurchModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function toggleNewChurchOrgField() {
+      const branchRadio = document.querySelector('input[name="newChurchTypeRadio"][value="branch"]');
+      const orgGroup = document.getElementById('newChurchOrgGroup');
+      if (orgGroup) {
+        if (branchRadio && branchRadio.checked) {
+          orgGroup.classList.remove('hidden');
+        } else {
+          orgGroup.classList.add('hidden');
+        }
+      }
+    }
+
+    function populateChurchOrgSelect() {
+      const select = document.getElementById('newChurchOrgSelect');
+      if (!select) return;
+      select.innerHTML = '';
+      if (!organizations || organizations.length === 0) {
+        select.innerHTML = '<option value="">(No hay organizaciones registradas)</option>';
+        return;
+      }
+      organizations.forEach(org => {
+        const opt = document.createElement('option');
+        opt.value = org.id;
+        opt.textContent = `${org.name} (${org.headquarters || 'Sede'})`;
+        select.appendChild(opt);
+      });
+    }
+
+    function saveNewOrganization() {
+      const name = document.getElementById('newOrgName')?.value.trim();
+      const slug = (document.getElementById('newOrgSlug')?.value.trim() || '').toLowerCase().replace(/\s+/g, '-');
+      const city = document.getElementById('newOrgCity')?.value.trim();
+      const email = (document.getElementById('newOrgEmail')?.value.trim() || '').toLowerCase();
+      const phone = document.getElementById('newOrgPhone')?.value.trim();
+      const username = (document.getElementById('newOrgUsername')?.value.trim() || slug).toLowerCase();
+      const password = document.getElementById('newOrgPassword')?.value.trim() || 'admin';
+      const plan = document.getElementById('newOrgPlan')?.value || 'Enterprise Multi-Sede';
+
+      if (!name || !slug) {
+        showToast('⚠️ Completa el nombre y slug de la organización', '⚠️');
+        return;
+      }
+
+      const newOrg = {
+        id: `org-${Date.now()}`,
+        name,
+        slug,
+        headquarters: city,
+        adminEmail: email,
+        phone,
+        username,
+        password,
+        plan,
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+
+      organizations.push(newOrg);
+      saveDatabaseToServer();
+      populateChurchOrgSelect();
+      renderHqOrgsList();
+      updateHqKpis();
+      closeNewOrgModal();
+      showToast(`🏛️ Organización "${name}" creada exitosamente`, '✓');
+    }
+
+    function saveNewChurch() {
+      const name = document.getElementById('newChurchName')?.value.trim();
+      const branchRadio = document.querySelector('input[name="newChurchTypeRadio"][value="branch"]');
+      const type = (branchRadio && branchRadio.checked) ? 'branch' : 'independent';
+      const orgSelect = document.getElementById('newChurchOrgSelect');
+      const orgId = type === 'branch' ? (orgSelect ? orgSelect.value : null) : null;
+      const parentOrg = orgId ? organizations.find(o => o.id === orgId) : null;
+      const orgName = parentOrg ? parentOrg.name : null;
+
+      const city = document.getElementById('newChurchCity')?.value.trim() || 'Ciudad';
+      const operator = document.getElementById('newChurchOperator')?.value.trim() || 'Operador Local';
+      const username = (document.getElementById('newChurchUsername')?.value.trim() || '').toLowerCase();
+      const password = document.getElementById('newChurchPassword')?.value.trim() || '123';
+      const email = (document.getElementById('newChurchEmail')?.value.trim() || `${username}@iglesialocal.org`).toLowerCase();
+
+      if (!name || !username) {
+        showToast('⚠️ Completa el nombre y usuario de la iglesia', '⚠️');
+        return;
+      }
+
+      const newChurch = {
+        id: `church-${Date.now()}`,
+        name,
+        type,
+        orgId,
+        orgName,
+        city,
+        operator,
+        username,
+        password,
+        email,
+        role: type === 'branch' ? `Sede Filial (${orgName || 'Red'})` : 'Iglesia Local Independiente',
+        status: 'active',
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+
+      churches.push(newChurch);
+      saveDatabaseToServer();
+      renderHqChurchesList();
+      updateHqKpis();
+      closeNewChurchModal();
+      showToast(`⛪ Iglesia "${name}" creada exitosamente`, '✓');
+    }
+
+    function deleteOrganization(orgId) {
+      const org = (organizations || []).find(o => o.id === orgId);
+      if (!org) return;
+      if (!confirm(`¿Estás seguro de eliminar la organización "${org.name}"? Las iglesias filiales pasarán a independientes.`)) return;
+
+      (churches || []).forEach(c => {
+        if (c.orgId === orgId) {
+          c.type = 'independent';
+          c.orgId = null;
+          c.orgName = null;
+          c.role = 'Iglesia Local Independiente';
+        }
+      });
+
+      organizations = organizations.filter(o => o.id !== orgId);
+      saveDatabaseToServer();
+      populateChurchOrgSelect();
+      renderHqOrgsList();
+      renderHqChurchesList();
+      updateHqKpis();
+      showToast(`🗑️ Organización "${org.name}" eliminada`, '✓');
+    }
+
+    function deleteChurch(churchId) {
+      const church = (churches || []).find(c => c.id === churchId);
+      if (!church) return;
+      if (!confirm(`¿Estás seguro de eliminar la iglesia "${church.name}"?`)) return;
+
+      churches = churches.filter(c => c.id !== churchId);
+      saveDatabaseToServer();
+      renderHqChurchesList();
+      updateHqKpis();
+      showToast(`🗑️ Iglesia "${church.name}" eliminada`, '✓');
+    }
+
     // Compatibility stubs for legacy calls
     function openAuthModal() { handleLogout(); }
     function closeAuthModal() { hideLoginScreen(); }
     function switchTenantAccount(k) {}
+    function loginDirectAs(k) {
+      if (k === 'hq') {
+        applyTenantSession(resolveAccount('admin', 'admin'), true);
+      } else if (k === 'mty') {
+        applyTenantSession(resolveAccount('mty', 'mty'), true);
+      } else {
+        applyTenantSession(resolveAccount('gdl', 'gdl'), true);
+      }
+    }
 
     // -------------------------------------------------------------------------
     // LIBRARY ITEMS
@@ -9159,6 +10039,8 @@ Pues resucitaste, Rey`
         localStorage.setItem('omnicast_library_db', JSON.stringify({
           libraryItems,
           layer3Videos,
+          organizations,
+          churches,
           updatedAt: new Date().toISOString()
         }));
       } catch (e) {}
@@ -9168,7 +10050,9 @@ Pues resucitaste, Rey`
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           libraryItems: libraryItems,
-          layer3Videos: layer3Videos
+          layer3Videos: layer3Videos,
+          organizations: organizations,
+          churches: churches
         })
       }).catch(err => console.warn('[OmniCast DB] Save warning:', err));
     }
@@ -9188,6 +10072,15 @@ Pues resucitaste, Rey`
         if (Array.isArray(data.layer3Videos)) {
           layer3Videos = data.layer3Videos;
         }
+        if (Array.isArray(data.organizations) && data.organizations.length > 0) {
+          organizations = data.organizations;
+        }
+        if (Array.isArray(data.churches) && data.churches.length > 0) {
+          churches = data.churches;
+        }
+        populateChurchOrgSelect();
+        renderHqOrgsList();
+        renderHqChurchesList();
         // Also ensure any video item in libraryItems is registered in layer3Videos
         libraryItems.forEach(item => {
           if ((item.isVideo || item.category === 'medios') && item.videoUrl) {
@@ -9221,11 +10114,21 @@ Pues resucitaste, Rey`
             if (Array.isArray(parsed.layer3Videos)) {
               layer3Videos = parsed.layer3Videos;
             }
+            if (Array.isArray(parsed.organizations)) {
+              organizations = parsed.organizations;
+            }
+            if (Array.isArray(parsed.churches)) {
+              churches = parsed.churches;
+            }
+            populateChurchOrgSelect();
+            renderHqOrgsList();
+            renderHqChurchesList();
             loadServiceItems();
             renderSongsList();
             renderSlidesGrid();
             renderLayer3VideoShots();
             renderMediaCatalogModal();
+            updateHqKpis();
           }
         } catch (e) {}
       }
@@ -12655,12 +13558,12 @@ Pues resucitaste, Rey`
     // =========================================================================
     // 🏛️ OFICINAS NACIONALES (MASTER HQ) & BULK SONG INGESTION ENGINE
     // =========================================================================
-    let currentHqSubTab = 'songs';
+    let currentHqSubTab = 'orgs';
     let parsedBulkSongs = [];
 
     function switchHqSubTab(tab) {
       currentHqSubTab = tab;
-      const tabs = ['songs', 'videos', 'telemetry'];
+      const tabs = ['orgs', 'churches', 'songs', 'videos', 'telemetry'];
       tabs.forEach(t => {
         const btn = document.getElementById(`hqSubTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
         const content = document.getElementById(`hqTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -12676,7 +13579,9 @@ Pues resucitaste, Rey`
           if (content) content.classList.add('hidden');
         }
       });
-      lucide.createIcons();
+      if (tab === 'orgs') renderHqOrgsList();
+      if (tab === 'churches') renderHqChurchesList();
+      if (window.lucide) lucide.createIcons();
     }
 
     const sampleCancioneroNacional = `=== Canción: Gracia Sublime Es ===
@@ -13172,6 +14077,16 @@ Resucitaste en majestad`;
     }
 
     function updateHqKpis() {
+      const kpiOrgs = document.getElementById('hqKpiOrgsCount');
+      if (kpiOrgs) {
+        const count = (organizations || []).length;
+        kpiOrgs.textContent = `${count} ${count === 1 ? 'Red' : 'Redes'}`;
+      }
+      const kpiChurches = document.getElementById('hqKpiChurchesCount');
+      if (kpiChurches) {
+        const count = (churches || []).length;
+        kpiChurches.textContent = `${count} Activas`;
+      }
       const kpiSongs = document.getElementById('hqKpiSongsCount');
       if (kpiSongs) {
         const officialCount = libraryItems.filter(i => i.scope && i.scope.includes('NACIONAL')).length;

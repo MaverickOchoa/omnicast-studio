@@ -45,6 +45,8 @@ const MIME_TYPES = {
 let persistentDb = {
   libraryItems: [],
   layer3Videos: [],
+  organizations: [],
+  churches: [],
   updatedAt: null
 };
 
@@ -56,12 +58,79 @@ function loadPersistentDatabase() {
       if (parsed && typeof parsed === 'object') {
         if (Array.isArray(parsed.libraryItems)) persistentDb.libraryItems = parsed.libraryItems;
         if (Array.isArray(parsed.layer3Videos)) persistentDb.layer3Videos = parsed.layer3Videos;
+        if (Array.isArray(parsed.organizations)) persistentDb.organizations = parsed.organizations;
+        if (Array.isArray(parsed.churches)) persistentDb.churches = parsed.churches;
         persistentDb.updatedAt = parsed.updatedAt || new Date().toISOString();
       }
     }
   } catch (e) {
     console.warn('[OmniCast DB] Error reading database.json:', e.message);
   }
+
+  // Seed default Multi-Tenant organizations and churches if not present
+  if (!persistentDb.organizations || persistentDb.organizations.length === 0) {
+    persistentDb.organizations = [
+      {
+        id: 'org-alianza',
+        name: 'Alianza Cristiana Nacional',
+        slug: 'alianza',
+        adminEmail: 'red@alianzacristiana.org',
+        username: 'alianza',
+        password: 'admin',
+        headquarters: 'Ciudad de México',
+        phone: '+52 55 1234 5678',
+        plan: 'Enterprise Multi-Sede',
+        createdAt: '2026-01-15'
+      }
+    ];
+  }
+  if (!persistentDb.churches || persistentDb.churches.length === 0) {
+    persistentDb.churches = [
+      {
+        id: 'church-gdl',
+        name: 'Campus Guadalajara Norte',
+        type: 'branch', // 'branch' = pertenece a organización, 'independent' = iglesia sola
+        orgId: 'org-alianza',
+        orgName: 'Alianza Cristiana Nacional',
+        city: 'Guadalajara, Jalisco',
+        email: 'gdl@iglesianacional.org',
+        username: 'gdl',
+        password: 'gdl',
+        operator: 'Carlos M.',
+        role: 'Master de Sede Filial',
+        status: 'active'
+      },
+      {
+        id: 'church-mty',
+        name: 'Campus Monterrey Sur',
+        type: 'branch',
+        orgId: 'org-alianza',
+        orgName: 'Alianza Cristiana Nacional',
+        city: 'Monterrey, Nuevo León',
+        email: 'mty@iglesianacional.org',
+        username: 'mty',
+        password: 'mty',
+        operator: 'Jorge T.',
+        role: 'Master de Sede Filial',
+        status: 'active'
+      },
+      {
+        id: 'church-hebron',
+        name: 'Comunidad Cristiana Hebrón',
+        type: 'independent', // Iglesia sola / independiente
+        orgId: null,
+        orgName: null,
+        city: 'Zapopan, Jalisco',
+        email: 'hebron@iglesialocal.org',
+        username: 'hebron',
+        password: '123',
+        operator: 'Pastor Roberto G.',
+        role: 'Iglesia Local Independiente',
+        status: 'active'
+      }
+    ];
+  }
+
   return persistentDb;
 }
 
@@ -588,6 +657,8 @@ const requestHandler = (req, res) => {
     const payload = JSON.stringify({
       libraryItems: persistentDb.libraryItems,
       layer3Videos: persistentDb.layer3Videos,
+      organizations: persistentDb.organizations || [],
+      churches: persistentDb.churches || [],
       diskVideos,
       updatedAt: persistentDb.updatedAt
     });
@@ -596,7 +667,7 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  // Endpoint: Save / Sync Persistent Database (Songs, Lyrics, Videos)
+  // Endpoint: Save / Sync Persistent Database (Songs, Lyrics, Videos, Organizations, Churches)
   if (parsedUrl === '/api/db/save' && req.method === 'POST') {
     const chunks = [];
     req.on('data', c => chunks.push(c));
@@ -611,11 +682,19 @@ const requestHandler = (req, res) => {
         if (Array.isArray(data.layer3Videos)) {
           persistentDb.layer3Videos = data.layer3Videos;
         }
+        if (Array.isArray(data.organizations)) {
+          persistentDb.organizations = data.organizations;
+        }
+        if (Array.isArray(data.churches)) {
+          persistentDb.churches = data.churches;
+        }
         savePersistentDatabase();
         broadcastSSE('state', studioState);
         broadcastSSE('db_update', {
           libraryItems: persistentDb.libraryItems,
           layer3Videos: persistentDb.layer3Videos,
+          organizations: persistentDb.organizations,
+          churches: persistentDb.churches,
           updatedAt: persistentDb.updatedAt
         });
         res.writeHead(200, { 'Content-Type': 'application/json' });
