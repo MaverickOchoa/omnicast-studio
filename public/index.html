@@ -6883,19 +6883,6 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       applyTenantSession(matchedAccount, true);
     }
-            tenantKey: matchedAccount.tenantKey,
-            operator: matchedAccount.operator,
-            timestamp: Date.now()
-          }));
-        } catch (e) {
-          console.warn('Could not save session to localStorage:', e);
-        }
-      } else {
-        localStorage.removeItem('omnicast_session');
-      }
-
-      applyTenantSession(matchedAccount, true);
-    }
 
     function applyTenantSession(account, notify = true) {
       currentAccount = account;
@@ -9496,8 +9483,6 @@ Pues resucitaste, Rey`
               showToast(`⚡ Video "${title}" subido y proyectándose en vivo`, '🎬');
             } else {
               showToast(`✓ Video "${title}" guardado en Catálogo y agregado al Servicio`, '🎬');
-            }
-              showToast(`💾 Video "${title}" guardado en Base de Datos y Capa 3`, '🎬');
             }
           } catch (parseErr) {
             alert('Error procesando respuesta del servidor.');
