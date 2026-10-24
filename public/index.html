@@ -9924,7 +9924,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const q = (searchIn ? searchIn.value : '').toLowerCase().trim();
 
       const videos = libraryItems.filter(item => {
-        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+        const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
         if (!isVideo) return false;
 
         // Ocultar videos que ya hayan caducado
@@ -9970,7 +9970,10 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       videos.forEach(item => {
         const inService = serviceItemIds.includes(item.id);
-        const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
+        const isMaster = Boolean(
+          (item.scope && (item.scope.includes('NACIONAL') || item.scope.includes('OFICIAL') || item.scope.includes('RED') || item.scope.includes('GLOBAL') || item.scope.includes('MASTER') || item.scope.includes('🏢') || item.scope.includes('👑'))) ||
+          item.targetOrgId
+        );
         const card = document.createElement('div');
         card.className = `p-3 rounded-xl border flex flex-col justify-between gap-3 transition ${
           inService ? 'bg-slate-900/90 border-emerald-500/40 shadow-sm' : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
@@ -10509,15 +10512,20 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             </button>
           </div>
         `;
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
         return;
       }
 
       activeServiceItems.forEach((item, index) => {
         const originalIndex = libraryItems.indexOf(item);
         const isSelected = originalIndex === currentItemIndex;
-        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
-        const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
+        const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
+
+        // Detectar si proviene de oficinas centrales / red institucional
+        const isMaster = Boolean(
+          (item.scope && (item.scope.includes('NACIONAL') || item.scope.includes('OFICIAL') || item.scope.includes('RED') || item.scope.includes('GLOBAL') || item.scope.includes('MASTER') || item.scope.includes('🏢') || item.scope.includes('👑'))) ||
+          item.targetOrgId
+        );
 
         const div = document.createElement('div');
         div.className = `p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between gap-2 group ${
@@ -10527,7 +10535,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         }`;
         div.onclick = () => selectItem(originalIndex);
 
-        const typeIcon = isVideo ? (isMaster ? '👑' : '🎬') : (item.category === 'biblia' ? '📖' : '🎵');
+        const typeIcon = isVideo ? (isMaster ? '👑' : '🎬') : (item.category === 'biblia' ? '📖' : (isMaster ? '👑' : '🎵'));
+        
         let metaText = item.author || '';
         if (isVideo && item.durationFormatted) {
           metaText = `${item.durationFormatted}${item.sizeMb ? ` • ${item.sizeMb} MB` : ''}`;
@@ -10536,203 +10545,39 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         let badgeHtml = '';
         if (isVideo) {
           badgeHtml = isMaster
-            ? `<span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold shrink-0">👑 MASTER</span>`
+            ? `<span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold flex items-center gap-1 shrink-0">
+                 <span>👑</span> <span>OFICIAL RED</span>
+               </span>`
             : `<span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold shrink-0">📍 LOCAL</span>`;
+        } else if (item.category === 'biblia') {
+          badgeHtml = `<span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold shrink-0">SAGRADAS ESCRITURAS</span>`;
         } else {
-          badgeHtml = `<span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded ${
-            isMaster ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'
-          } shrink-0">${item.scope || 'LOCAL'}</span>`;
+          badgeHtml = isMaster
+            ? `<span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold flex items-center gap-1 shrink-0">
+                 <span>👑</span> <span>OFICIAL RED</span>
+               </span>`
+            : `<span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 shrink-0">${item.scope || 'LOCAL'}</span>`;
         }
 
         div.innerHTML = `
-          <div class="flex items-center gap-2 min-w-0 flex-1">
-            <span class="text-sm shrink-0 select-none">${typeIcon}</span>
-            <div class="flex flex-col min-w-0 flex-1">
-              <span class="text-xs font-bold leading-tight truncate">${item.title}</span>
-              <span class="text-[10px] text-slate-400 truncate mt-0.5">${metaText}</span>
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-base select-none shrink-0">${typeIcon}</span>
+            <div class="flex flex-col min-w-0">
+              <span class="text-xs font-bold leading-tight truncate text-white">${item.title}</span>
+              <span class="text-[10px] text-slate-400 truncate">${metaText || item.scope || 'Sede Local'}</span>
             </div>
           </div>
           <div class="flex items-center gap-1 shrink-0">
             ${badgeHtml}
-            <button onclick="removeFromService('${item.id}', event)" title="Quitar de la lista del servicio de hoy (sigue en el catálogo)"
-                    class="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition">
-              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            <button onclick="removeFromService('${item.id}', event)" title="Quitar del servicio" class="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 rounded transition text-slate-400">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
           </div>
         `;
         container.appendChild(div);
       });
-      lucide.createIcons();
-    }
-
-    function renderSlidesGrid() {
-      const item = libraryItems[currentItemIndex];
-      if (!item) return;
-      const isVideo = item.category === 'medios' || Boolean(item.isVideo);
-      const isBible = item.category === 'biblia' || item.scope === 'SAGRADAS ESCRITURAS' || (item.author && item.author.toLowerCase().includes('valera'));
-
-      document.getElementById('activeSongTitle').textContent = item.title;
-      document.getElementById('activeSongAuthor').textContent = `${item.author || ''} • ${item.scope || 'SEDE LOCAL'}`;
-
-      const transportBar = document.getElementById('activeVideoTransportBar');
-      if (transportBar) {
-        if (isVideo && item.videoUrl) {
-          transportBar.classList.remove('hidden');
-        } else {
-          transportBar.classList.add('hidden');
-        }
-      }
-
-      const streamBadge = document.getElementById('activeSongStreamModeBadge');
-      if (streamBadge) {
-        if (isVideo) {
-          streamBadge.textContent = '📺 TRANSMISIÓN: VIDEO PANTALLA COMPLETA';
-          streamBadge.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse';
-        } else if (isBible) {
-          streamBadge.textContent = '📖 SAGRADAS ESCRITURAS (LOWER THIRD ALFA)';
-          streamBadge.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40';
-        } else {
-          streamBadge.textContent = 'TRANSMISIÓN: LOWER THIRD (ALFA)';
-          streamBadge.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/40';
-        }
-      }
-
-      const grid = document.getElementById('slidesGrid');
-      grid.innerHTML = '';
-
-      const currentThemeConfig = themesPalette[currentTheme] || themesPalette.purple;
-
-      // Caso 1: Archivo de Video
-      if (isVideo && item.videoUrl) {
-        const card = document.createElement('div');
-        card.className = `col-span-full md:col-span-2 aspect-video rounded-xl border-2 border-rose-500 bg-slate-950 p-3 flex flex-col justify-between cursor-pointer transition shadow-xl relative overflow-hidden group`;
-        card.onclick = () => {
-          triggerSlide(0);
-          const progVid = document.getElementById('programMediaVideo');
-          if (progVid && progVid.paused) {
-            toggleActiveVideoPlayPause(true);
-          }
-        };
-        card.innerHTML = `
-          <video src="${item.videoUrl}#t=0.5" muted playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-55 group-hover:opacity-75 transition"></video>
-          <div class="flex items-center justify-between z-10">
-            <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow">
-              🎬 ARCHIVO DE VIDEO HD
-            </span>
-            <span class="text-[10px] font-mono text-white bg-black/70 px-2 py-0.5 rounded">${item.durationFormatted || (typeof formatTime === 'function' ? formatTime(item.duration || 120) : '02:00')}</span>
-          </div>
-          <div class="z-10 my-auto text-center px-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
-            <div class="w-12 h-12 mx-auto mb-2 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition">
-              <i data-lucide="play" class="w-6 h-6"></i>
-            </div>
-            <p class="text-sm font-black text-white leading-snug">${item.title}</p>
-            <p class="text-[11px] text-rose-200 mt-1">Haz clic para proyectar en HDMI y transmitir en pantalla completa</p>
-          </div>
-          <div class="z-10 flex items-center justify-between text-[10px] font-mono bg-black/70 px-2.5 py-1 rounded-lg">
-            <span class="text-emerald-400 font-bold">● LISTO EN PROYECTOR Y STREAM</span>
-            <span class="text-slate-300">${item.videoUrl}</span>
-          </div>
-        `;
-        grid.appendChild(card);
-        if (window.lucide) lucide.createIcons();
-        updateMonitors();
-        return;
-      }
-
-      // Caso 2: Versículos Bíblicos (Diseño Especial Ergonómico & Nítido ProPresenter)
-      if (isBible) {
-        (item.slides || []).forEach((slide, idx) => {
-          const isCurrent = idx === currentSlideIndex;
-          const card = document.createElement('div');
-          
-          card.className = `w-full min-h-[150px] h-auto rounded-xl border-2 p-3.5 flex flex-col justify-between cursor-pointer transition shadow-lg relative group ${
-            isCurrent 
-              ? 'border-amber-500 bg-gradient-to-br from-amber-500/15 via-slate-900 to-slate-950 ring-2 ring-amber-500/40 shadow-amber-950/40 shadow-xl' 
-              : 'border-slate-800/90 bg-[#0d131f] hover:border-amber-500/40 hover:bg-slate-900/80'
-          }`;
-          card.onclick = () => triggerSlide(idx);
-
-          card.innerHTML = `
-            <!-- Top Bar: Cita Bíblica y Número de Versículo -->
-            <div class="flex items-center justify-between gap-2 border-b border-slate-800/70 pb-2 mb-2">
-              <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md ${
-                isCurrent 
-                  ? 'bg-amber-500 text-slate-950 shadow-sm' 
-                  : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
-              }">
-                ${slide.badge || 'VERSÍCULO ' + (idx + 1)}
-              </span>
-              <span class="text-xs font-mono font-bold ${isCurrent ? 'text-amber-300' : 'text-slate-400'}">
-                #${idx + 1}
-              </span>
-            </div>
-
-            <!-- Body: Texto Bíblico Completo, Legible y Bien Espaciado -->
-            <div class="flex-1 flex items-center my-1.5">
-              <p class="text-xs md:text-[13px] font-sans font-medium leading-relaxed ${
-                isCurrent ? 'text-white' : 'text-slate-200'
-              } text-left select-none">
-                ${slide.text}
-              </p>
-            </div>
-
-            <!-- Bottom Bar: Versión de Biblia y Estado de Proyección -->
-            <div class="flex items-center justify-between pt-2 border-t border-slate-800/70 text-[10px] mt-1">
-              <span class="text-slate-400 font-sans truncate max-w-[200px]">
-                ${slide.subText || ''}
-              </span>
-              <span class="font-mono font-bold ${
-                isCurrent ? 'text-amber-400 animate-pulse flex items-center gap-1' : 'text-slate-500'
-              }">
-                ${isCurrent ? '● EN PANTALLA' : 'Listo'}
-              </span>
-            </div>
-          `;
-          grid.appendChild(card);
-        });
-
-        if (window.lucide) lucide.createIcons();
-        updateMonitors();
-        return;
-      }
-
-      // Caso 3: Canciones y Alabanzas Generales (Altura automática, sin colapsar el grid)
-      (item.slides || []).forEach((slide, idx) => {
-        const isCurrent = idx === currentSlideIndex;
-        const card = document.createElement('div');
-        card.className = `w-full min-h-[140px] h-auto rounded-xl border-2 p-3 flex flex-col justify-between cursor-pointer transition shadow-md relative overflow-hidden group ${
-          isCurrent 
-            ? `bg-gradient-to-br ${currentThemeConfig.slideTint} ring-2 ${currentThemeConfig.activeRing}` 
-            : 'border-slate-800 bg-slate-950/80 hover:border-slate-600 hover:bg-slate-900'
-        }`;
-        card.onclick = () => triggerSlide(idx);
-
-        card.innerHTML = `
-          <div class="flex items-center justify-between z-10 mb-2">
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
-              isCurrent ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-300'
-            }">
-              ${slide.badge || 'PARTE ' + (idx + 1)}
-            </span>
-            <span class="text-[10px] font-mono text-slate-400">#${idx + 1}</span>
-          </div>
-          <div class="z-10 my-auto text-center px-1 py-1">
-            <p class="text-xs font-bold ${isCurrent ? 'text-white' : 'text-slate-200'} leading-snug">
-              ${slide.text}
-            </p>
-            ${slide.subText ? `<p class="text-[10px] text-slate-400 mt-1">${slide.subText}</p>` : ''}
-          </div>
-          <div class="z-10 flex items-center justify-end pt-1">
-            <span class="text-[9px] font-mono ${isCurrent ? 'text-sky-300 font-bold' : 'text-slate-500'}">
-              ${isCurrent ? '● EN PANTALLA' : 'Listo'}
-            </span>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
 
       if (window.lucide) lucide.createIcons();
-      updateMonitors();
     }
 
     function selectItem(index) {
@@ -10772,7 +10617,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (!item || !item.slides || !item.slides.length) return;
       const slide = item.slides[currentSlideIndex] || item.slides[0];
       const nextSlide = item.slides[currentSlideIndex + 1];
-      const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+      const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
 
       if (isClear) {
         const progVid = document.getElementById('programMediaVideo');
@@ -10964,7 +10809,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const item = libraryItems[currentItemIndex];
       const slide = item.slides[currentSlideIndex];
       const nextSlide = item.slides[currentSlideIndex + 1];
-      const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+      const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
 
       const monProyectorText = document.getElementById('monProyectorText');
       const monProyectorSub = document.getElementById('monProyectorSub');
@@ -13677,7 +13522,7 @@ Pues resucitaste, Rey`
           // Shot 1: Live Lyrics or Full-Screen Video from Letras Section
           const item = libraryItems[currentItemIndex];
           const slide = item.slides[currentSlideIndex];
-          const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+          const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
 
           if (isVideo) {
             // =================================================================
@@ -15785,8 +15630,12 @@ Resucitaste en majestad`;
             filename: hqSelectedVideoFile.name,
             title: title,
             author: orgName,
-            scope: `🏢 ${orgName}`,
-            duration: finalDuration
+            scope: `👑 OFICIAL RED (${orgName})`,
+            duration: finalDuration,
+            targetOrgId: orgId,
+            expiresAt: expiresAt,
+            priority: priority,
+            campaignType: cat
           });
 
           const resp = await fetch(`/api/upload/video?${uploadQuery.toString()}`, {
@@ -15796,8 +15645,8 @@ Resucitaste en majestad`;
 
           if (!resp.ok) throw new Error('Error al subir video al servidor');
           const resData = await resp.json();
-          finalVideoUrl = resData.url;
-          filename = resData.filename;
+          finalVideoUrl = resData.videoUrl || resData.url || (resData.item && resData.item.videoUrl);
+          filename = resData.filename || (resData.item && resData.item.filename);
         } catch (err) {
           console.error(err);
           showToast('❌ Error al subir archivo .mp4 al servidor', '❌');
@@ -15830,7 +15679,7 @@ Resucitaste en majestad`;
         durationFormatted: durationFmt,
         priority: priority,
         targetOrgId: orgId,
-        scope: `🏢 ${orgName}`,
+        scope: `👑 OFICIAL RED (${orgName})`,
         expiresAt: expiresAt,
         createdAt: new Date().toISOString(),
         slides: [
@@ -15871,7 +15720,7 @@ Resucitaste en majestad`;
       const now = new Date();
 
       const orgVideos = libraryItems.filter(item => {
-        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+        const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
         if (!isVideo) return false;
         if (orgId && item.targetOrgId === orgId) return true;
         return false;

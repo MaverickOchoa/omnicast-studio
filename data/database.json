@@ -1,0 +1,589 @@
+{
+  "libraryItems": [
+    {
+      "id": "vid-org-1792857770477",
+      "category": "medios",
+      "isVideo": true,
+      "title": "campa",
+      "campaignType": "campaña",
+      "duration": 60,
+      "durationFormatted": "01:00",
+      "priority": "alta",
+      "targetOrgId": "org-alianza",
+      "scope": "👑 OFICIAL RED (Alianza Cristiana)",
+      "expiresAt": "2026-11-23T16:01:48.340Z",
+      "createdAt": "2026-10-24T16:02:50.477Z",
+      "slides": [
+        {
+          "text": "campa",
+          "subText": "Alianza Cristiana Nacional • Campaña Oficial (01:00)",
+          "badge": "🎬 CAMPAÑA RED"
+        }
+      ],
+      "videoUrl": "/uploads/videos/1792857708345_Count_down_hebron.mp4",
+      "filename": "1792857708345_Count_down_hebron.mp4",
+      "sizeMb": "11.4"
+    },
+    {
+      "id": "bible-chapter-1792855630979",
+      "category": "biblia",
+      "title": "Juan 3 Completo (RVA 1909)",
+      "author": "Reina-Valera 1909",
+      "scope": "SAGRADAS ESCRITURAS",
+      "slides": [
+        {
+          "text": "\"Y HABÍA un hombre de los Fariseos que se llamaba Nicodemo, príncipe de los Judíos.\"",
+          "subText": "Juan 3:1 (Reina-Valera 1909)",
+          "badge": "JUAN 3:1"
+        },
+        {
+          "text": "\"Este vino á Jesús de noche, y díjole: Rabbí, sabemos que has venido de Dios por maestro; porque nadie puede hacer estas señales que tú haces, si no fuere Dios con él.\"",
+          "subText": "Juan 3:2 (Reina-Valera 1909)",
+          "badge": "JUAN 3:2"
+        },
+        {
+          "text": "\"Respondió Jesús, y díjole: De cierto, de cierto te digo, que el que no naciere otra vez, no puede ver el reino de Dios.\"",
+          "subText": "Juan 3:3 (Reina-Valera 1909)",
+          "badge": "JUAN 3:3"
+        },
+        {
+          "text": "\"Dícele Nicodemo: ¿Cómo puede el hombre nacer siendo viejo? ¿puede entrar otra vez en el vientre de su madre, y nacer?\"",
+          "subText": "Juan 3:4 (Reina-Valera 1909)",
+          "badge": "JUAN 3:4"
+        },
+        {
+          "text": "\"Respondió Jesús: De cierto, de cierto te digo, que el que no naciere de agua y del Espíritu, no puede entrar en el reino de Dios.\"",
+          "subText": "Juan 3:5 (Reina-Valera 1909)",
+          "badge": "JUAN 3:5"
+        },
+        {
+          "text": "\"Lo que es nacido de la carne, carne es; y lo que es nacido del Espíritu, espíritu es.\"",
+          "subText": "Juan 3:6 (Reina-Valera 1909)",
+          "badge": "JUAN 3:6"
+        },
+        {
+          "text": "\"No te maravilles de que te dije: Os es necesario nacer otra vez.\"",
+          "subText": "Juan 3:7 (Reina-Valera 1909)",
+          "badge": "JUAN 3:7"
+        },
+        {
+          "text": "\"El viento de donde quiere sopla, y oyes su sonido; mas ni sabes de dónde viene, ni á dónde va: así es todo aquel que es nacido del Espíritu.\"",
+          "subText": "Juan 3:8 (Reina-Valera 1909)",
+          "badge": "JUAN 3:8"
+        },
+        {
+          "text": "\"Respondió Nicodemo, y díjole: ¿Cómo puede esto hacerse?\"",
+          "subText": "Juan 3:9 (Reina-Valera 1909)",
+          "badge": "JUAN 3:9"
+        },
+        {
+          "text": "\"Respondió Jesús, y díjole: ¿Tú eres el maestro de Israel, y no sabes esto?\"",
+          "subText": "Juan 3:10 (Reina-Valera 1909)",
+          "badge": "JUAN 3:10"
+        },
+        {
+          "text": "\"De cierto, de cierto te digo, que lo que sabemos hablamos, y lo que hemos visto, testificamos; y no recibís nuestro testimonio.\"",
+          "subText": "Juan 3:11 (Reina-Valera 1909)",
+          "badge": "JUAN 3:11"
+        },
+        {
+          "text": "\"Si os he dicho cosas terrenas, y no creéis, ¿cómo creeréis si os dijere las celestiales?\"",
+          "subText": "Juan 3:12 (Reina-Valera 1909)",
+          "badge": "JUAN 3:12"
+        },
+        {
+          "text": "\"Y nadie subió al cielo, sino el que descendió del cielo, el Hijo del hombre, que está en el cielo.\"",
+          "subText": "Juan 3:13 (Reina-Valera 1909)",
+          "badge": "JUAN 3:13"
+        },
+        {
+          "text": "\"Y como Moisés levantó la serpiente en el desierto, así es necesario que el Hijo del hombre sea levantado;\"",
+          "subText": "Juan 3:14 (Reina-Valera 1909)",
+          "badge": "JUAN 3:14"
+        },
+        {
+          "text": "\"Para que todo aquel que en él creyere, no se pierda, sino que tenga vida eterna.\"",
+          "subText": "Juan 3:15 (Reina-Valera 1909)",
+          "badge": "JUAN 3:15"
+        },
+        {
+          "text": "\"Porque de tal manera amó Dios al mundo, que ha dado á su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.\"",
+          "subText": "Juan 3:16 (Reina-Valera 1909)",
+          "badge": "JUAN 3:16"
+        },
+        {
+          "text": "\"Porque no envió Dios á su Hijo al mundo para que condene al mundo, mas para que el mundo sea salvo por él.\"",
+          "subText": "Juan 3:17 (Reina-Valera 1909)",
+          "badge": "JUAN 3:17"
+        },
+        {
+          "text": "\"El que en él cree, no es condenado; mas el que no cree, ya es condenado, porque no creyó en el nombre del unigénito Hijo de Dios.\"",
+          "subText": "Juan 3:18 (Reina-Valera 1909)",
+          "badge": "JUAN 3:18"
+        },
+        {
+          "text": "\"Y esta es la condenación: porque la luz vino al mundo, y los hombres amaron más las tinieblas que la luz; porque sus obras eran malas.\"",
+          "subText": "Juan 3:19 (Reina-Valera 1909)",
+          "badge": "JUAN 3:19"
+        },
+        {
+          "text": "\"Porque todo aquel que hace lo malo, aborrece la luz y no viene á la luz, porque sus obras no sean redargüidas.\"",
+          "subText": "Juan 3:20 (Reina-Valera 1909)",
+          "badge": "JUAN 3:20"
+        },
+        {
+          "text": "\"Mas el que obra verdad, viene á la luz, para que sus obras sean manifestadas que son hechas en Dios.\"",
+          "subText": "Juan 3:21 (Reina-Valera 1909)",
+          "badge": "JUAN 3:21"
+        }
+      ]
+    },
+    {
+      "id": "bible-chapter-1792854800699",
+      "category": "biblia",
+      "title": "Juan 3 Completo (RVR 1960)",
+      "author": "Reina-Valera 1960",
+      "scope": "SAGRADAS ESCRITURAS",
+      "slides": [
+        {
+          "text": "\"Había un hombre de los fariseos que se llamaba Nicodemo, un principal entre los judíos.\"",
+          "subText": "Juan 3:1 (Reina-Valera 1960)",
+          "badge": "JUAN 3:1"
+        },
+        {
+          "text": "\"Este vino a Jesús de noche, y le dijo: Rabí, sabemos que has venido de Dios como maestro; porque nadie puede hacer estas señales que tú haces, si no está Dios con él.\"",
+          "subText": "Juan 3:2 (Reina-Valera 1960)",
+          "badge": "JUAN 3:2"
+        },
+        {
+          "text": "\"Respondió Jesús y le dijo: De cierto, de cierto te digo, que el que no naciere de nuevo, no puede ver el reino de Dios.\"",
+          "subText": "Juan 3:3 (Reina-Valera 1960)",
+          "badge": "JUAN 3:3"
+        },
+        {
+          "text": "\"Nicodemo le dijo: ¿Cómo puede un hombre nacer siendo viejo? ¿Puede acaso entrar por segunda vez en el vientre de su madre, y nacer?\"",
+          "subText": "Juan 3:4 (Reina-Valera 1960)",
+          "badge": "JUAN 3:4"
+        },
+        {
+          "text": "\"Respondió Jesús: De cierto, de cierto te digo, que el que no naciere de agua y del Espíritu, no puede entrar en el reino de Dios.\"",
+          "subText": "Juan 3:5 (Reina-Valera 1960)",
+          "badge": "JUAN 3:5"
+        },
+        {
+          "text": "\"Lo que es nacido de la carne, carne es; y lo que es nacido del Espíritu, espíritu es.\"",
+          "subText": "Juan 3:6 (Reina-Valera 1960)",
+          "badge": "JUAN 3:6"
+        },
+        {
+          "text": "\"No te maravilles de que te dije: Os es necesario nacer de nuevo.\"",
+          "subText": "Juan 3:7 (Reina-Valera 1960)",
+          "badge": "JUAN 3:7"
+        },
+        {
+          "text": "\"El viento sopla de donde quiere, y oyes su sonido; mas ni sabes de dónde viene, ni a dónde va; así es todo aquel que es nacido del Espíritu.\"",
+          "subText": "Juan 3:8 (Reina-Valera 1960)",
+          "badge": "JUAN 3:8"
+        },
+        {
+          "text": "\"Respondió Nicodemo y le dijo: ¿Cómo puede hacerse esto?\"",
+          "subText": "Juan 3:9 (Reina-Valera 1960)",
+          "badge": "JUAN 3:9"
+        },
+        {
+          "text": "\"Respondió Jesús y le dijo: ¿Eres tú maestro de Israel, y no sabes esto?\"",
+          "subText": "Juan 3:10 (Reina-Valera 1960)",
+          "badge": "JUAN 3:10"
+        },
+        {
+          "text": "\"De cierto, de cierto te digo, que lo que sabemos hablamos, y lo que hemos visto, testificamos; y no recibís nuestro testimonio.\"",
+          "subText": "Juan 3:11 (Reina-Valera 1960)",
+          "badge": "JUAN 3:11"
+        },
+        {
+          "text": "\"Si os he dicho cosas terrenales, y no creéis, ¿cómo creeréis si os dijere las celestiales?\"",
+          "subText": "Juan 3:12 (Reina-Valera 1960)",
+          "badge": "JUAN 3:12"
+        },
+        {
+          "text": "\"Nadie subió al cielo, sino el que descendió del cielo; el Hijo del Hombre, que está en el cielo.\"",
+          "subText": "Juan 3:13 (Reina-Valera 1960)",
+          "badge": "JUAN 3:13"
+        },
+        {
+          "text": "\"Y como Moisés levantó la serpiente en el desierto, así es necesario que el Hijo del Hombre sea levantado,\"",
+          "subText": "Juan 3:14 (Reina-Valera 1960)",
+          "badge": "JUAN 3:14"
+        },
+        {
+          "text": "\"para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.\"",
+          "subText": "Juan 3:15 (Reina-Valera 1960)",
+          "badge": "JUAN 3:15"
+        },
+        {
+          "text": "\"Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.\"",
+          "subText": "Juan 3:16 (Reina-Valera 1960)",
+          "badge": "JUAN 3:16"
+        },
+        {
+          "text": "\"Porque no envió Dios a su Hijo al mundo para condenar al mundo, sino para que el mundo sea salvo por él.\"",
+          "subText": "Juan 3:17 (Reina-Valera 1960)",
+          "badge": "JUAN 3:17"
+        },
+        {
+          "text": "\"El que en él cree, no es condenado; pero el que no cree, ya ha sido condenado, porque no ha creído en el nombre del unigénito Hijo de Dios.\"",
+          "subText": "Juan 3:18 (Reina-Valera 1960)",
+          "badge": "JUAN 3:18"
+        },
+        {
+          "text": "\"Y esta es la condenación: que la luz vino al mundo, y los hombres amaron más las tinieblas que la luz, porque sus obras eran malas.\"",
+          "subText": "Juan 3:19 (Reina-Valera 1960)",
+          "badge": "JUAN 3:19"
+        },
+        {
+          "text": "\"Porque todo aquel que hace lo malo, aborrece la luz y no viene a la luz, para que sus obras no sean reprendidas.\"",
+          "subText": "Juan 3:20 (Reina-Valera 1960)",
+          "badge": "JUAN 3:20"
+        },
+        {
+          "text": "\"Mas el que practica la verdad viene a la luz, para que sea manifiesto que sus obras son hechas en Dios.\"",
+          "subText": "Juan 3:21 (Reina-Valera 1960)",
+          "badge": "JUAN 3:21"
+        }
+      ]
+    },
+    {
+      "id": "bible-1792849275753",
+      "category": "biblia",
+      "title": "LAMENTACIONES 1:2",
+      "author": "Reina-Valera 1909",
+      "scope": "SAGRADAS ESCRITURAS",
+      "slides": [
+        {
+          "text": "Lectura de LAMENTACIONES 1:2",
+          "subText": "LAMENTACIONES 1:2 (Reina-Valera 1909)",
+          "badge": "LAMENTACIONES 1:2"
+        }
+      ]
+    },
+    {
+      "id": "bible-1792849252995",
+      "category": "biblia",
+      "title": "LAMENTACIONES 1:1",
+      "author": "Reina-Valera 1909",
+      "scope": "SAGRADAS ESCRITURAS",
+      "slides": [
+        {
+          "text": "Lectura de LAMENTACIONES 1:1",
+          "subText": "LAMENTACIONES 1:1 (Reina-Valera 1909)",
+          "badge": "LAMENTACIONES 1:1"
+        }
+      ]
+    },
+    {
+      "id": "media-1792843165686",
+      "category": "medios",
+      "isVideo": true,
+      "videoUrl": "/uploads/videos/1792843165679_hebron_logo.mp4",
+      "filename": "1792843165679_hebron_logo.mp4",
+      "sizeMb": "1.3",
+      "duration": 6,
+      "durationFormatted": "00:06",
+      "title": "hebron logo",
+      "author": "Video Local HD (00:06 • 1.3 MB)",
+      "scope": "📍 SEDE LOCAL",
+      "slides": [
+        {
+          "text": "hebron logo",
+          "subText": "Video HD (00:06) • Listo para Proyectar y Transmitir",
+          "badge": "🎬 VIDEO HD"
+        }
+      ]
+    },
+    {
+      "id": "song-1",
+      "category": "alabanza",
+      "title": "Gracia Sublime Es",
+      "author": "Phil Wickham / Jeremy Riddle",
+      "ccli": "7065049",
+      "tone": "Bb",
+      "scope": "👑 OFICIAL NACIONAL",
+      "slides": [
+        {
+          "text": "¿Quién rompe el poder del pecado y la oscuridad?",
+          "subText": "Su amor es poderoso y tan fuerte",
+          "badge": "VERSO 1"
+        },
+        {
+          "text": "El Rey de Gloria, el Rey de Majestad",
+          "subText": "Conmueve al mundo con Su voz sublime",
+          "badge": "VERSO 1"
+        },
+        {
+          "text": "¡Gracia sublime es, perfecto es Su amor!",
+          "subText": "Tomó mi lugar, cargó con mi cruz",
+          "badge": "CORO"
+        },
+        {
+          "text": "Su vida entregó por mi libertad",
+          "subText": "Jesús te adoro por lo que hiciste en mí",
+          "badge": "CORO"
+        },
+        {
+          "text": "Digno es el Cordero de Dios",
+          "subText": "Digno es el Rey que la muerte venció",
+          "badge": "PUENTE"
+        }
+      ]
+    },
+    {
+      "id": "song-2",
+      "category": "alabanza",
+      "title": "Way Maker (Milagroso)",
+      "author": "Sinach / Osinachi Kalu Okoro",
+      "ccli": "7115744",
+      "tone": "E",
+      "scope": "👑 OFICIAL NACIONAL",
+      "slides": [
+        {
+          "text": "Aquí estás, te vemos mover",
+          "subText": "Te adoraré, te adoraré",
+          "badge": "VERSO 1"
+        },
+        {
+          "text": "Aquí estás, obrando en mí",
+          "subText": "Te adoraré, te adoraré",
+          "badge": "VERSO 1"
+        },
+        {
+          "text": "Milagroso, abres camino",
+          "subText": "Cumples promesas, luz en tinieblas",
+          "badge": "CORO"
+        },
+        {
+          "text": "Mi Dios, así eres Tú",
+          "subText": "Mi Dios, así eres Tú",
+          "badge": "CORO"
+        }
+      ]
+    },
+    {
+      "id": "song-3",
+      "category": "alabanza",
+      "title": "La Bondad de Dios (Goodness of God)",
+      "author": "Jenn Johnson / Bethel Music",
+      "ccli": "7117726",
+      "tone": "G",
+      "scope": "👑 OFICIAL NACIONAL",
+      "slides": [
+        {
+          "text": "Te amo Dios, Tu amor nunca me falla",
+          "subText": "En Tus manos he estado cada día",
+          "badge": "VERSO 1"
+        },
+        {
+          "text": "Y desde que me despierto hasta el anochecer",
+          "subText": "Cantaré de la bondad de Dios",
+          "badge": "VERSO 1"
+        },
+        {
+          "text": "Toda mi vida has sido fiel",
+          "subText": "Toda mi vida has sido tan tan bueno",
+          "badge": "CORO"
+        },
+        {
+          "text": "Con cada aliento que tengo en mí",
+          "subText": "Cantaré de la bondad de Dios",
+          "badge": "CORO"
+        }
+      ]
+    },
+    {
+      "id": "song-4",
+      "category": "alabanza",
+      "title": "Hermoso Nombre (What a Beautiful Name)",
+      "author": "Ben Fielding / Brooke Ligertwood",
+      "ccli": "7068424",
+      "tone": "D",
+      "scope": "👑 OFICIAL NACIONAL",
+      "slides": [
+        {
+          "text": "Tú fuiste el Verbo en el principio",
+          "subText": "Unigénito de Dios",
+          "badge": "VERSO 1"
+        },
+        {
+          "text": "El misterio de Tu gloria",
+          "subText": "Revelado en Jesús",
+          "badge": "VERSO 1"
+        },
+        {
+          "text": "¡Cuán hermoso Su nombre es!",
+          "subText": "El nombre de Jesús mi Rey",
+          "badge": "CORO"
+        },
+        {
+          "text": "La muerte venciste, el velo partiste",
+          "subText": "La tumba vacía está",
+          "badge": "PUENTE"
+        }
+      ]
+    },
+    {
+      "id": "verse-1",
+      "category": "biblia",
+      "title": "Filipenses 4:13",
+      "author": "Reina Valera 1960",
+      "scope": "BIBLIA",
+      "slides": [
+        {
+          "text": "Todo lo puedo en Cristo que me fortalece.",
+          "subText": "Filipenses 4:13 (RVR1960)",
+          "badge": "TEXTO BÍBLICO"
+        }
+      ]
+    },
+    {
+      "id": "verse-2",
+      "category": "biblia",
+      "title": "Salmo 23:1-3",
+      "author": "Reina Valera 1960",
+      "scope": "BIBLIA",
+      "slides": [
+        {
+          "text": "Jehová es mi pastor; nada me faltará.",
+          "subText": "En lugares de delicados pastos me hará descansar;",
+          "badge": "SALMO 23:1-2"
+        },
+        {
+          "text": "Junto a aguas de reposo me pastoreará.",
+          "subText": "Confortará mi alma; me guiará por sendas de justicia por amor de su nombre.",
+          "badge": "SALMO 23:2-3"
+        }
+      ]
+    },
+    {
+      "id": "media-1",
+      "category": "medios",
+      "title": "Campaña Anual 2026 (Video)",
+      "author": "Oficinas Nacionales CDN",
+      "scope": "👑 OFICIAL NACIONAL",
+      "isVideo": true,
+      "duration": 225,
+      "slides": [
+        {
+          "text": "VIDEO NACIONAL: CAMPAÑA MISIONERA 2026",
+          "subText": "Reproduciendo desde CDN Central Nacional • 03:45 4K",
+          "badge": "VIDEO CDN"
+        }
+      ]
+    },
+    {
+      "id": "media-2",
+      "category": "medios",
+      "title": "Comunicado Liderazgo (Video)",
+      "author": "Oficinas Nacionales CDN",
+      "scope": "👑 OFICIAL NACIONAL",
+      "isVideo": true,
+      "duration": 180,
+      "slides": [
+        {
+          "text": "CONGRESO NACIONAL DE LIDERAZGO",
+          "subText": "Inscripciones abiertas en iglesianacional.org • 03:00 HD",
+          "badge": "VIDEO COMUNICADO"
+        }
+      ]
+    },
+    {
+      "id": "vid-org-1792856878226",
+      "category": "medios",
+      "isVideo": true,
+      "title": "clases",
+      "campaignType": "campaña",
+      "videoUrl": "https://drive.google.com/file/d/1xZ2vQMqrBpH-1XpTzuRvq9uEwPlVOe-p/view?usp=drive_link",
+      "duration": 180,
+      "priority": "alta",
+      "targetOrgId": "org-alianza",
+      "scope": "🏢 Alianza Cristiana Nacional",
+      "createdAt": "2026-10-24T15:47:58.226Z"
+    }
+  ],
+  "layer3Videos": [
+    {
+      "id": "media-1792843165686",
+      "title": "hebron logo",
+      "scope": "📍 SEDE LOCAL",
+      "videoUrl": "/uploads/videos/1792843165679_hebron_logo.mp4",
+      "duration": 6,
+      "durationFormatted": "00:06",
+      "sizeMb": "1.3"
+    },
+    {
+      "id": "vid-org-1792856878226",
+      "title": "clases",
+      "scope": "🏢 Alianza Cristiana Nacional",
+      "videoUrl": "https://drive.google.com/file/d/1xZ2vQMqrBpH-1XpTzuRvq9uEwPlVOe-p/view?usp=drive_link",
+      "duration": 180,
+      "durationFormatted": "03:00"
+    }
+  ],
+  "organizations": [
+    {
+      "id": "org-alianza",
+      "name": "Alianza Cristiana Nacional",
+      "slug": "alianza",
+      "adminEmail": "red@alianzacristiana.org",
+      "username": "alianza",
+      "password": "admin",
+      "headquarters": "Ciudad de México",
+      "phone": "+52 55 1234 5678",
+      "plan": "Enterprise Multi-Sede",
+      "createdAt": "2026-01-15"
+    }
+  ],
+  "churches": [
+    {
+      "id": "church-gdl",
+      "name": "Campus Guadalajara Norte",
+      "type": "branch",
+      "orgId": "org-alianza",
+      "orgName": "Alianza Cristiana Nacional",
+      "city": "Guadalajara, Jalisco",
+      "email": "gdl@iglesianacional.org",
+      "username": "gdl",
+      "password": "gdl",
+      "operator": "Carlos M.",
+      "role": "Master de Sede Filial",
+      "status": "active"
+    },
+    {
+      "id": "church-mty",
+      "name": "Campus Monterrey Sur",
+      "type": "branch",
+      "orgId": "org-alianza",
+      "orgName": "Alianza Cristiana Nacional",
+      "city": "Monterrey, Nuevo León",
+      "email": "mty@iglesianacional.org",
+      "username": "mty",
+      "password": "mty",
+      "operator": "Jorge T.",
+      "role": "Master de Sede Filial",
+      "status": "active"
+    },
+    {
+      "id": "church-hebron",
+      "name": "Comunidad Cristiana Hebrón",
+      "type": "independent",
+      "orgId": null,
+      "orgName": null,
+      "city": "Zapopan, Jalisco",
+      "email": "hebron@iglesialocal.org",
+      "username": "hebron",
+      "password": "123",
+      "operator": "Pastor Roberto G.",
+      "role": "Iglesia Local Independiente",
+      "status": "active"
+    }
+  ],
+  "updatedAt": "2026-10-24T16:02:50.480Z"
+}

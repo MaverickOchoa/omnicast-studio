@@ -765,6 +765,10 @@ const requestHandler = (req, res) => {
       const author = (fullUrl.searchParams.get('author') || 'Video Proyección HD').trim();
       const scope = (fullUrl.searchParams.get('scope') || '📍 SEDE LOCAL').trim();
       const durationSec = parseFloat(fullUrl.searchParams.get('duration') || '120') || 120;
+      const targetOrgId = fullUrl.searchParams.get('targetOrgId') || null;
+      const expiresAt = fullUrl.searchParams.get('expiresAt') || null;
+      const priority = fullUrl.searchParams.get('priority') || 'alta';
+      const campaignType = fullUrl.searchParams.get('campaignType') || 'campaña';
 
       const ext = path.extname(rawFilename).toLowerCase() || '.mp4';
       const baseSafe = path.basename(rawFilename, ext).replace(/[^a-zA-Z0-9_\-\.]/g, '_').slice(0, 60) || 'video';
@@ -799,6 +803,10 @@ const requestHandler = (req, res) => {
           title: title,
           author: `${author} (${durationFormatted} • ${sizeMb} MB)`,
           scope: scope,
+          targetOrgId: targetOrgId,
+          expiresAt: expiresAt,
+          priority: priority,
+          campaignType: campaignType,
           slides: [
             {
               text: title,
