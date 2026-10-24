@@ -658,7 +658,7 @@
             </div>
           </div>
 
-          <div id="slidesGrid" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div id="slidesGrid" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 auto-rows-max items-start content-start">
             <!-- Populated by JS -->
           </div>
 
@@ -10447,6 +10447,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const item = libraryItems[currentItemIndex];
       if (!item) return;
       const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+      const isBible = item.category === 'biblia' || item.scope === 'SAGRADAS ESCRITURAS' || (item.author && item.author.toLowerCase().includes('valera'));
+
       document.getElementById('activeSongTitle').textContent = item.title;
       document.getElementById('activeSongAuthor').textContent = `${item.author || ''} • ${item.scope || 'SEDE LOCAL'}`;
 
@@ -10464,6 +10466,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         if (isVideo) {
           streamBadge.textContent = '📺 TRANSMISIÓN: VIDEO PANTALLA COMPLETA';
           streamBadge.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse';
+        } else if (isBible) {
+          streamBadge.textContent = '📖 SAGRADAS ESCRITURAS (LOWER THIRD ALFA)';
+          streamBadge.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40';
         } else {
           streamBadge.textContent = 'TRANSMISIÓN: LOWER THIRD (ALFA)';
           streamBadge.className = 'text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/40';
@@ -10475,6 +10480,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       const currentThemeConfig = themesPalette[currentTheme] || themesPalette.purple;
 
+      // Caso 1: Archivo de Video
       if (isVideo && item.videoUrl) {
         const card = document.createElement('div');
         card.className = `col-span-full md:col-span-2 aspect-video rounded-xl border-2 border-rose-500 bg-slate-950 p-3 flex flex-col justify-between cursor-pointer transition shadow-xl relative overflow-hidden group`;
@@ -10491,7 +10497,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow">
               🎬 ARCHIVO DE VIDEO HD
             </span>
-            <span class="text-[10px] font-mono text-white bg-black/70 px-2 py-0.5 rounded">${item.durationFormatted || formatTime(item.duration || 120)}</span>
+            <span class="text-[10px] font-mono text-white bg-black/70 px-2 py-0.5 rounded">${item.durationFormatted || (typeof formatTime === 'function' ? formatTime(item.duration || 120) : '02:00')}</span>
           </div>
           <div class="z-10 my-auto text-center px-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
             <div class="w-12 h-12 mx-auto mb-2 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition">
@@ -10506,15 +10512,73 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           </div>
         `;
         grid.appendChild(card);
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
         updateMonitors();
         return;
       }
 
+      // Caso 2: Versículos Bíblicos (Diseño Especial Ergonómico & Nítido ProPresenter)
+      if (isBible) {
+        (item.slides || []).forEach((slide, idx) => {
+          const isCurrent = idx === currentSlideIndex;
+          const card = document.createElement('div');
+          
+          card.className = `w-full min-h-[150px] h-auto rounded-xl border-2 p-3.5 flex flex-col justify-between cursor-pointer transition shadow-lg relative group ${
+            isCurrent 
+              ? 'border-amber-500 bg-gradient-to-br from-amber-500/15 via-slate-900 to-slate-950 ring-2 ring-amber-500/40 shadow-amber-950/40 shadow-xl' 
+              : 'border-slate-800/90 bg-[#0d131f] hover:border-amber-500/40 hover:bg-slate-900/80'
+          }`;
+          card.onclick = () => triggerSlide(idx);
+
+          card.innerHTML = `
+            <!-- Top Bar: Cita Bíblica y Número de Versículo -->
+            <div class="flex items-center justify-between gap-2 border-b border-slate-800/70 pb-2 mb-2">
+              <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md ${
+                isCurrent 
+                  ? 'bg-amber-500 text-slate-950 shadow-sm' 
+                  : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+              }">
+                ${slide.badge || 'VERSÍCULO ' + (idx + 1)}
+              </span>
+              <span class="text-xs font-mono font-bold ${isCurrent ? 'text-amber-300' : 'text-slate-400'}">
+                #${idx + 1}
+              </span>
+            </div>
+
+            <!-- Body: Texto Bíblico Completo, Legible y Bien Espaciado -->
+            <div class="flex-1 flex items-center my-1.5">
+              <p class="text-xs md:text-[13px] font-sans font-medium leading-relaxed ${
+                isCurrent ? 'text-white' : 'text-slate-200'
+              } text-left select-none">
+                ${slide.text}
+              </p>
+            </div>
+
+            <!-- Bottom Bar: Versión de Biblia y Estado de Proyección -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/70 text-[10px] mt-1">
+              <span class="text-slate-400 font-sans truncate max-w-[200px]">
+                ${slide.subText || ''}
+              </span>
+              <span class="font-mono font-bold ${
+                isCurrent ? 'text-amber-400 animate-pulse flex items-center gap-1' : 'text-slate-500'
+              }">
+                ${isCurrent ? '● EN PANTALLA' : 'Listo'}
+              </span>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+
+        if (window.lucide) lucide.createIcons();
+        updateMonitors();
+        return;
+      }
+
+      // Caso 3: Canciones y Alabanzas Generales (Altura automática, sin colapsar el grid)
       (item.slides || []).forEach((slide, idx) => {
         const isCurrent = idx === currentSlideIndex;
         const card = document.createElement('div');
-        card.className = `aspect-video rounded-xl border-2 p-3 flex flex-col justify-between cursor-pointer transition shadow-md relative overflow-hidden group ${
+        card.className = `w-full min-h-[140px] h-auto rounded-xl border-2 p-3 flex flex-col justify-between cursor-pointer transition shadow-md relative overflow-hidden group ${
           isCurrent 
             ? `bg-gradient-to-br ${currentThemeConfig.slideTint} ring-2 ${currentThemeConfig.activeRing}` 
             : 'border-slate-800 bg-slate-950/80 hover:border-slate-600 hover:bg-slate-900'
@@ -10522,7 +10586,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         card.onclick = () => triggerSlide(idx);
 
         card.innerHTML = `
-          <div class="flex items-center justify-between z-10">
+          <div class="flex items-center justify-between z-10 mb-2">
             <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
               isCurrent ? 'bg-sky-500 text-white' : 'bg-slate-800 text-slate-300'
             }">
@@ -10530,21 +10594,22 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             </span>
             <span class="text-[10px] font-mono text-slate-400">#${idx + 1}</span>
           </div>
-          <div class="z-10 my-auto text-center px-1">
-            <p class="text-xs font-bold ${isCurrent ? 'text-white' : 'text-slate-200'} line-clamp-3 leading-snug">
+          <div class="z-10 my-auto text-center px-1 py-1">
+            <p class="text-xs font-bold ${isCurrent ? 'text-white' : 'text-slate-200'} leading-snug">
               ${slide.text}
             </p>
-            ${slide.subText ? `<p class="text-[10px] text-slate-400 mt-1 line-clamp-1">${slide.subText}</p>` : ''}
+            ${slide.subText ? `<p class="text-[10px] text-slate-400 mt-1">${slide.subText}</p>` : ''}
           </div>
-          <div class="z-10 flex items-center justify-end">
-            <span class="text-[9px] font-mono ${isCurrent ? 'text-sky-300' : 'text-slate-500'}">
-              ${isCurrent ? (isVideo ? '● VIDEO PANTALLA COMPLETA' : '● EN PANTALLA') : 'Listo'}
+          <div class="z-10 flex items-center justify-end pt-1">
+            <span class="text-[9px] font-mono ${isCurrent ? 'text-sky-300 font-bold' : 'text-slate-500'}">
+              ${isCurrent ? '● EN PANTALLA' : 'Listo'}
             </span>
           </div>
         `;
         grid.appendChild(card);
       });
 
+      if (window.lucide) lucide.createIcons();
       updateMonitors();
     }
 
