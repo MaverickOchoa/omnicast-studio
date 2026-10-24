@@ -2128,118 +2128,6 @@
             </button>
           </div>
         </div>
-
-<!-- SUBTAB: VIDEOS & CAMPAÑAS INSTITUCIONALES (CDN) (SOLO ORGANIZACIÓN) -->
-        <div id="hqTabContentVideos" class="w-full h-full flex flex-col lg:flex-row gap-3 overflow-hidden hidden">
-          <!-- Left: Register Video -->
-          <div class="w-full lg:w-5/12 h-full flex flex-col bg-[#0d131f] border border-slate-800 rounded-xl p-4 gap-3 overflow-y-auto shadow">
-            <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
-              <i data-lucide="film" class="w-4 h-4 text-sky-400"></i>
-              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Subir Video o Campaña de la Red</h3>
-            </div>
-
-            <div class="space-y-3">
-              <div>
-                <label class="text-[11px] font-semibold text-slate-300 block mb-1">Título del Video / Campaña:</label>
-                <input type="text" id="hqVideoTitle" placeholder="Ej. Campaña de Misiones 2026: Esperanza Viva" 
-                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500/50 font-sans">
-              </div>
-
-              <div>
-                <label class="text-[11px] font-semibold text-slate-300 block mb-1">Categoría:</label>
-                <select id="hqVideoCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
-                  <option value="campaña">Campaña Institucional / Misiones</option>
-                  <option value="congreso">Congreso de Jóvenes / Mujeres</option>
-                  <option value="ofrenda">Ofrenda & Generosidad</option>
-                  <option value="anuncio">Comunicado Oficial de Presidencia</option>
-                </select>
-              </div>
-
-              <div>
-                <label class="text-[11px] font-semibold text-slate-300 block mb-1">URL de Video (CDN / MP4 / Stream / Archivo):</label>
-                <input type="text" id="hqVideoUrl" placeholder="https://cdn.alianzacristiana.org/videos/misiones-2026.mp4" 
-                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 font-mono focus:outline-none focus:border-sky-500/50">
-              </div>
-
-              <div class="grid grid-cols-2 gap-2">
-                <div>
-                  <label class="text-[11px] font-semibold text-slate-300 block mb-1">Duración (min:seg):</label>
-                  <input type="text" id="hqVideoDuration" placeholder="03:00" 
-                         class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 font-mono focus:outline-none focus:border-sky-500/50">
-                </div>
-                <div>
-                  <label class="text-[11px] font-semibold text-slate-300 block mb-1">Prioridad:</label>
-                  <select id="hqVideoPriority" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
-                    <option value="alta">Obligatorio en Sedes</option>
-                    <option value="media">Opcional para Sedes</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="p-3 rounded-lg bg-sky-950/30 border border-sky-500/20 text-[10.5px] text-sky-300 space-y-1">
-                <span class="font-bold flex items-center gap-1.5">
-                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-sky-400"></i>
-                  Distribución Exclusiva de Red:
-                </span>
-                <p class="text-slate-400 text-[10px] leading-relaxed">
-                  Este video llegará automáticamente y de forma aislada a las pantallas y consolas Wirecast Capa 3 de las sedes filiales de tu organización.
-                </p>
-              </div>
-
-              <div class="pt-2">
-                <button onclick="publishOrgVideoCampaign()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-xs transition active:scale-95 shadow flex items-center justify-center gap-2">
-                  <i data-lucide="send" class="w-4 h-4"></i>
-                  <span>Distribuir a Wirecast de Mis Sedes</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right: List of registered campaigns -->
-          <div class="w-full lg:w-7/12 h-full flex flex-col bg-[#0d131f] border border-slate-800 rounded-xl p-4 gap-3 overflow-hidden shadow">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Videos Activos en la Red Institucional</h3>
-              <span id="hqOrgVideosCountBadge" class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                0 Distribuidos
-              </span>
-            </div>
-
-            <div class="flex-1 overflow-y-auto space-y-2.5 pr-1" id="hqOrgVideosContainer">
-              <!-- Renderizado dinámico -->
-            </div>
-          </div>
-        </div>
-
-        <!-- SUBTAB: RADAR SATELITAL & TELEMETRÍA DE SEDES (SOLO ORGANIZACIÓN) -->
-        <div id="hqTabContentTelemetry" class="w-full h-full flex flex-col gap-3 overflow-hidden hidden">
-          <!-- Top alert broadcaster -->
-          <div class="bg-[#0d131f] border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 shadow">
-            <div class="flex items-center gap-2.5 w-full sm:w-auto">
-              <div class="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
-                <i data-lucide="bell-ring" class="w-4 h-4"></i>
-              </div>
-              <div class="flex-1">
-                <h4 class="text-xs font-bold text-white">Mensaje / Alerta Urgente a tus Sedes</h4>
-                <p class="text-[10px] text-slate-400">Aparecerá en los monitores de retorno o pantallas de tus campus filiales</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2 w-full sm:w-auto">
-              <input type="text" id="hqAlertMessage" placeholder="Ej. Cadena de oración o aviso urgente..." 
-                     class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500 w-full sm:w-72">
-              <button onclick="broadcastOrgAlert()" class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition active:scale-95 shrink-0 flex items-center gap-1 shadow">
-                <i data-lucide="send" class="w-3.5 h-3.5"></i>
-                <span>Enviar Alerta</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Campuses Grid de la Organización -->
-          <div id="hqTelemetryContainer" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-1">
-            <!-- Renderizado dinámico de las sedes de la organización -->
-          </div>
-        </div>
-
-      </div>
     </div>
 
     <!-- --------------------------------------------------------------------- -->
@@ -2599,6 +2487,116 @@ Te adoraré, te adoraré..."
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+<!-- SUBTAB: VIDEOS & CAMPAÑAS INSTITUCIONALES (CDN) (SOLO ORGANIZACIÓN) -->
+        <div id="hqTabContentVideos" class="w-full h-full flex flex-col lg:flex-row gap-3 overflow-hidden hidden">
+          <!-- Left: Register Video -->
+          <div class="w-full lg:w-5/12 h-full flex flex-col bg-[#0d131f] border border-slate-800 rounded-xl p-4 gap-3 overflow-y-auto shadow">
+            <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+              <i data-lucide="film" class="w-4 h-4 text-sky-400"></i>
+              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Subir Video o Campaña de la Red</h3>
+            </div>
+
+            <div class="space-y-3">
+              <div>
+                <label class="text-[11px] font-semibold text-slate-300 block mb-1">Título del Video / Campaña:</label>
+                <input type="text" id="hqVideoTitle" placeholder="Ej. Campaña de Misiones 2026: Esperanza Viva" 
+                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500/50 font-sans">
+              </div>
+
+              <div>
+                <label class="text-[11px] font-semibold text-slate-300 block mb-1">Categoría:</label>
+                <select id="hqVideoCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
+                  <option value="campaña">Campaña Institucional / Misiones</option>
+                  <option value="congreso">Congreso de Jóvenes / Mujeres</option>
+                  <option value="ofrenda">Ofrenda & Generosidad</option>
+                  <option value="anuncio">Comunicado Oficial de Presidencia</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-[11px] font-semibold text-slate-300 block mb-1">URL de Video (CDN / MP4 / Stream / Archivo):</label>
+                <input type="text" id="hqVideoUrl" placeholder="https://cdn.alianzacristiana.org/videos/misiones-2026.mp4" 
+                       class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 font-mono focus:outline-none focus:border-sky-500/50">
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-300 block mb-1">Duración (min:seg):</label>
+                  <input type="text" id="hqVideoDuration" placeholder="03:00" 
+                         class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 font-mono focus:outline-none focus:border-sky-500/50">
+                </div>
+                <div>
+                  <label class="text-[11px] font-semibold text-slate-300 block mb-1">Prioridad:</label>
+                  <select id="hqVideoPriority" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
+                    <option value="alta">Obligatorio en Sedes</option>
+                    <option value="media">Opcional para Sedes</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="p-3 rounded-lg bg-sky-950/30 border border-sky-500/20 text-[10.5px] text-sky-300 space-y-1">
+                <span class="font-bold flex items-center gap-1.5">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-sky-400"></i>
+                  Distribución Exclusiva de Red:
+                </span>
+                <p class="text-slate-400 text-[10px] leading-relaxed">
+                  Este video llegará automáticamente y de forma aislada a las pantallas y consolas Wirecast Capa 3 de las sedes filiales de tu organización.
+                </p>
+              </div>
+
+              <div class="pt-2">
+                <button onclick="publishOrgVideoCampaign()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-xs transition active:scale-95 shadow flex items-center justify-center gap-2">
+                  <i data-lucide="send" class="w-4 h-4"></i>
+                  <span>Distribuir a Wirecast de Mis Sedes</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: List of registered campaigns -->
+          <div class="w-full lg:w-7/12 h-full flex flex-col bg-[#0d131f] border border-slate-800 rounded-xl p-4 gap-3 overflow-hidden shadow">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Videos Activos en la Red Institucional</h3>
+              <span id="hqOrgVideosCountBadge" class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                0 Distribuidos
+              </span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-2.5 pr-1" id="hqOrgVideosContainer">
+              <!-- Renderizado dinámico -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB: RADAR SATELITAL & TELEMETRÍA DE SEDES (SOLO ORGANIZACIÓN) -->
+        <div id="hqTabContentTelemetry" class="w-full h-full flex flex-col gap-3 overflow-hidden hidden">
+          <!-- Top alert broadcaster -->
+          <div class="bg-[#0d131f] border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0 shadow">
+            <div class="flex items-center gap-2.5 w-full sm:w-auto">
+              <div class="p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">
+                <i data-lucide="bell-ring" class="w-4 h-4"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-xs font-bold text-white">Mensaje / Alerta Urgente a tus Sedes</h4>
+                <p class="text-[10px] text-slate-400">Aparecerá en los monitores de retorno o pantallas de tus campus filiales</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <input type="text" id="hqAlertMessage" placeholder="Ej. Cadena de oración o aviso urgente..." 
+                     class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500 w-full sm:w-72">
+              <button onclick="broadcastOrgAlert()" class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition active:scale-95 shrink-0 flex items-center gap-1 shadow">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                <span>Enviar Alerta</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Campuses Grid de la Organización -->
+          <div id="hqTelemetryContainer" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-1">
+            <!-- Renderizado dinámico de las sedes de la organización -->
           </div>
         </div>
 
@@ -7563,6 +7561,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         updateHqKpis();
         switchAtemTab('hq');
         switchHqSubTab('churches');
+        renderHqOrgVideos();
+        renderHqTelemetry();
         if (notify) showToast(`🏢 Panel Institucional: ${account.name}`, '🏛️');
       } else {
         // Church session (filial or independent)
@@ -9642,24 +9642,36 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (modal) modal.classList.add('hidden');
     }
 
+    function switchCatalogSection(sec) {
+      setCatalogActiveSection(sec);
+    }
+
     function setCatalogActiveSection(sec) {
       catalogActiveSection = sec;
       const sections = ['songs', 'videos', 'bibles'];
 
       sections.forEach(s => {
-        const btn = document.getElementById(`catalogTabBtn${s.charAt(0).toUpperCase() + s.slice(1)}`);
+        const navBtn = document.getElementById(`catalogNavBtn${s.charAt(0).toUpperCase() + s.slice(1)}`);
+        const tabBtn = document.getElementById(`catalogTabBtn${s.charAt(0).toUpperCase() + s.slice(1)}`);
         const content = document.getElementById(`catalogSection${s.charAt(0).toUpperCase() + s.slice(1)}`);
 
-        if (s === sec) {
-          if (btn) {
+        const isSelected = (s === sec);
+
+        [navBtn, tabBtn].forEach(btn => {
+          if (!btn) return;
+          if (isSelected) {
             btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/30';
-          }
-          if (content) content.classList.remove('hidden');
-        } else {
-          if (btn) {
+          } else {
             btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5 border border-transparent';
           }
-          if (content) content.classList.add('hidden');
+        });
+
+        if (content) {
+          if (isSelected) {
+            content.classList.remove('hidden');
+          } else {
+            content.classList.add('hidden');
+          }
         }
       });
 
