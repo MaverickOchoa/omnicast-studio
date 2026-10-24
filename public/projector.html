@@ -428,6 +428,9 @@
           mediaProjectorVideo.src = cmd.videoUrl;
           mediaProjectorVideo.setAttribute('data-src', cmd.videoUrl);
         }
+        if (typeof cmd.time === 'number' && Math.abs(mediaProjectorVideo.currentTime - cmd.time) > 1.2) {
+          mediaProjectorVideo.currentTime = cmd.time;
+        }
         mediaProjectorVideo.classList.remove('hidden');
         lyricsWrapper.classList.add('hidden');
         mediaProjectorVideo.play().catch(() => {
@@ -436,6 +439,9 @@
         });
       } else if (cmd.action === 'pause') {
         mediaProjectorVideo.pause();
+        if (typeof cmd.time === 'number') {
+          mediaProjectorVideo.currentTime = cmd.time;
+        }
       } else if (cmd.action === 'restart') {
         mediaProjectorVideo.currentTime = 0;
         mediaProjectorVideo.play().catch(() => {});

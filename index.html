@@ -669,6 +669,104 @@
             </div>
           </div>
 
+          
+          <!-- MASTER LIVE BROADCAST VIDEO PLAYER & DECK (60FPS HARDWARE ACCELERATED) -->
+          <div id="videoCenterDeck" class="hidden flex-1 overflow-y-auto p-4 flex flex-col items-center justify-start gap-4 bg-slate-950/80">
+            <!-- Video Player Stage (16:9 Aspect Ratio) -->
+            <div class="w-full max-w-4xl relative aspect-video bg-black rounded-2xl overflow-hidden border-2 border-rose-500/60 shadow-2xl shadow-rose-950/40 group">
+              <!-- REAL VISIBLE VIDEO ELEMENT -->
+              <video id="programMediaVideo" playsinline preload="auto" class="w-full h-full object-contain bg-black cursor-pointer"></video>
+
+              <!-- Live Top Bar Overlay -->
+              <div class="absolute top-0 inset-x-0 p-3 bg-gradient-to-b from-black/85 via-black/40 to-transparent flex items-center justify-between pointer-events-none select-none z-10">
+                <div id="activeVideoStatusBadge" class="px-2.5 py-1 rounded-full text-xs font-mono bg-emerald-500/20 border border-emerald-500/40 flex items-center text-emerald-300 font-bold shadow">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block mr-1.5"></span>
+                  AL AIRE (PROYECTOR & STREAM)
+                </div>
+                <div class="flex items-center gap-2">
+                  <span id="activeVideoScopeBadge" class="px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold">
+                    👑 OFICIAL RED
+                  </span>
+                  <span class="px-2 py-0.5 rounded bg-black/70 text-slate-300 font-mono text-[10px] border border-slate-700">
+                    1080p FULL HD
+                  </span>
+                </div>
+              </div>
+
+              <!-- Center Big Play/Pause Touch Icon Overlay -->
+              <div id="activeVideoCenterPlayIcon" onclick="toggleActiveVideoPlayPause()" class="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/20 cursor-pointer transition select-none z-10 opacity-0 group-hover:opacity-100">
+                <div class="w-16 h-16 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white flex items-center justify-center shadow-2xl transition transform group-hover:scale-105 active:scale-95">
+                  <i id="activeVideoCenterPlayIconLucide" data-lucide="play" class="w-8 h-8 ml-1"></i>
+                </div>
+              </div>
+
+              <!-- Bottom Timeline & Mini Transport on Video Overlay -->
+              <div class="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/95 via-black/70 to-transparent flex flex-col gap-2 z-10">
+                <!-- Smooth Interactive Progress Scrubber -->
+                <div class="relative w-full flex items-center group/scrub py-1 cursor-pointer">
+                  <input type="range" id="activeVideoScrubber" min="0" max="100" step="0.1" value="0"
+                    onmousedown="onScrubberMouseDown()"
+                    ontouchstart="onScrubberMouseDown()"
+                    oninput="onScrubberInput(this.value)"
+                    onchange="onScrubberChange(this.value)"
+                    class="w-full accent-rose-500 h-2 bg-slate-800/90 rounded-lg cursor-pointer transition">
+                </div>
+
+                <!-- Video Bottom Info -->
+                <div class="flex items-center justify-between text-xs font-mono select-none">
+                  <div class="flex items-center gap-2">
+                    <span id="activeVideoTimecode" class="font-bold text-white tracking-wider">00:00 / 01:00</span>
+                    <span class="text-slate-500">•</span>
+                    <span id="activeVideoTimecodeRemaining" class="text-amber-400 font-bold" title="Tiempo restante para finalizar">-01:00</span>
+                  </div>
+                  <div class="flex items-center gap-3 text-slate-300 text-[11px]">
+                    <span id="activeVideoSpeedIndicator" class="text-emerald-400 font-bold">● 1.0x NORMAL</span>
+                    <span>PROYECTOR HDMI: <strong class="text-emerald-400">ENLACE ACTIVO</strong></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Master Control Command Panel (Large Buttons & Direct Access) -->
+            <div class="w-full max-w-4xl p-3.5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-3 select-none">
+              <!-- Left Transport Cluster -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="toggleActiveVideoPlayPause()" id="btnVideoPlayPauseMaster" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-950/40 transition active:scale-95">
+                  <i data-lucide="play" class="w-4 h-4"></i>
+                  <span id="btnVideoPlayPauseMasterText">REPRODUCIR VIDEO</span>
+                </button>
+                <button onclick="restartActiveVideo()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition active:scale-95" title="Reiniciar video desde el inicio">
+                  <i data-lucide="rotate-ccw" class="w-4 h-4 text-sky-400"></i>
+                  <span>00:00 Inicio</span>
+                </button>
+                <button onclick="skipActiveVideo(-5)" class="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95" title="Retroceder 5 segundos">
+                  <i data-lucide="rewind" class="w-3.5 h-3.5"></i>
+                  <span>-5s</span>
+                </button>
+                <button onclick="skipActiveVideo(5)" class="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95" title="Avanzar 5 segundos">
+                  <span>+5s</span>
+                  <i data-lucide="fast-forward" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+
+              <!-- Right Audio & Mode Cluster -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <button onclick="toggleActiveVideoMute()" id="btnVideoMuteMaster" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition active:scale-95">
+                  <i data-lucide="volume-2" class="w-4 h-4"></i>
+                  <span id="btnVideoMuteMasterText">Audio ON</span>
+                </button>
+                <button onclick="toggleActiveVideoLoop()" id="btnVideoLoopMaster" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition active:scale-95">
+                  <i data-lucide="repeat" class="w-4 h-4"></i>
+                  <span id="btnVideoLoopMasterText">Loop: OFF</span>
+                </button>
+                <button onclick="stopAndBlackoutVideo()" class="px-3 py-2 rounded-xl bg-rose-950/70 hover:bg-rose-900 text-rose-300 text-xs font-semibold flex items-center gap-1.5 border border-rose-800/60 transition active:scale-95" title="Detener video y poner pantalla en negro">
+                  <i data-lucide="square" class="w-4 h-4 text-rose-400"></i>
+                  <span>Detener / Negro</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div id="slidesGrid" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 auto-rows-max items-start content-start">
             <!-- Populated by JS -->
           </div>
@@ -3362,7 +3460,7 @@ Te adoraré, te adoraré..."
   </div>
 
   <!-- Active Off-Screen HTML5 Video Elements for Compositor (Hardware-accelerated 60fps rendering without Chrome display:none throttling) -->
-  <video id="programMediaVideo" playsinline crossorigin="anonymous" style="position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;"></video>
+  <!-- programMediaVideo is now hosted directly in the Master Video Deck for 100% visible 60fps hardware accelerated playback -->
   <video id="previewMediaVideo" muted playsinline crossorigin="anonymous" style="position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;"></video>
 
   <!-- ========================================================================= -->
@@ -10581,19 +10679,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (window.lucide) lucide.createIcons();
     }
 
-        function renderSlidesGrid() {
+            function renderSlidesGrid() {
       const item = libraryItems[currentItemIndex];
       if (!item) return;
       const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
       const isBible = item.category === 'biblia' || item.scope === 'SAGRADAS ESCRITURAS' || (item.author && item.author.toLowerCase().includes('valera'));
-
-      if (!item.slides || !item.slides.length) {
-        item.slides = [{
-          text: item.title,
-          subText: item.author || '',
-          badge: isVideo ? '🎬 VIDEO HD' : (isBible ? '📖 TEXTO' : 'PARTE 1')
-        }];
-      }
 
       const activeTitleEl = document.getElementById('activeSongTitle');
       if (activeTitleEl) activeTitleEl.textContent = item.title;
@@ -10601,14 +10691,10 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const activeAuthorEl = document.getElementById('activeSongAuthor');
       if (activeAuthorEl) activeAuthorEl.textContent = `${item.author || ''} • ${item.scope || 'SEDE LOCAL'}`;
 
+      const videoCenterDeck = document.getElementById('videoCenterDeck');
+      const slidesGrid = document.getElementById('slidesGrid');
       const transportBar = document.getElementById('activeVideoTransportBar');
-      if (transportBar) {
-        if (isVideo && item.videoUrl) {
-          transportBar.classList.remove('hidden');
-        } else {
-          transportBar.classList.add('hidden');
-        }
-      }
+      if (transportBar) transportBar.classList.add('hidden'); // Ocultar barra redundante
 
       const streamBadge = document.getElementById('activeSongStreamModeBadge');
       if (streamBadge) {
@@ -10624,48 +10710,64 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         }
       }
 
-      const grid = document.getElementById('slidesGrid');
-      if (!grid) return;
-      grid.innerHTML = '';
-
-      const currentThemeConfig = themesPalette[currentTheme] || themesPalette.purple;
-
-      // Caso 1: Archivo de Video
+      // =======================================================================
+      // CASO VIDEO: Activar Master Video Deck con monitor real 60fps
+      // =======================================================================
       if (isVideo && item.videoUrl) {
-        const card = document.createElement('div');
-        card.className = 'col-span-full md:col-span-2 aspect-video rounded-xl border-2 border-rose-500 bg-slate-950 p-3 flex flex-col justify-between cursor-pointer transition shadow-xl relative overflow-hidden group';
-        card.onclick = () => {
-          triggerSlide(0);
-          const progVid = document.getElementById('programMediaVideo');
-          if (progVid && progVid.paused) {
-            toggleActiveVideoPlayPause(true);
+        if (slidesGrid) slidesGrid.classList.add('hidden');
+        if (videoCenterDeck) {
+          videoCenterDeck.classList.remove('hidden');
+          const scopeBadge = document.getElementById('activeVideoScopeBadge');
+          if (scopeBadge) scopeBadge.textContent = item.scope || '🎬 VIDEO LOCAL';
+        }
+
+        const progVid = document.getElementById('programMediaVideo');
+        if (progVid) {
+          if (progVid.getAttribute('data-src') !== item.videoUrl) {
+            progVid.src = item.videoUrl;
+            progVid.setAttribute('data-src', item.videoUrl);
+            progVid.currentTime = 0;
+            progVid.load();
           }
-        };
-        card.innerHTML = `
-          <video src="${item.videoUrl}#t=0.5" muted playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-55 group-hover:opacity-75 transition"></video>
-          <div class="flex items-center justify-between z-10">
-            <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow">
-              🎬 ARCHIVO DE VIDEO HD
-            </span>
-            <span class="text-[10px] font-mono text-white bg-black/70 px-2 py-0.5 rounded">${item.durationFormatted || (typeof formatTime === 'function' ? formatTime(item.duration || 120) : '02:00')}</span>
-          </div>
-          <div class="z-10 my-auto text-center px-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
-            <div class="w-12 h-12 mx-auto mb-2 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition">
-              <i data-lucide="play" class="w-6 h-6"></i>
-            </div>
-            <p class="text-sm font-black text-white leading-snug">${item.title}</p>
-            <p class="text-[11px] text-rose-200 mt-1">Haz clic para proyectar en HDMI y transmitir en pantalla completa</p>
-          </div>
-          <div class="z-10 flex items-center justify-between text-[10px] font-mono bg-black/70 px-2.5 py-1 rounded-lg">
-            <span class="text-emerald-400 font-bold">● LISTO EN PROYECTOR Y STREAM</span>
-            <span class="text-slate-300">${item.videoUrl}</span>
-          </div>
-        `;
-        grid.appendChild(card);
+          progVid.muted = Boolean(activeVideoMuted);
+          progVid.loop = Boolean(activeVideoLoopEnabled);
+          progVid.onclick = () => toggleActiveVideoPlayPause();
+
+          // Conectar eventos nativos para fluidez máxima
+          progVid.ontimeupdate = updateActiveVideoTransportUI;
+          progVid.onplay = updateActiveVideoTransportUI;
+          progVid.onpause = updateActiveVideoTransportUI;
+          progVid.onended = () => {
+            updateActiveVideoTransportUI();
+            if (activeVideoLoopEnabled) {
+              progVid.currentTime = 0;
+              safePlayVideo(progVid);
+            }
+          };
+        }
+
+        updateActiveVideoTransportUI();
         if (window.lucide) lucide.createIcons();
         updateMonitors();
         return;
       }
+
+      // =======================================================================
+      // CASO ALABANZAS O SAGRADAS ESCRITURAS: Activar slidesGrid
+      // =======================================================================
+      if (videoCenterDeck) videoCenterDeck.classList.add('hidden');
+      if (slidesGrid) slidesGrid.classList.remove('hidden');
+
+      if (!item.slides || !item.slides.length) {
+        item.slides = [{
+          text: item.title,
+          subText: item.author || '',
+          badge: isBible ? '📖 TEXTO' : 'PARTE 1'
+        }];
+      }
+
+      slidesGrid.innerHTML = '';
+      const currentThemeConfig = themesPalette[currentTheme] || themesPalette.purple;
 
       // Caso 2: Versículos Bíblicos (Diseño Ergonómico ProPresenter)
       if (isBible) {
@@ -10763,26 +10865,27 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       updateMonitors();
     }
 
-    function selectItem(indexOrId) {
-      let index = typeof indexOrId === 'number' ? indexOrId : libraryItems.findIndex(i => i.id === indexOrId);
+        function selectItem(indexOrId) {
+      let index = typeof indexOrId === "number" ? indexOrId : libraryItems.findIndex(i => i.id === indexOrId);
       if (index === -1 || !libraryItems[index]) return;
       currentItemIndex = index;
       currentSlideIndex = 0;
       const item = libraryItems[currentItemIndex];
+      const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
+
       const progVid = document.getElementById('programMediaVideo');
       if (item && item.videoUrl && progVid) {
         if (progVid.getAttribute('data-src') !== item.videoUrl) {
           progVid.src = item.videoUrl;
           progVid.setAttribute('data-src', item.videoUrl);
           progVid.currentTime = 0;
+          progVid.load();
         }
         progVid.muted = Boolean(activeVideoMuted);
         progVid.loop = Boolean(activeVideoLoopEnabled);
-        progVid.play().then(() => {
-          updateActiveVideoTransportUI();
-        }).catch(() => {});
       } else if (progVid && !layerPower[3]) {
         progVid.pause();
+        sendProjectorVideoCommand({ action: 'stop' });
       }
       renderSongsList();
       renderSlidesGrid();
@@ -12008,7 +12111,72 @@ Pues resucitaste, Rey`
       xhr.send(selectedUploadVideoFile);
     }
 
-    // Active Video Transport Controls (Projector + Live Stream)
+    // -------------------------------------------------------------------------
+    // MASTER BROADCAST VIDEO ENGINE (60FPS HARDWARE ACCELERATED & ZERO-STUTTER)
+    // -------------------------------------------------------------------------
+    let isVideoScrubberDragging = false;
+
+    function safePlayVideo(vidEl) {
+      if (!vidEl) return Promise.resolve();
+      vidEl.muted = Boolean(activeVideoMuted);
+      vidEl.loop = Boolean(activeVideoLoopEnabled);
+      const p = vidEl.play();
+      if (p !== undefined) {
+        return p.catch(err => {
+          console.warn('[OmniCast Video Engine] Autoplay protegido por navegador. Reproduciendo en modo seguro:', err);
+          vidEl.muted = true;
+          activeVideoMuted = true;
+          updateActiveVideoTransportUI();
+          return vidEl.play().catch(e => {
+            console.error('[OmniCast Video Engine] Error crítico de reproducción:', e);
+          });
+        });
+      }
+      return Promise.resolve();
+    }
+
+    function onScrubberMouseDown() {
+      isVideoScrubberDragging = true;
+    }
+
+    function onScrubberInput(val) {
+      const progVid = document.getElementById('programMediaVideo');
+      if (!progVid) return;
+      const dur = (progVid.duration && isFinite(progVid.duration) && progVid.duration > 0) ? progVid.duration : 60;
+      const targetTime = (parseFloat(val) / 100) * dur;
+      const tc = document.getElementById('activeVideoTimecode');
+      if (tc) tc.textContent = `${formatTime(targetTime)} / ${formatTime(dur)}`;
+      const tcRemain = document.getElementById('activeVideoTimecodeRemaining');
+      if (tcRemain) tcRemain.textContent = `-${formatTime(Math.max(0, dur - targetTime))}`;
+    }
+
+    function onScrubberChange(val) {
+      isVideoScrubberDragging = false;
+      seekActiveVideo(val);
+    }
+
+    function skipActiveVideo(deltaSec) {
+      const progVid = document.getElementById('programMediaVideo');
+      if (!progVid) return;
+      const dur = (progVid.duration && isFinite(progVid.duration) && progVid.duration > 0) ? progVid.duration : 60;
+      const newTime = Math.max(0, Math.min(dur, (progVid.currentTime || 0) + deltaSec));
+      progVid.currentTime = newTime;
+      sendProjectorVideoCommand({ action: 'seek', time: newTime });
+      updateActiveVideoTransportUI();
+    }
+
+    function stopAndBlackoutVideo() {
+      const progVid = document.getElementById('programMediaVideo');
+      if (progVid) {
+        progVid.pause();
+        progVid.currentTime = 0;
+      }
+      sendProjectorVideoCommand({ action: 'stop' });
+      broadcastSlide(true);
+      updateActiveVideoTransportUI();
+      showToast('⏹ Video detenido y proyector en negro', '🎬');
+    }
+
     function sendProjectorVideoCommand(payload) {
       try {
         liveChannel.postMessage({ type: 'VIDEO_CONTROL', payload });
@@ -12028,23 +12196,29 @@ Pues resucitaste, Rey`
 
       const shouldPlay = forcePlay !== null ? forcePlay : progVid.paused;
       if (shouldPlay) {
-        progVid.muted = Boolean(activeVideoMuted);
-        progVid.loop = Boolean(activeVideoLoopEnabled);
-        progVid.play().catch(() => {});
-        sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl });
-        broadcastSlide(false);
+        safePlayVideo(progVid).then(() => {
+          sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
+          broadcastSlide(false);
+          updateActiveVideoTransportUI();
+        });
       } else {
         progVid.pause();
-        sendProjectorVideoCommand({ action: 'pause' });
+        sendProjectorVideoCommand({ action: 'pause', time: progVid.currentTime });
+        updateActiveVideoTransportUI();
       }
-      updateActiveVideoTransportUI();
     }
 
     function restartActiveVideo() {
+      const item = libraryItems[currentItemIndex];
       const progVid = document.getElementById('programMediaVideo');
       if (progVid) {
         progVid.currentTime = 0;
-        progVid.play().catch(() => {});
+        safePlayVideo(progVid).then(() => {
+          if (item && item.videoUrl) {
+            sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: 0 });
+            broadcastSlide(false);
+          }
+        });
       }
       sendProjectorVideoCommand({ action: 'restart' });
       updateActiveVideoTransportUI();
@@ -12069,8 +12243,9 @@ Pues resucitaste, Rey`
 
     function seekActiveVideo(pctVal) {
       const progVid = document.getElementById('programMediaVideo');
-      if (!progVid || !progVid.duration || !isFinite(progVid.duration)) return;
-      const targetTime = (parseFloat(pctVal) / 100) * progVid.duration;
+      if (!progVid) return;
+      const dur = (progVid.duration && isFinite(progVid.duration) && progVid.duration > 0) ? progVid.duration : 60;
+      const targetTime = (parseFloat(pctVal) / 100) * dur;
       progVid.currentTime = targetTime;
       sendProjectorVideoCommand({ action: 'seek', time: targetTime });
       updateActiveVideoTransportUI();
@@ -12078,46 +12253,98 @@ Pues resucitaste, Rey`
 
     function updateActiveVideoTransportUI() {
       const progVid = document.getElementById('programMediaVideo');
-      const btnPlayText = document.getElementById('btnVideoPlayPauseText');
-      const btnPlay = document.getElementById('btnVideoPlayPause');
-      const btnMute = document.getElementById('btnVideoMute');
-      const btnMuteText = document.getElementById('btnVideoMuteText');
-      const btnLoop = document.getElementById('btnVideoLoop');
-      const btnLoopText = document.getElementById('btnVideoLoopText');
-      const tc = document.getElementById('activeVideoTimecode');
-      const scrub = document.getElementById('activeVideoScrubber');
-
       if (!progVid) return;
 
       const isPlaying = !progVid.paused && !progVid.ended;
-      if (btnPlayText) btnPlayText.textContent = isPlaying ? 'Pausar Video' : 'Reproducir / Proyectar';
-      if (btnPlay) {
-        btnPlay.className = isPlaying
+      const cur = progVid.currentTime || 0;
+      const dur = (progVid.duration && isFinite(progVid.duration) && progVid.duration > 0) ? progVid.duration : 60;
+      const remaining = Math.max(0, dur - cur);
+
+      // 1. Botones Principales del Master Deck
+      const btnPlayMaster = document.getElementById('btnVideoPlayPauseMaster');
+      const btnPlayMasterText = document.getElementById('btnVideoPlayPauseMasterText');
+      if (btnPlayMasterText) btnPlayMasterText.textContent = isPlaying ? 'PAUSAR VIDEO' : 'REPRODUCIR VIDEO';
+      if (btnPlayMaster) {
+        btnPlayMaster.className = isPlaying
+          ? 'px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-950/40 transition active:scale-95'
+          : 'px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-950/40 transition active:scale-95';
+        const lucideIcon = btnPlayMaster.querySelector('i');
+        if (lucideIcon) {
+          lucideIcon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
+        }
+      }
+
+      // 2. Botón Audio Master
+      const btnMuteMaster = document.getElementById('btnVideoMuteMaster');
+      const btnMuteMasterText = document.getElementById('btnVideoMuteMasterText');
+      if (btnMuteMasterText) btnMuteMasterText.textContent = activeVideoMuted ? 'Silenciado' : 'Audio ON';
+      if (btnMuteMaster) {
+        btnMuteMaster.className = activeVideoMuted
+          ? 'px-3 py-2 rounded-xl bg-rose-950 text-rose-300 text-xs font-semibold flex items-center gap-1.5 border border-rose-500/40 transition active:scale-95'
+          : 'px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition active:scale-95';
+      }
+
+      // 3. Botón Loop Master
+      const btnLoopMaster = document.getElementById('btnVideoLoopMaster');
+      const btnLoopMasterText = document.getElementById('btnVideoLoopMasterText');
+      if (btnLoopMasterText) btnLoopMasterText.textContent = activeVideoLoopEnabled ? 'Loop: ON' : 'Loop: OFF';
+      if (btnLoopMaster) {
+        btnLoopMaster.className = activeVideoLoopEnabled
+          ? 'px-3 py-2 rounded-xl bg-sky-500/20 text-sky-300 text-xs font-bold flex items-center gap-1.5 border border-sky-500/40 transition active:scale-95'
+          : 'px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition active:scale-95';
+      }
+
+      // 4. Timecodes & Remaining Countdown
+      const tc = document.getElementById('activeVideoTimecode');
+      if (tc) tc.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
+
+      const tcRemain = document.getElementById('activeVideoTimecodeRemaining');
+      if (tcRemain) tcRemain.textContent = `-${formatTime(remaining)}`;
+
+      // 5. Scrubber Progress (no sobreescribir si el operador lo está arrastrando)
+      const scrub = document.getElementById('activeVideoScrubber');
+      if (scrub && !isVideoScrubberDragging && dur > 0) {
+        scrub.value = ((cur / dur) * 100).toFixed(1);
+      }
+
+      // 6. Insignia de Estado Al Aire
+      const statusBadge = document.getElementById('activeVideoStatusBadge');
+      if (statusBadge) {
+        if (isPlaying) {
+          statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block mr-1.5"></span> AL AIRE (PROYECTOR & STREAM)`;
+          statusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-mono bg-emerald-500/20 border border-emerald-500/40 flex items-center text-emerald-300 font-bold shadow';
+        } else if (progVid.ended) {
+          statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-400 inline-block mr-1.5"></span> FINALIZADO`;
+          statusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-mono bg-slate-800 border border-slate-700 flex items-center text-slate-300';
+        } else {
+          statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 inline-block mr-1.5"></span> EN PAUSA`;
+          statusBadge.className = 'px-2.5 py-1 rounded-full text-xs font-mono bg-amber-500/20 border border-amber-500/40 flex items-center text-amber-300 font-bold shadow';
+        }
+      }
+
+      // 7. Icono central de Play/Pausa sobre el video
+      const centerPlayIcon = document.getElementById('activeVideoCenterPlayIcon');
+      if (centerPlayIcon) {
+        centerPlayIcon.style.opacity = isPlaying ? '0' : '1';
+        const lucideCenter = document.getElementById('activeVideoCenterPlayIconLucide');
+        if (lucideCenter) {
+          lucideCenter.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
+        }
+      }
+
+      // Sincronizar también la barra antigua si existe
+      const btnPlayTextOld = document.getElementById('btnVideoPlayPauseText');
+      const btnPlayOld = document.getElementById('btnVideoPlayPause');
+      if (btnPlayTextOld) btnPlayTextOld.textContent = isPlaying ? 'Pausar Video' : 'Reproducir / Proyectar';
+      if (btnPlayOld) {
+        btnPlayOld.className = isPlaying
           ? 'px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95'
           : 'px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95';
       }
-
-      if (btnMuteText) btnMuteText.textContent = activeVideoMuted ? 'Silenciado' : 'Audio ON';
-      if (btnMute) {
-        btnMute.className = activeVideoMuted
-          ? 'px-2.5 py-1 rounded-lg bg-rose-950 text-rose-300 text-xs font-semibold flex items-center gap-1 border border-rose-500/40 transition active:scale-95'
-          : 'px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95';
-      }
-
-      if (btnLoopText) btnLoopText.textContent = activeVideoLoopEnabled ? 'Loop: ON' : 'Loop: OFF';
-      if (btnLoop) {
-        btnLoop.className = activeVideoLoopEnabled
-          ? 'px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-bold flex items-center gap-1 border border-sky-500/40 transition active:scale-95'
-          : 'px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95';
-      }
-
-      const cur = progVid.currentTime || 0;
-      const dur = (progVid.duration && isFinite(progVid.duration)) ? progVid.duration : 120;
-      if (tc) tc.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
-      if (scrub && dur > 0) scrub.value = String(Math.min(100, Math.round((cur / dur) * 100)));
     }
 
-    setInterval(updateActiveVideoTransportUI, 500);
+    setInterval(updateActiveVideoTransportUI, 250);
+
 
     // -------------------------------------------------------------------------
     // FAIRLIGHT DIGITAL AUDIO CONSOLE (BROADCAST DSP & DYNAMICS ENGINE)
@@ -13718,15 +13945,8 @@ Pues resucitaste, Rey`
             const progVid = document.getElementById('programMediaVideo');
             if (item.videoUrl && progVid) {
               if (progVid.getAttribute('data-src') !== item.videoUrl) {
-                playMediaVideoElement(progVid, item.videoUrl, {
-                  loop: Boolean(activeVideoLoopEnabled),
-                  muted: Boolean(activeVideoMuted)
-                });
-              } else if (progVid.paused && progVid.readyState >= 2) {
-                progVid.play().catch(() => {
-                  progVid.muted = true;
-                  progVid.play().catch(() => {});
-                });
+                progVid.src = item.videoUrl;
+                progVid.setAttribute('data-src', item.videoUrl);
               }
               ctx.fillStyle = '#000000';
               ctx.fillRect(0, 0, w, h);
