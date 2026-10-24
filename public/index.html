@@ -444,13 +444,19 @@
         <!-- Header Limpio de Biblioteca -->
         <div class="p-3 border-b border-slate-800 bg-slate-900/60 flex items-center justify-between shrink-0 select-none">
           <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-            <i data-lucide="music" class="w-4 h-4 text-sky-400"></i>
-            Biblioteca de Alabanza
+            <i data-lucide="database" class="w-4 h-4 text-sky-400"></i>
+            Base de Datos Multimedia
           </span>
-          <button onclick="openNewSongModal()" class="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition active:scale-95">
-            <i data-lucide="plus" class="w-3 h-3"></i>
-            <span>Canción</span>
-          </button>
+          <div class="flex items-center gap-1.5">
+            <button onclick="openNewSongModal()" class="px-2 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition active:scale-95" title="Subir o crear nueva letra / canción">
+              <i data-lucide="plus" class="w-3 h-3"></i>
+              <span>Letra</span>
+            </button>
+            <button onclick="openUploadVideoModal()" class="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition active:scale-95" title="Subir archivo de video (.mp4, .webm, .mov) para proyectar">
+              <i data-lucide="film" class="w-3 h-3"></i>
+              <span>Video</span>
+            </button>
+          </div>
         </div>
 
         <!-- SUB-PANEL 1: BIBLIOTECA DE CANCIONES & BIBLIA -->
@@ -461,13 +467,17 @@
                 <i data-lucide="library" class="w-4 h-4 text-sky-400"></i>
                 Biblioteca del Servicio
               </span>
-              <div class="flex items-center gap-2">
-                <span id="libCounter" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+              <div class="flex items-center gap-1.5">
+                <span id="libCounter" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
                   6 Activas
                 </span>
-                <button onclick="openNewSongModal()" class="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold flex items-center gap-1 transition shadow active:scale-95" title="Importar o agregar nueva canción">
+                <button onclick="openNewSongModal()" class="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white text-[10.5px] font-bold flex items-center gap-1 transition shadow active:scale-95" title="Importar o agregar nueva canción">
                   <i data-lucide="plus" class="w-3 h-3"></i>
-                  <span>+ Canción</span>
+                  <span>+ Letra</span>
+                </button>
+                <button onclick="openUploadVideoModal()" class="px-2 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-[10.5px] font-bold flex items-center gap-1 transition shadow active:scale-95" title="Subir video MP4/WebM desde tu computadora">
+                  <i data-lucide="upload" class="w-3 h-3"></i>
+                  <span>+ Video</span>
                 </button>
               </div>
             </div>
@@ -543,22 +553,30 @@
         <!-- 1. SLIDES VIEW CONTAINER (STANDARD PRESENTATION MODE) -->
         <div id="viewLetrasSlidesContainer" class="flex-1 flex flex-col overflow-hidden">
           <div class="p-3 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/40 shrink-0">
-            <div class="flex items-center gap-3">
-              <div class="p-2 rounded-lg bg-sky-500/10 border border-sky-500/20">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="p-2 rounded-lg bg-sky-500/10 border border-sky-500/20 shrink-0">
                 <i data-lucide="music" class="w-4 h-4 text-sky-400"></i>
               </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <h2 id="activeSongTitle" class="text-sm font-bold text-white tracking-wide">Gracia Sublime Es</h2>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h2 id="activeSongTitle" class="text-sm font-bold text-white tracking-wide truncate">Gracia Sublime Es</h2>
                   <span id="activeSongStreamModeBadge" class="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/40">
                     TRANSMISIÓN: LOWER THIRD (ALFA)
                   </span>
+                  <button onclick="openEditSongModal(currentItemIndex)" id="btnEditCurrentItem" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-sky-300 text-[10px] font-bold flex items-center gap-1 border border-slate-700 transition" title="Editar letra o título de este elemento en la base de datos">
+                    <i data-lucide="edit-3" class="w-3 h-3"></i>
+                    <span>Editar</span>
+                  </button>
+                  <button onclick="deleteLibraryItem(currentItemIndex)" id="btnDeleteCurrentItem" class="px-2 py-0.5 rounded bg-slate-900 hover:bg-rose-950 text-slate-400 hover:text-rose-300 text-[10px] font-bold flex items-center gap-1 border border-slate-800 hover:border-rose-500/40 transition" title="Eliminar de la base de datos">
+                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    <span>Borrar</span>
+                  </button>
                 </div>
-                <p id="activeSongAuthor" class="text-xs text-slate-400">Phil Wickham • Tonalidad: Bb</p>
+                <p id="activeSongAuthor" class="text-xs text-slate-400 truncate">Phil Wickham • Tonalidad: Bb</p>
               </div>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 shrink-0">
               <button onclick="openLyricsStyleModal()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-900/60 to-indigo-900/60 hover:from-purple-800 hover:to-indigo-800 text-purple-200 text-xs font-bold flex items-center gap-1.5 border border-purple-500/40 shadow-sm transition active:scale-95">
                 <i data-lucide="palette" class="w-3.5 h-3.5 text-purple-300"></i>
                 <span>Estilos & Loops</span>
@@ -571,6 +589,36 @@
                 <i data-lucide="square" class="w-3.5 h-3.5 text-red-400"></i>
                 <span>Negro</span>
               </button>
+            </div>
+          </div>
+
+          <!-- BARRA DE TRANSPORTE DE VIDEO EN VIVO (PROYECTOR HDMI & STREAMING) -->
+          <div id="activeVideoTransportBar" class="hidden px-3 py-2 bg-gradient-to-r from-rose-950/70 via-slate-900 to-slate-950 border-b border-rose-500/40 flex flex-wrap items-center justify-between gap-3 shrink-0 select-none">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] font-black font-mono tracking-wider flex items-center gap-1 shadow">
+                <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                REPRODUCTOR VIDEO HD
+              </span>
+              <button onclick="toggleActiveVideoPlayPause()" id="btnVideoPlayPause" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                <span id="btnVideoPlayPauseText">Reproducir / Proyectar</span>
+              </button>
+              <button onclick="restartActiveVideo()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95" title="Reiniciar desde 00:00">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-sky-400"></i>
+                <span>00:00</span>
+              </button>
+              <button onclick="toggleActiveVideoMute()" id="btnVideoMute" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95">
+                <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                <span id="btnVideoMuteText">Audio ON</span>
+              </button>
+              <button onclick="toggleActiveVideoLoop()" id="btnVideoLoop" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95">
+                <i data-lucide="repeat" class="w-3.5 h-3.5"></i>
+                <span id="btnVideoLoopText">Loop: OFF</span>
+              </button>
+            </div>
+            <div class="flex items-center gap-3 flex-1 min-w-[200px] max-w-md">
+              <span id="activeVideoTimecode" class="text-[11px] font-mono font-bold text-rose-300 shrink-0">00:00 / 00:00</span>
+              <input type="range" id="activeVideoScrubber" min="0" max="100" value="0" oninput="seekActiveVideo(this.value)" class="flex-1 accent-rose-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer">
             </div>
           </div>
 
@@ -1134,6 +1182,11 @@
                   <p class="text-[10px] text-slate-300 font-semibold line-clamp-1">Retiro Jóvenes GDL</p>
                   <span class="text-[8px] font-mono text-slate-500">01:30 • MP4 1080p</span>
                 </div>
+                <button onclick="openUploadVideoModal()" class="w-40 h-20 bg-slate-900/60 hover:bg-rose-950/40 rounded-lg border-2 border-dashed border-slate-700 hover:border-rose-500/60 p-2 shrink-0 cursor-pointer flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-rose-300 transition">
+                  <i data-lucide="upload-cloud" class="w-4 h-4 text-rose-400"></i>
+                  <span class="text-[10px] font-bold">+ Subir Video MP4</span>
+                  <span class="text-[8px] font-mono text-slate-500">Proyector y Stream</span>
+                </button>
               </div>
             </div>
 
@@ -2668,7 +2721,7 @@ Te adoraré, te adoraré..."
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: IMPORTADOR RÁPIDO DE CANCIONES (PEGAR LETRA & AUTO-SLIDES)         -->
+  <!-- MODAL: IMPORTADOR / EDITOR DE CANCIONES Y LETRAS (BASE DE DATOS)          -->
   <!-- ========================================================================= -->
   <div id="newSongModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 md:p-4">
     <div class="bg-[#0d131f] border border-slate-700 rounded-2xl max-w-4xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-hidden">
@@ -2680,13 +2733,13 @@ Te adoraré, te adoraré..."
           </div>
           <div>
             <div class="flex items-center gap-2">
-              <h3 class="text-sm font-bold text-white tracking-wide">Importador Rápido de Canciones & Letras</h3>
+              <h3 id="newSongModalHeaderTitle" class="text-sm font-bold text-white tracking-wide">Importador y Editor de Canciones & Letras</h3>
               <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 font-bold">
-                Auto-Slide Engine
+                Base de Datos Persistente
               </span>
             </div>
             <p class="text-[11px] text-slate-400">
-              Pega la letra completa; el sistema detecta Versos, Coros y Puentes y genera las diapositivas al vuelo.
+              Pega la letra o sube un archivo .TXT; el sistema detecta Versos, Coros y Puentes y guarda en la base de datos.
             </p>
           </div>
         </div>
@@ -2695,12 +2748,20 @@ Te adoraré, te adoraré..."
         </button>
       </div>
 
-      <!-- Quick Template / Example Bar -->
+      <!-- Quick Template / File Import Bar -->
       <div class="flex items-center justify-between flex-wrap gap-2 px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-800 shrink-0">
-        <span class="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
-          Cargar plantilla de prueba (1 Clic):
-        </span>
+        <div class="flex items-center gap-2">
+          <input type="file" id="singleSongTxtFileInput" class="hidden" accept=".txt,.md" onchange="handleSingleSongTxtUpload(event)">
+          <button type="button" onclick="document.getElementById('singleSongTxtFileInput').click()" class="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-[11px] font-bold border border-emerald-500/40 transition flex items-center gap-1.5 active:scale-95">
+            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+            <span>📂 Subir archivo .TXT desde PC</span>
+          </button>
+          <span class="text-slate-700">|</span>
+          <span class="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+            Ejemplos:
+          </span>
+        </div>
         <div class="flex items-center gap-1.5 flex-wrap">
           <button type="button" onclick="loadSongSample('cuan_grande')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 text-[11px] font-semibold border border-slate-700 transition active:scale-95">
             ✨ Cuán Grande Es Dios
@@ -2717,16 +2778,23 @@ Te adoraré, te adoraré..."
       <!-- Scrollable Main Form -->
       <div class="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
         <!-- Metadata Row -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
-            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Título de la Canción *</label>
+            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Título de la Canción / Pasaje *</label>
             <input type="text" id="newSongTitle" placeholder="Ej: Rey de Reyes" 
                    class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 transition font-semibold">
           </div>
           <div>
-            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Artista / Autor</label>
-            <input type="text" id="newSongAuthor" placeholder="Ej: Hillsong Worship / Phil Wickham" 
+            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Artista / Autor / Cita</label>
+            <input type="text" id="newSongAuthor" placeholder="Ej: Hillsong Worship / RVR1960" 
                    class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 transition">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Categoría</label>
+            <select id="newSongCategory" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500 transition">
+              <option value="alabanza">🎵 Alabanza / Canción</option>
+              <option value="biblia">📖 Biblia / Escritura</option>
+            </select>
           </div>
           <div>
             <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Ámbito / Sede</label>
@@ -2784,14 +2852,14 @@ Te adoraré, te adoraré..."
       <!-- Modal Footer -->
       <div class="border-t border-slate-800 pt-3 flex items-center justify-between shrink-0">
         <span class="text-[11px] font-mono text-slate-500 hidden sm:inline">
-          💡 La canción se indexa de inmediato para búsqueda y proyector HDMI.
+          💾 Se guarda permanentemente en <code class="text-sky-400">data/database.json</code> del servidor.
         </span>
         <div class="flex items-center gap-2">
           <button type="button" onclick="closeNewSongModal()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
             Cancelar
           </button>
           <button type="button" onclick="saveNewSong(false)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 hover:text-white text-xs font-semibold border border-slate-700 transition">
-            Solo Guardar
+            Solo Guardar en Base de Datos
           </button>
           <button type="button" onclick="saveNewSong(true)" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 active:scale-95 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-sky-600/25 transition">
             <i data-lucide="play" class="w-3.5 h-3.5"></i>
@@ -2801,6 +2869,117 @@ Te adoraré, te adoraré..."
       </div>
     </div>
   </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: SUBIR VIDEO LOCAL (.MP4 / .WEBM / .MOV) PARA PROYECTAR Y STREAM    -->
+  <!-- ========================================================================= -->
+  <div id="uploadVideoModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 md:p-4">
+    <div class="bg-[#0d131f] border border-slate-700 rounded-2xl max-w-2xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400">
+            <i data-lucide="film" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-bold text-white tracking-wide">Subir Video a Base de Datos (Proyector & Transmisión)</h3>
+              <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">
+                MP4 / WEBM / MOV
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-400">
+              Sube anuncios, videos de bienvenida, testimonios o loops desde tu PC para proyectar en HDMI y transmitir en vivo.
+            </p>
+          </div>
+        </div>
+        <button onclick="closeUploadVideoModal()" class="text-slate-400 hover:text-white transition p-1 rounded-lg hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Drop Zone for Video File -->
+      <div id="videoUploadDropZone"
+           ondragover="event.preventDefault(); this.classList.add('border-rose-500', 'bg-rose-500/10')"
+           ondragleave="event.preventDefault(); this.classList.remove('border-rose-500', 'bg-rose-500/10')"
+           ondrop="handleVideoFileDrop(event)"
+           onclick="document.getElementById('videoFileInput').click()"
+           class="border-2 border-dashed border-slate-700 hover:border-rose-500/60 rounded-xl p-5 text-center cursor-pointer transition bg-slate-900/60 hover:bg-rose-500/5 flex flex-col items-center gap-2">
+        <input type="file" id="videoFileInput" class="hidden" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.mkv" onchange="handleVideoFileSelect(event)">
+        <div class="w-11 h-11 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
+          <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p id="videoDropZoneLabel" class="text-xs font-bold text-white">Haz clic aquí o arrastra tu archivo de video (.mp4, .webm, .mov)</p>
+          <p id="videoDropZoneSub" class="text-[11px] text-slate-400 mt-0.5">El video se guardará en <code class="text-rose-300">public/uploads/videos/</code> y quedará listo en Biblioteca y Capa 3</p>
+        </div>
+      </div>
+
+      <!-- Video Preview Box (Shows once file is picked) -->
+      <div id="videoUploadPreviewContainer" class="hidden bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center gap-3">
+        <video id="videoUploadLocalPreview" muted playsinline controls class="w-40 aspect-video rounded-lg bg-black object-contain border border-slate-800 shrink-0"></video>
+        <div class="flex-1 min-w-0 space-y-1 text-xs">
+          <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            <span id="videoUploadMetaFile" class="truncate">video.mp4</span>
+          </div>
+          <p id="videoUploadMetaInfo" class="text-[11px] text-slate-400 font-mono">Duración: --:-- • Tamaño: -- MB</p>
+        </div>
+      </div>
+
+      <!-- Metadata Fields -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+        <div class="md:col-span-2">
+          <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Título del Video *</label>
+          <input type="text" id="uploadVideoTitle" placeholder="Ej: Anuncios de la Semana / Video Bienvenida"
+                 class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 font-semibold">
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Ámbito / Etiqueta</label>
+          <select id="uploadVideoScope" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500">
+            <option value="📍 SEDE LOCAL">📍 Sede Local</option>
+            <option value="👑 OFICIAL NACIONAL">👑 Oficial Nacional</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Opcional: URL Directa de Video (.mp4) si no subes archivo desde tu PC</label>
+        <input type="text" id="uploadVideoDirectUrl" placeholder="Opcional: https://ejemplo.com/video.mp4"
+               class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 font-mono focus:outline-none focus:border-rose-500">
+      </div>
+
+      <!-- Progress Bar -->
+      <div id="videoUploadProgressBox" class="hidden space-y-1.5">
+        <div class="flex items-center justify-between text-[11px] font-mono">
+          <span id="videoUploadProgressStatus" class="text-sky-400 font-bold">Subiendo archivo al servidor...</span>
+          <span id="videoUploadProgressPct" class="text-white font-bold">0%</span>
+        </div>
+        <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+          <div id="videoUploadProgressBar" class="h-full bg-gradient-to-r from-rose-500 to-amber-500 transition-all duration-150" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-800 pt-3 flex items-center justify-between">
+        <button type="button" onclick="closeUploadVideoModal()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+          Cancelar
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btnSubmitVideoSaveOnly" onclick="submitVideoUpload(false)" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-rose-300 hover:text-white text-xs font-bold border border-slate-700 transition flex items-center gap-1.5">
+            <i data-lucide="save" class="w-3.5 h-3.5"></i>
+            <span>Subir y Guardar en Biblioteca</span>
+          </button>
+          <button type="button" id="btnSubmitVideoGoLive" onclick="submitVideoUpload(true)" class="px-4 py-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 active:scale-95 text-white font-black text-xs flex items-center gap-1.5 shadow-lg shadow-rose-600/30 transition">
+            <i data-lucide="play" class="w-3.5 h-3.5"></i>
+            <span>¡Subir y Proyectar Ahora!</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden HTML5 Video Elements for Compositor (1080p Broadcast & Preview) -->
+  <video id="programMediaVideo" playsinline crossorigin="anonymous" class="hidden"></video>
+  <video id="previewMediaVideo" muted playsinline crossorigin="anonymous" class="hidden"></video>
 
   <!-- ========================================================================= -->
   <!-- MODAL: AGREGAR / EDITAR BLOQUE DE MINUTO A MINUTO (SERVICE RUNDOWN)        -->
@@ -7607,26 +7786,32 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       filtered.forEach((item) => {
         const originalIndex = libraryItems.indexOf(item);
         const isSelected = originalIndex === currentItemIndex;
+        const isVideo = item.category === 'medios' || Boolean(item.isVideo);
         const div = document.createElement('div');
-        div.className = `p-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between ${
+        div.className = `p-2.5 rounded-lg border cursor-pointer transition flex items-center justify-between gap-2 group ${
           isSelected 
             ? 'bg-sky-500/15 border-sky-500/40 text-white' 
             : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/50 hover:text-white'
         }`;
         div.onclick = () => selectItem(originalIndex);
 
+        const typeIcon = isVideo ? '🎬' : (item.category === 'biblia' ? '📖' : '🎵');
         div.innerHTML = `
-          <div class="flex flex-col pr-2">
-            <span class="text-xs font-bold leading-tight">${item.title}</span>
-            <span class="text-[10px] text-slate-400 mt-0.5">${item.author}</span>
+          <div class="flex flex-col pr-1 min-w-0 flex-1">
+            <span class="text-xs font-bold leading-tight truncate">${typeIcon} ${item.title}</span>
+            <span class="text-[10px] text-slate-400 mt-0.5 truncate">${item.author || ''}</span>
           </div>
-          <span class="text-[9px] font-mono px-1.5 py-0.5 rounded ${
-            item.scope.includes('NACIONAL') 
-              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
-              : 'bg-slate-800 text-slate-400 border border-slate-700'
-          }">
-            ${item.scope}
-          </span>
+          <div class="flex items-center gap-1 shrink-0">
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded ${
+              isVideo
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold'
+                : (item.scope && item.scope.includes('NACIONAL') 
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+                    : 'bg-slate-800 text-slate-400 border border-slate-700')
+            }">
+              ${isVideo && item.videoUrl ? '🎬 VIDEO MP4' : (item.scope || 'LOCAL')}
+            </span>
+          </div>
         `;
         container.appendChild(div);
       });
@@ -7634,9 +7819,19 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
     function renderSlidesGrid() {
       const item = libraryItems[currentItemIndex];
+      if (!item) return;
       const isVideo = item.category === 'medios' || Boolean(item.isVideo);
       document.getElementById('activeSongTitle').textContent = item.title;
-      document.getElementById('activeSongAuthor').textContent = `${item.author} • ${item.scope}`;
+      document.getElementById('activeSongAuthor').textContent = `${item.author || ''} • ${item.scope || 'SEDE LOCAL'}`;
+
+      const transportBar = document.getElementById('activeVideoTransportBar');
+      if (transportBar) {
+        if (isVideo && item.videoUrl) {
+          transportBar.classList.remove('hidden');
+        } else {
+          transportBar.classList.add('hidden');
+        }
+      }
 
       const streamBadge = document.getElementById('activeSongStreamModeBadge');
       if (streamBadge) {
@@ -7654,7 +7849,43 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       const currentThemeConfig = themesPalette[currentTheme] || themesPalette.purple;
 
-      item.slides.forEach((slide, idx) => {
+      if (isVideo && item.videoUrl) {
+        const card = document.createElement('div');
+        card.className = `col-span-full md:col-span-2 aspect-video rounded-xl border-2 border-rose-500 bg-slate-950 p-3 flex flex-col justify-between cursor-pointer transition shadow-xl relative overflow-hidden group`;
+        card.onclick = () => {
+          triggerSlide(0);
+          const progVid = document.getElementById('programMediaVideo');
+          if (progVid && progVid.paused) {
+            toggleActiveVideoPlayPause(true);
+          }
+        };
+        card.innerHTML = `
+          <video src="${item.videoUrl}#t=0.5" muted playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-55 group-hover:opacity-75 transition"></video>
+          <div class="flex items-center justify-between z-10">
+            <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-600 text-white shadow">
+              🎬 ARCHIVO DE VIDEO HD
+            </span>
+            <span class="text-[10px] font-mono text-white bg-black/70 px-2 py-0.5 rounded">${item.durationFormatted || formatTime(item.duration || 120)}</span>
+          </div>
+          <div class="z-10 my-auto text-center px-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
+            <div class="w-12 h-12 mx-auto mb-2 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition">
+              <i data-lucide="play" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm font-black text-white leading-snug">${item.title}</p>
+            <p class="text-[11px] text-rose-200 mt-1">Haz clic para proyectar en HDMI y transmitir en pantalla completa</p>
+          </div>
+          <div class="z-10 flex items-center justify-between text-[10px] font-mono bg-black/70 px-2.5 py-1 rounded-lg">
+            <span class="text-emerald-400 font-bold">● LISTO EN PROYECTOR Y STREAM</span>
+            <span class="text-slate-300">${item.videoUrl}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+        lucide.createIcons();
+        updateMonitors();
+        return;
+      }
+
+      (item.slides || []).forEach((slide, idx) => {
         const isCurrent = idx === currentSlideIndex;
         const card = document.createElement('div');
         card.className = `aspect-video rounded-xl border-2 p-3 flex flex-col justify-between cursor-pointer transition shadow-md relative overflow-hidden group ${
@@ -7692,8 +7923,25 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     }
 
     function selectItem(index) {
+      if (!libraryItems[index]) return;
       currentItemIndex = index;
       currentSlideIndex = 0;
+      const item = libraryItems[currentItemIndex];
+      const progVid = document.getElementById('programMediaVideo');
+      if (item && item.videoUrl && progVid) {
+        if (progVid.getAttribute('data-src') !== item.videoUrl) {
+          progVid.src = item.videoUrl;
+          progVid.setAttribute('data-src', item.videoUrl);
+          progVid.currentTime = 0;
+        }
+        progVid.muted = Boolean(activeVideoMuted);
+        progVid.loop = Boolean(activeVideoLoopEnabled);
+        progVid.play().then(() => {
+          updateActiveVideoTransportUI();
+        }).catch(() => {});
+      } else if (progVid && !layerPower[3]) {
+        progVid.pause();
+      }
       renderSongsList();
       renderSlidesGrid();
       broadcastSlide();
@@ -7708,9 +7956,18 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
     function broadcastSlide(isClear = false, sendServerSync = true) {
       const item = libraryItems[currentItemIndex];
-      const slide = item.slides[currentSlideIndex];
+      if (!item || !item.slides || !item.slides.length) return;
+      const slide = item.slides[currentSlideIndex] || item.slides[0];
       const nextSlide = item.slides[currentSlideIndex + 1];
       const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+
+      if (isClear) {
+        const progVid = document.getElementById('programMediaVideo');
+        if (progVid && !progVid.paused && !layerPower[3]) {
+          progVid.pause();
+          updateActiveVideoTransportUI();
+        }
+      }
 
       const payload = {
         isClear: isClear,
@@ -7720,6 +7977,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         nextText: nextSlide ? nextSlide.text : '--- Fin de la sección ---',
         songTitle: item.title,
         isVideo: isVideo,
+        videoUrl: item.videoUrl || '',
+        videoMuted: typeof activeVideoMuted !== 'undefined' ? activeVideoMuted : false,
+        videoLoop: typeof activeVideoLoopEnabled !== 'undefined' ? activeVideoLoopEnabled : false,
         duration: item.duration || 225,
         theme: currentTheme,
         layoutMode: lyricsStyleConfig.projectorLayout,
@@ -7746,7 +8006,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             slideIndex: currentSlideIndex,
             isBlackout: Boolean(isClear),
             theme: currentTheme,
-            libraryItems: libraryItems
+            libraryItems: libraryItems,
+            currentSlidePayload: payload
           })
         }).catch(() => {});
       }
@@ -8192,14 +8453,139 @@ Pues resucitaste, Rey`
       }
     };
 
+    let editingSongIndex = null;
+    let layer3Videos = [];
+    let selectedUploadVideoFile = null;
+    let selectedUploadVideoDuration = 120;
+    let activeVideoMuted = false;
+    let activeVideoLoopEnabled = false;
+
+    function slidesToRawLyrics(slides) {
+      if (!Array.isArray(slides) || slides.length === 0) return '';
+      const blocks = [];
+      let lastBadge = null;
+      slides.forEach(s => {
+        const badge = s.badge || 'VERSO 1';
+        if (badge !== lastBadge) {
+          blocks.push(`[${badge}]`);
+          lastBadge = badge;
+        }
+        if (s.text) blocks.push(s.text);
+        if (s.subText) blocks.push(s.subText);
+        blocks.push('');
+      });
+      return blocks.join('\n').trim();
+    }
+
     function openNewSongModal() {
+      editingSongIndex = null;
+      const headerTitle = document.getElementById('newSongModalHeaderTitle');
+      if (headerTitle) headerTitle.textContent = 'Importador Rápido de Canciones & Letras';
+      clearSongInput();
+      const catSel = document.getElementById('newSongCategory');
+      if (catSel) catSel.value = activeFilter === 'biblia' ? 'biblia' : 'alabanza';
       const modal = document.getElementById('newSongModal');
       if (modal) modal.classList.remove('hidden');
       updateSongImportPreview();
       lucide.createIcons();
     }
 
+    function openEditSongModal(idx) {
+      const item = libraryItems[idx];
+      if (!item) return;
+      if (item.isVideo || item.category === 'medios') {
+        const newTitle = prompt('Editar título del video:', item.title);
+        if (newTitle && newTitle.trim()) {
+          item.title = newTitle.trim();
+          if (item.slides && item.slides[0]) item.slides[0].text = item.title;
+          const l3 = layer3Videos.find(v => v.id === item.id);
+          if (l3) l3.title = item.title;
+          saveDatabaseToServer();
+          renderSongsList();
+          renderSlidesGrid();
+          renderLayer3VideoShots();
+          showToast(`✓ Título actualizado a "${item.title}"`, '🎬');
+        }
+        return;
+      }
+
+      editingSongIndex = idx;
+      const headerTitle = document.getElementById('newSongModalHeaderTitle');
+      if (headerTitle) headerTitle.textContent = `Editar en Base de Datos: ${item.title}`;
+
+      const t = document.getElementById('newSongTitle');
+      const a = document.getElementById('newSongAuthor');
+      const c = document.getElementById('newSongCategory');
+      const s = document.getElementById('newSongScope');
+      const l = document.getElementById('newSongLyrics');
+
+      if (t) t.value = item.title || '';
+      if (a) a.value = item.author || '';
+      if (c) c.value = item.category === 'biblia' ? 'biblia' : 'alabanza';
+      if (s) s.value = (item.scope && item.scope.includes('NACIONAL')) ? 'GLOBAL' : 'LOCAL';
+      if (l) l.value = slidesToRawLyrics(item.slides || []);
+
+      const modal = document.getElementById('newSongModal');
+      if (modal) modal.classList.remove('hidden');
+      updateSongImportPreview();
+      lucide.createIcons();
+    }
+
+    async function deleteLibraryItem(idx) {
+      const item = libraryItems[idx];
+      if (!item) return;
+      if (libraryItems.length <= 1) {
+        showToast('⚠️ Debe quedar al menos un elemento en la biblioteca', '⚠️');
+        return;
+      }
+      if (!confirm(`¿Seguro que deseas eliminar "${item.title}" de la base de datos?`)) return;
+
+      const targetId = item.id;
+      libraryItems.splice(idx, 1);
+      layer3Videos = layer3Videos.filter(v => v.id !== targetId);
+
+      if (currentItemIndex >= libraryItems.length) {
+        currentItemIndex = Math.max(0, libraryItems.length - 1);
+      }
+      currentSlideIndex = 0;
+
+      try {
+        await fetch('/api/db/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: targetId, deleteFile: true })
+        });
+      } catch (e) {}
+
+      saveDatabaseToServer();
+      renderSongsList();
+      renderSlidesGrid();
+      renderLayer3VideoShots();
+      broadcastSlide();
+      showToast(`🗑️ "${item.title}" eliminado de la base de datos`, '✓');
+    }
+
+    function handleSingleSongTxtUpload(evt) {
+      const file = evt.target && evt.target.files ? evt.target.files[0] : null;
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const content = e.target.result || '';
+        const l = document.getElementById('newSongLyrics');
+        const t = document.getElementById('newSongTitle');
+        if (l) l.value = content;
+        if (t && !t.value.trim()) {
+          t.value = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+        }
+        updateSongImportPreview();
+        showToast(`📄 Letra cargada desde "${file.name}"`, '✓');
+      };
+      reader.readAsText(file);
+      evt.target.value = '';
+    }
+
     function closeNewSongModal() {
+      editingSongIndex = null;
       const modal = document.getElementById('newSongModal');
       if (modal) modal.classList.add('hidden');
     }
@@ -8335,12 +8721,13 @@ Pues resucitaste, Rey`
     function saveNewSong(goToLive = false) {
       const inTitle = document.getElementById('newSongTitle');
       const inAuthor = document.getElementById('newSongAuthor');
+      const inCategory = document.getElementById('newSongCategory');
       const inScope = document.getElementById('newSongScope');
       const inLyrics = document.getElementById('newSongLyrics');
 
       const title = (inTitle ? inTitle.value : '').trim();
       if (!title) {
-        alert('Por favor ingresa al menos el Título de la canción.');
+        alert('Por favor ingresa al menos el Título de la canción o pasaje.');
         if (inTitle) inTitle.focus();
         return;
       }
@@ -8348,51 +8735,514 @@ Pues resucitaste, Rey`
       const lyrics = inLyrics ? inLyrics.value : '';
       const slides = parseSongLyrics(lyrics);
       if (slides.length === 0) {
-        alert('Por favor pega la letra de la canción para generar las diapositivas.');
+        alert('Por favor pega la letra para generar las diapositivas.');
         if (inLyrics) inLyrics.focus();
         return;
       }
 
-      const author = (inAuthor && inAuthor.value.trim()) ? inAuthor.value.trim() : 'Autor Desconocido';
+      const category = (inCategory && inCategory.value) ? inCategory.value : 'alabanza';
+      const author = (inAuthor && inAuthor.value.trim()) ? inAuthor.value.trim() : (category === 'biblia' ? 'Reina Valera 1960' : 'Autor Desconocido');
       const scopeVal = inScope ? inScope.value : 'LOCAL';
-      const scopeBadge = scopeVal === 'GLOBAL' ? '👑 OFICIAL NACIONAL' : '📍 SEDE LOCAL';
+      const scopeBadge = category === 'biblia' ? 'BIBLIA' : (scopeVal === 'GLOBAL' ? '👑 OFICIAL NACIONAL' : '📍 SEDE LOCAL');
 
-      const newSong = {
-        id: `song-${Date.now()}`,
-        category: 'alabanza',
-        title: title,
-        author: author,
-        scope: scopeBadge,
-        slides: slides
-      };
+      let targetIndex = 0;
 
-      // Add to beginning of libraryItems
-      libraryItems.unshift(newSong);
-
-      if (!goToLive) {
-        // Keep currently selected item pointing to the same song
-        currentItemIndex++;
+      if (editingSongIndex !== null && libraryItems[editingSongIndex]) {
+        libraryItems[editingSongIndex].title = title;
+        libraryItems[editingSongIndex].author = author;
+        libraryItems[editingSongIndex].category = category;
+        libraryItems[editingSongIndex].scope = scopeBadge;
+        libraryItems[editingSongIndex].slides = slides;
+        targetIndex = editingSongIndex;
+      } else {
+        const newSong = {
+          id: `song-${Date.now()}`,
+          category: category,
+          title: title,
+          author: author,
+          scope: scopeBadge,
+          slides: slides
+        };
+        libraryItems.unshift(newSong);
+        if (!goToLive) {
+          currentItemIndex++;
+        }
+        targetIndex = 0;
       }
 
-      // Ensure filter allows seeing it
-      if (activeFilter !== 'all' && activeFilter !== 'alabanza') {
-        filterLibrary('alabanza');
+      saveDatabaseToServer();
+
+      if (activeFilter !== 'all' && activeFilter !== category) {
+        filterLibrary(category);
       } else {
         renderSongsList();
       }
+      renderSlidesGrid();
 
       closeNewSongModal();
 
       if (goToLive) {
-        // Switch to Letras tab if not active
-        switchMainDockTab('letras');
-        // Select the new item (index 0)
-        selectItem(0);
-        showToast(`⚡ "${title}" importada y proyectada en vivo`, '🎵');
+        switchAtemTab('letras');
+        selectItem(targetIndex);
+        showToast(`⚡ "${title}" guardada en Base de Datos y proyectada en vivo`, '🎵');
       } else {
-        showToast(`✓ "${title}" guardada en la biblioteca (${slides.length} diapositivas)`, '🎵');
+        showToast(`💾 "${title}" guardada en la Base de Datos (${slides.length} diapositivas)`, '✓');
       }
     }
+
+    // =========================================================================
+    // PERSISTENT DATABASE SYNC & LOCAL VIDEO UPLOAD ENGINE (MP4 / WEBM / MOV)
+    // =========================================================================
+    function saveDatabaseToServer() {
+      try {
+        localStorage.setItem('omnicast_library_db', JSON.stringify({
+          libraryItems,
+          layer3Videos,
+          updatedAt: new Date().toISOString()
+        }));
+      } catch (e) {}
+
+      fetch('/api/db/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          libraryItems: libraryItems,
+          layer3Videos: layer3Videos
+        })
+      }).catch(err => console.warn('[OmniCast DB] Save warning:', err));
+    }
+
+    async function loadDatabaseFromServer() {
+      try {
+        const res = await fetch('/api/db');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data.libraryItems) && data.libraryItems.length > 0) {
+          libraryItems.splice(0, libraryItems.length, ...data.libraryItems);
+          if (currentItemIndex >= libraryItems.length) currentItemIndex = 0;
+        } else {
+          // First run: seed persistent database on disk with default libraryItems
+          saveDatabaseToServer();
+        }
+        if (Array.isArray(data.layer3Videos)) {
+          layer3Videos = data.layer3Videos;
+        }
+        // Also ensure any video item in libraryItems is registered in layer3Videos
+        libraryItems.forEach(item => {
+          if ((item.isVideo || item.category === 'medios') && item.videoUrl) {
+            if (!layer3Videos.some(v => v.id === item.id || v.videoUrl === item.videoUrl)) {
+              layer3Videos.push({
+                id: item.id,
+                title: item.title,
+                scope: item.scope || '📍 SEDE LOCAL',
+                videoUrl: item.videoUrl,
+                duration: item.duration || 120,
+                durationFormatted: item.durationFormatted || formatTime(item.duration || 120)
+              });
+            }
+          }
+        });
+        renderSongsList();
+        renderSlidesGrid();
+        renderLayer3VideoShots();
+        updateHqKpis();
+      } catch (err) {
+        console.warn('[OmniCast DB] Fallback to localStorage:', err);
+        try {
+          const raw = localStorage.getItem('omnicast_library_db');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.libraryItems) && parsed.libraryItems.length > 0) {
+              libraryItems.splice(0, libraryItems.length, ...parsed.libraryItems);
+            }
+            if (Array.isArray(parsed.layer3Videos)) {
+              layer3Videos = parsed.layer3Videos;
+            }
+            renderSongsList();
+            renderSlidesGrid();
+            renderLayer3VideoShots();
+          }
+        } catch (e) {}
+      }
+    }
+
+    function renderLayer3VideoShots() {
+      const rack = document.getElementById('rack-layer-3');
+      if (!rack) return;
+
+      // Reset shotNames[3]
+      shotNames[3] = {
+        1: 'Video Nacional CDN (Campaña 2026)',
+        2: 'Video Local (Retiro Jóvenes GDL)'
+      };
+
+      let html = `
+        <div id="shot-3-1" onclick="handleShotClick(3, 1)" ondblclick="handleShotDblClick(3, 1)" 
+             class="wirecast-shot w-44 h-20 bg-slate-950 rounded-lg border-2 p-2 shrink-0 cursor-pointer flex flex-col justify-between group hover:border-sky-500">
+          <span class="text-[9px] font-bold text-amber-400">👑 NACIONAL (CDN)</span>
+          <p class="text-[10px] text-slate-200 font-semibold line-clamp-1">Campaña Anual 2026</p>
+          <span class="text-[8px] font-mono text-slate-500">03:45 • Cloud CDN 1080p</span>
+        </div>
+        <div id="shot-3-2" onclick="handleShotClick(3, 2)" ondblclick="handleShotDblClick(3, 2)" 
+             class="wirecast-shot w-44 h-20 bg-slate-950 rounded-lg border-2 p-2 shrink-0 cursor-pointer flex flex-col justify-between group hover:border-sky-500">
+          <span class="text-[9px] font-bold text-sky-400">📍 LOCAL</span>
+          <p class="text-[10px] text-slate-300 font-semibold line-clamp-1">Retiro Jóvenes GDL</p>
+          <span class="text-[8px] font-mono text-slate-500">01:30 • MP4 1080p</span>
+        </div>
+      `;
+
+      layer3Videos.forEach((vid, idx) => {
+        const shotNum = idx + 3;
+        shotNames[3][shotNum] = `🎬 ${vid.title}`;
+        const safeTitle = (vid.title || 'Video').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        html += `
+          <div id="shot-3-${shotNum}" onclick="handleShotClick(3, ${shotNum})" ondblclick="handleShotDblClick(3, ${shotNum})" 
+               class="wirecast-shot w-44 h-20 bg-slate-950 rounded-lg border-2 p-2 shrink-0 cursor-pointer flex flex-col justify-between group hover:border-rose-500 relative overflow-hidden">
+            <span class="text-[9px] font-bold text-rose-400 z-10">🎬 VIDEO MP4 #${shotNum}</span>
+            <p class="text-[10px] text-white font-bold line-clamp-1 z-10">${safeTitle}</p>
+            <span class="text-[8px] font-mono text-emerald-400 z-10">${vid.durationFormatted || 'HD'} • Subido</span>
+          </div>
+        `;
+      });
+
+      html += `
+        <button onclick="openUploadVideoModal()" class="w-40 h-20 bg-slate-900/60 hover:bg-rose-950/40 rounded-lg border-2 border-dashed border-slate-700 hover:border-rose-500/60 p-2 shrink-0 cursor-pointer flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-rose-300 transition">
+          <i data-lucide="upload-cloud" class="w-4 h-4 text-rose-400"></i>
+          <span class="text-[10px] font-bold">+ Subir Video MP4</span>
+          <span class="text-[8px] font-mono text-slate-500">Proyector y Stream</span>
+        </button>
+      `;
+
+      rack.innerHTML = html;
+      updateWirecastRackUI();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function openUploadVideoModal() {
+      selectedUploadVideoFile = null;
+      selectedUploadVideoDuration = 120;
+      const modal = document.getElementById('uploadVideoModal');
+      const titleIn = document.getElementById('uploadVideoTitle');
+      const urlIn = document.getElementById('uploadVideoDirectUrl');
+      const prevBox = document.getElementById('videoUploadPreviewContainer');
+      const progBox = document.getElementById('videoUploadProgressBox');
+      const fileIn = document.getElementById('videoFileInput');
+      if (titleIn) titleIn.value = '';
+      if (urlIn) urlIn.value = '';
+      if (fileIn) fileIn.value = '';
+      if (prevBox) prevBox.classList.add('hidden');
+      if (progBox) progBox.classList.add('hidden');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeUploadVideoModal() {
+      const modal = document.getElementById('uploadVideoModal');
+      const prevVid = document.getElementById('videoUploadLocalPreview');
+      if (prevVid) {
+        prevVid.pause();
+        prevVid.removeAttribute('src');
+      }
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function handleVideoFileDrop(e) {
+      e.preventDefault();
+      const dz = document.getElementById('videoUploadDropZone');
+      if (dz) dz.classList.remove('border-rose-500', 'bg-rose-500/10');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        prepareSelectedVideoFile(e.dataTransfer.files[0]);
+      }
+    }
+
+    function handleVideoFileSelect(e) {
+      if (e.target && e.target.files && e.target.files.length > 0) {
+        prepareSelectedVideoFile(e.target.files[0]);
+      }
+    }
+
+    function prepareSelectedVideoFile(file) {
+      selectedUploadVideoFile = file;
+      const titleIn = document.getElementById('uploadVideoTitle');
+      if (titleIn && !titleIn.value.trim()) {
+        titleIn.value = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+      }
+
+      const prevBox = document.getElementById('videoUploadPreviewContainer');
+      const prevVid = document.getElementById('videoUploadLocalPreview');
+      const metaFile = document.getElementById('videoUploadMetaFile');
+      const metaInfo = document.getElementById('videoUploadMetaInfo');
+
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      if (metaFile) metaFile.textContent = file.name;
+      if (metaInfo) metaInfo.textContent = `Analizando duración... • Tamaño: ${sizeMb} MB`;
+      if (prevBox) prevBox.classList.remove('hidden');
+
+      if (prevVid) {
+        const objUrl = URL.createObjectURL(file);
+        prevVid.src = objUrl;
+        prevVid.onloadedmetadata = () => {
+          if (prevVid.duration && isFinite(prevVid.duration)) {
+            selectedUploadVideoDuration = Math.round(prevVid.duration);
+          }
+          const durFmt = formatTime(selectedUploadVideoDuration);
+          if (metaInfo) {
+            metaInfo.textContent = `Duración: ${durFmt} • Resolución: ${prevVid.videoWidth || 1920}x${prevVid.videoHeight || 1080} • ${sizeMb} MB`;
+          }
+        };
+      }
+    }
+
+    function submitVideoUpload(goToLive = false) {
+      const titleIn = document.getElementById('uploadVideoTitle');
+      const scopeIn = document.getElementById('uploadVideoScope');
+      const directUrlIn = document.getElementById('uploadVideoDirectUrl');
+
+      const title = (titleIn ? titleIn.value : '').trim() || (selectedUploadVideoFile ? selectedUploadVideoFile.name.replace(/\.[^/.]+$/, '') : '');
+      const scope = scopeIn ? scopeIn.value : '📍 SEDE LOCAL';
+      const directUrl = (directUrlIn ? directUrlIn.value : '').trim();
+
+      if (!selectedUploadVideoFile && !directUrl) {
+        alert('Por favor selecciona un archivo de video (.mp4, .webm, .mov) desde tu computadora o ingresa una URL directa.');
+        return;
+      }
+      if (!title) {
+        alert('Por favor ingresa un título para el video.');
+        if (titleIn) titleIn.focus();
+        return;
+      }
+
+      // Case 1: Direct URL without local file upload
+      if (!selectedUploadVideoFile && directUrl) {
+        const newVideoItem = {
+          id: `media-${Date.now()}`,
+          category: 'medios',
+          isVideo: true,
+          videoUrl: directUrl,
+          duration: 180,
+          durationFormatted: '03:00',
+          title: title,
+          author: 'Video Enlace Directo HD',
+          scope: scope,
+          slides: [
+            {
+              text: title,
+              subText: 'Video HD • Listo para Proyectar y Transmitir',
+              badge: '🎬 VIDEO HD'
+            }
+          ]
+        };
+        libraryItems.unshift(newVideoItem);
+        layer3Videos.push({
+          id: newVideoItem.id,
+          title: title,
+          scope: scope,
+          videoUrl: directUrl,
+          duration: 180,
+          durationFormatted: '03:00'
+        });
+        saveDatabaseToServer();
+        renderSongsList();
+        renderSlidesGrid();
+        renderLayer3VideoShots();
+        closeUploadVideoModal();
+        if (goToLive) {
+          filterLibrary('medios');
+          selectItem(0);
+          showToast(`🎬 Video "${title}" proyectado en vivo`, '🚀');
+        } else {
+          showToast(`✓ Video "${title}" guardado en Biblioteca y Capa 3`, '🎬');
+        }
+        return;
+      }
+
+      // Case 2: Upload binary file to /api/upload/video with progress bar
+      const progBox = document.getElementById('videoUploadProgressBox');
+      const progBar = document.getElementById('videoUploadProgressBar');
+      const progPct = document.getElementById('videoUploadProgressPct');
+      const progStatus = document.getElementById('videoUploadProgressStatus');
+      const btnSave = document.getElementById('btnSubmitVideoSaveOnly');
+      const btnLive = document.getElementById('btnSubmitVideoGoLive');
+
+      if (progBox) progBox.classList.remove('hidden');
+      if (btnSave) btnSave.disabled = true;
+      if (btnLive) btnLive.disabled = true;
+
+      const params = new URLSearchParams({
+        filename: selectedUploadVideoFile.name,
+        title: title,
+        author: 'Video Local HD',
+        scope: scope,
+        duration: String(selectedUploadVideoDuration || 120)
+      });
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `/api/upload/video?${params.toString()}`, true);
+
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable) {
+          const pct = Math.round((evt.loaded / evt.total) * 100);
+          if (progBar) progBar.style.width = `${pct}%`;
+          if (progPct) progPct.textContent = `${pct}%`;
+          if (progStatus) progStatus.textContent = pct < 100 ? `Subiendo video (${pct}%)...` : 'Procesando y guardando en base de datos...';
+        }
+      };
+
+      xhr.onload = () => {
+        if (btnSave) btnSave.disabled = false;
+        if (btnLive) btnLive.disabled = false;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const resp = JSON.parse(xhr.responseText);
+            if (Array.isArray(resp.libraryItems)) {
+              libraryItems.splice(0, libraryItems.length, ...resp.libraryItems);
+            } else if (resp.item) {
+              libraryItems.unshift(resp.item);
+            }
+            if (Array.isArray(resp.layer3Videos)) {
+              layer3Videos = resp.layer3Videos;
+            }
+            renderSongsList();
+            renderSlidesGrid();
+            renderLayer3VideoShots();
+            closeUploadVideoModal();
+
+            if (goToLive) {
+              switchAtemTab('letras');
+              filterLibrary('medios');
+              selectItem(0);
+              showToast(`⚡ Video "${title}" subido y proyectándose en vivo`, '🎬');
+            } else {
+              filterLibrary('medios');
+              showToast(`💾 Video "${title}" guardado en Base de Datos y Capa 3`, '🎬');
+            }
+          } catch (parseErr) {
+            alert('Error procesando respuesta del servidor.');
+          }
+        } else {
+          alert('Error al subir el video al servidor.');
+        }
+      };
+
+      xhr.onerror = () => {
+        if (btnSave) btnSave.disabled = false;
+        if (btnLive) btnLive.disabled = false;
+        alert('Error de red al subir el archivo de video.');
+      };
+
+      xhr.send(selectedUploadVideoFile);
+    }
+
+    // Active Video Transport Controls (Projector + Live Stream)
+    function sendProjectorVideoCommand(payload) {
+      try {
+        liveChannel.postMessage({ type: 'VIDEO_CONTROL', payload });
+        localStorage.setItem('omnicast_video_control', JSON.stringify({ ...payload, ts: Date.now() }));
+      } catch (e) {}
+    }
+
+    function toggleActiveVideoPlayPause(forcePlay = null) {
+      const item = libraryItems[currentItemIndex];
+      const progVid = document.getElementById('programMediaVideo');
+      if (!item || !item.videoUrl || !progVid) return;
+
+      if (progVid.getAttribute('data-src') !== item.videoUrl) {
+        progVid.src = item.videoUrl;
+        progVid.setAttribute('data-src', item.videoUrl);
+      }
+
+      const shouldPlay = forcePlay !== null ? forcePlay : progVid.paused;
+      if (shouldPlay) {
+        progVid.muted = Boolean(activeVideoMuted);
+        progVid.loop = Boolean(activeVideoLoopEnabled);
+        progVid.play().catch(() => {});
+        sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl });
+        broadcastSlide(false);
+      } else {
+        progVid.pause();
+        sendProjectorVideoCommand({ action: 'pause' });
+      }
+      updateActiveVideoTransportUI();
+    }
+
+    function restartActiveVideo() {
+      const progVid = document.getElementById('programMediaVideo');
+      if (progVid) {
+        progVid.currentTime = 0;
+        progVid.play().catch(() => {});
+      }
+      sendProjectorVideoCommand({ action: 'restart' });
+      updateActiveVideoTransportUI();
+      showToast('⏮ Video reiniciado desde 00:00', '🎬');
+    }
+
+    function toggleActiveVideoMute() {
+      activeVideoMuted = !activeVideoMuted;
+      const progVid = document.getElementById('programMediaVideo');
+      if (progVid) progVid.muted = activeVideoMuted;
+      sendProjectorVideoCommand({ action: 'mute', muted: activeVideoMuted });
+      updateActiveVideoTransportUI();
+    }
+
+    function toggleActiveVideoLoop() {
+      activeVideoLoopEnabled = !activeVideoLoopEnabled;
+      const progVid = document.getElementById('programMediaVideo');
+      if (progVid) progVid.loop = activeVideoLoopEnabled;
+      sendProjectorVideoCommand({ action: 'loop', loop: activeVideoLoopEnabled });
+      updateActiveVideoTransportUI();
+    }
+
+    function seekActiveVideo(pctVal) {
+      const progVid = document.getElementById('programMediaVideo');
+      if (!progVid || !progVid.duration || !isFinite(progVid.duration)) return;
+      const targetTime = (parseFloat(pctVal) / 100) * progVid.duration;
+      progVid.currentTime = targetTime;
+      sendProjectorVideoCommand({ action: 'seek', time: targetTime });
+      updateActiveVideoTransportUI();
+    }
+
+    function updateActiveVideoTransportUI() {
+      const progVid = document.getElementById('programMediaVideo');
+      const btnPlayText = document.getElementById('btnVideoPlayPauseText');
+      const btnPlay = document.getElementById('btnVideoPlayPause');
+      const btnMute = document.getElementById('btnVideoMute');
+      const btnMuteText = document.getElementById('btnVideoMuteText');
+      const btnLoop = document.getElementById('btnVideoLoop');
+      const btnLoopText = document.getElementById('btnVideoLoopText');
+      const tc = document.getElementById('activeVideoTimecode');
+      const scrub = document.getElementById('activeVideoScrubber');
+
+      if (!progVid) return;
+
+      const isPlaying = !progVid.paused && !progVid.ended;
+      if (btnPlayText) btnPlayText.textContent = isPlaying ? 'Pausar Video' : 'Reproducir / Proyectar';
+      if (btnPlay) {
+        btnPlay.className = isPlaying
+          ? 'px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95'
+          : 'px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95';
+      }
+
+      if (btnMuteText) btnMuteText.textContent = activeVideoMuted ? 'Silenciado' : 'Audio ON';
+      if (btnMute) {
+        btnMute.className = activeVideoMuted
+          ? 'px-2.5 py-1 rounded-lg bg-rose-950 text-rose-300 text-xs font-semibold flex items-center gap-1 border border-rose-500/40 transition active:scale-95'
+          : 'px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95';
+      }
+
+      if (btnLoopText) btnLoopText.textContent = activeVideoLoopEnabled ? 'Loop: ON' : 'Loop: OFF';
+      if (btnLoop) {
+        btnLoop.className = activeVideoLoopEnabled
+          ? 'px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-bold flex items-center gap-1 border border-sky-500/40 transition active:scale-95'
+          : 'px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95';
+      }
+
+      const cur = progVid.currentTime || 0;
+      const dur = (progVid.duration && isFinite(progVid.duration)) ? progVid.duration : 120;
+      if (tc) tc.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
+      if (scrub && dur > 0) scrub.value = String(Math.min(100, Math.round((cur / dur) * 100)));
+    }
+
+    setInterval(updateActiveVideoTransportUI, 500);
 
     // -------------------------------------------------------------------------
     // FAIRLIGHT DIGITAL AUDIO CONSOLE (BROADCAST DSP & DYNAMICS ENGINE)
@@ -9505,6 +10355,17 @@ Pues resucitaste, Rey`
       if (layer === 3) {
         videoPlayback.preview.currentTime = 0;
         videoPlayback.preview.isPlaying = false;
+        const prevVid = document.getElementById('previewMediaVideo');
+        const customVid = shotId >= 3 ? layer3Videos[shotId - 3] : null;
+        if (prevVid && customVid && customVid.videoUrl) {
+          if (prevVid.getAttribute('data-src') !== customVid.videoUrl) {
+            prevVid.src = customVid.videoUrl;
+            prevVid.setAttribute('data-src', customVid.videoUrl);
+          }
+          prevVid.currentTime = 0;
+          prevVid.pause();
+          videoPlayback.preview.duration = customVid.duration || 120;
+        }
       }
       updateWirecastRackUI();
     }
@@ -9520,6 +10381,20 @@ Pues resucitaste, Rey`
       if (layer === 3) {
         videoPlayback.program.currentTime = 0;
         videoPlayback.program.isPlaying = true;
+        const progVid = document.getElementById('programMediaVideo');
+        const customVid = shotId >= 3 ? layer3Videos[shotId - 3] : null;
+        if (progVid && customVid && customVid.videoUrl) {
+          if (progVid.getAttribute('data-src') !== customVid.videoUrl) {
+            progVid.src = customVid.videoUrl;
+            progVid.setAttribute('data-src', customVid.videoUrl);
+          }
+          progVid.currentTime = 0;
+          progVid.muted = Boolean(activeVideoMuted);
+          progVid.loop = Boolean(activeVideoLoopEnabled);
+          progVid.play().catch(() => {});
+          videoPlayback.program.duration = customVid.duration || 120;
+          sendProjectorVideoCommand({ action: 'play', videoUrl: customVid.videoUrl });
+        }
       }
       updateWirecastRackUI();
     }
@@ -9527,6 +10402,20 @@ Pues resucitaste, Rey`
     // Toggle Preview Video Playback (to inspect before taking live)
     function togglePreviewVideoPlay() {
       videoPlayback.preview.isPlaying = !videoPlayback.preview.isPlaying;
+      const prevShot = wirecastState.preview[3];
+      const customVid = prevShot >= 3 ? layer3Videos[prevShot - 3] : null;
+      const prevVid = document.getElementById('previewMediaVideo');
+      if (prevVid && customVid && customVid.videoUrl) {
+        if (prevVid.getAttribute('data-src') !== customVid.videoUrl) {
+          prevVid.src = customVid.videoUrl;
+          prevVid.setAttribute('data-src', customVid.videoUrl);
+        }
+        if (videoPlayback.preview.isPlaying) {
+          prevVid.play().catch(() => {});
+        } else {
+          prevVid.pause();
+        }
+      }
       const btn = document.getElementById('btnPreviewPlay');
       const txt = document.getElementById('previewPlayBtnText');
       if (btn && txt) {
@@ -9551,6 +10440,19 @@ Pues resucitaste, Rey`
       if (layerPower[3]) {
         videoPlayback.program.currentTime = 0;
         videoPlayback.program.isPlaying = true;
+        const progShot = wirecastState.program[3];
+        const customVid = progShot >= 3 ? layer3Videos[progShot - 3] : null;
+        const progVid = document.getElementById('programMediaVideo');
+        if (progVid && customVid && customVid.videoUrl) {
+          if (progVid.getAttribute('data-src') !== customVid.videoUrl) {
+            progVid.src = customVid.videoUrl;
+            progVid.setAttribute('data-src', customVid.videoUrl);
+          }
+          progVid.currentTime = 0;
+          progVid.muted = Boolean(activeVideoMuted);
+          progVid.play().catch(() => {});
+          sendProjectorVideoCommand({ action: 'play', videoUrl: customVid.videoUrl });
+        }
       }
 
       updateWirecastRackUI();
@@ -9774,78 +10676,101 @@ Pues resucitaste, Rey`
       // =======================================================================
       if (layerPower[3] && state[3]) {
         const pb = isProgram ? videoPlayback.program : videoPlayback.preview;
-        
-        if (pb.isPlaying) {
-          pb.currentTime += 0.016;
-          if (pb.currentTime >= pb.duration) {
-            pb.currentTime = pb.duration;
-            pb.isPlaying = false;
+        const customVid = state[3] >= 3 ? layer3Videos[state[3] - 3] : null;
+        const vidEl = document.getElementById(isProgram ? 'programMediaVideo' : 'previewMediaVideo');
+
+        if (customVid && customVid.videoUrl && vidEl) {
+          if (vidEl.getAttribute('data-src') !== customVid.videoUrl) {
+            vidEl.src = customVid.videoUrl;
+            vidEl.setAttribute('data-src', customVid.videoUrl);
           }
-        }
-
-        // FULL 1920x1080 BLEED VIDEO PLAYBACK - Covers cameras completely!
-        if (state[3] === 1) {
-          // Video 1: Campaña Nacional 2026 (Cosmic Gold & Navy)
-          const vGrad = ctx.createLinearGradient(0, 0, w, h);
-          vGrad.addColorStop(0, '#060b19');
-          vGrad.addColorStop(0.5, '#16203d');
-          vGrad.addColorStop(1, '#22183b');
-          ctx.fillStyle = vGrad;
+          pb.currentTime = vidEl.currentTime || 0;
+          pb.duration = (vidEl.duration && isFinite(vidEl.duration)) ? vidEl.duration : (customVid.duration || 120);
+          ctx.fillStyle = '#000000';
           ctx.fillRect(0, 0, w, h);
-
-          // Dynamic light beams
-          ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
-          ctx.beginPath();
-          ctx.moveTo(960 + Math.cos(time * 0.8) * 300, 0);
-          ctx.lineTo(200, 1080);
-          ctx.lineTo(1720, 1080);
-          ctx.closePath();
-          ctx.fill();
-
-          // Centered Campaign Branding
-          ctx.fillStyle = '#f59e0b';
-          ctx.font = 'bold 36px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('👑 ALIANZA NACIONAL • IMPACTO GLOBAL', 960, 360);
-
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 64px Inter, sans-serif';
-          ctx.fillText('CAMPAÑA MISIONERA 2026', 960, 450);
-
-          ctx.fillStyle = '#cbd5e1';
-          ctx.font = '28px Inter, sans-serif';
-          ctx.fillText('Llevando el evangelio a cada nación • Video Oficial Cloud CDN', 960, 520);
-
+          if (vidEl.readyState >= 2) {
+            try {
+              ctx.drawImage(vidEl, 0, 0, w, h);
+            } catch (e) {}
+          } else {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`🎬 ${customVid.title}`, 960, 520);
+          }
         } else {
-          // Video 2: Retiro Jóvenes GDL (Vibrant Violet / Cyan)
-          const vGrad = ctx.createLinearGradient(0, 0, w, h);
-          vGrad.addColorStop(0, '#150524');
-          vGrad.addColorStop(0.5, '#350b4a');
-          vGrad.addColorStop(1, '#090726');
-          ctx.fillStyle = vGrad;
-          ctx.fillRect(0, 0, w, h);
+          if (pb.isPlaying) {
+            pb.currentTime += 0.016;
+            if (pb.currentTime >= pb.duration) {
+              pb.currentTime = pb.duration;
+              pb.isPlaying = false;
+            }
+          }
 
-          // Moving cyan spotlight
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
-          ctx.beginPath();
-          ctx.moveTo(960 + Math.sin(time) * 400, 0);
-          ctx.lineTo(100, 1080);
-          ctx.lineTo(1820, 1080);
-          ctx.closePath();
-          ctx.fill();
+          // FULL 1920x1080 BLEED VIDEO PLAYBACK - Covers cameras completely!
+          if (state[3] === 1) {
+            // Video 1: Campaña Nacional 2026 (Cosmic Gold & Navy)
+            const vGrad = ctx.createLinearGradient(0, 0, w, h);
+            vGrad.addColorStop(0, '#060b19');
+            vGrad.addColorStop(0.5, '#16203d');
+            vGrad.addColorStop(1, '#22183b');
+            ctx.fillStyle = vGrad;
+            ctx.fillRect(0, 0, w, h);
 
-          ctx.fillStyle = '#38bdf8';
-          ctx.font = 'bold 36px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('🔥 CONGRESO JÓVENES GDL 2026', 960, 360);
+            // Dynamic light beams
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
+            ctx.beginPath();
+            ctx.moveTo(960 + Math.cos(time * 0.8) * 300, 0);
+            ctx.lineTo(200, 1080);
+            ctx.lineTo(1720, 1080);
+            ctx.closePath();
+            ctx.fill();
 
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 64px Inter, sans-serif';
-          ctx.fillText('RADICALES POR LA FE', 960, 450);
+            // Centered Campaign Branding
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 36px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('👑 ALIANZA NACIONAL • IMPACTO GLOBAL', 960, 360);
 
-          ctx.fillStyle = '#cbd5e1';
-          ctx.font = '28px Inter, sans-serif';
-          ctx.fillText('15 al 18 de Noviembre • Auditorio Metropolitano • Video Local', 960, 520);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 64px Inter, sans-serif';
+            ctx.fillText('CAMPAÑA MISIONERA 2026', 960, 450);
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = '28px Inter, sans-serif';
+            ctx.fillText('Llevando el evangelio a cada nación • Video Oficial Cloud CDN', 960, 520);
+
+          } else {
+            // Video 2: Retiro Jóvenes GDL (Vibrant Violet / Cyan)
+            const vGrad = ctx.createLinearGradient(0, 0, w, h);
+            vGrad.addColorStop(0, '#150524');
+            vGrad.addColorStop(0.5, '#350b4a');
+            vGrad.addColorStop(1, '#090726');
+            ctx.fillStyle = vGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Moving cyan spotlight
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+            ctx.beginPath();
+            ctx.moveTo(960 + Math.sin(time) * 400, 0);
+            ctx.lineTo(100, 1080);
+            ctx.lineTo(1820, 1080);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 36px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🔥 CONGRESO JÓVENES GDL 2026', 960, 360);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 64px Inter, sans-serif';
+            ctx.fillText('RADICALES POR LA FE', 960, 450);
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = '28px Inter, sans-serif';
+            ctx.fillText('15 al 18 de Noviembre • Auditorio Metropolitano • Video Local', 960, 520);
+          }
         }
 
         // Video Preview Controls & Overlays ONLY on Preview (Program is 100% clean broadcast video)
@@ -9859,7 +10784,7 @@ Pues resucitaste, Rey`
           ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
           ctx.fillRect(0, 1030, w, 50);
 
-          const progressPct = Math.min(1, pb.currentTime / pb.duration);
+          const progressPct = Math.min(1, pb.currentTime / (pb.duration || 1));
           ctx.fillStyle = '#334155';
           ctx.fillRect(0, 1070, w, 10);
           ctx.fillStyle = '#22c55e';
@@ -9911,48 +10836,68 @@ Pues resucitaste, Rey`
             // Covers cameras completely with 1920x1080 Full HD video from Letras!
             ctx.save();
 
-            // 1. Full 1920x1080 Video Background Fill (Bleeds over cameras 100%)
-            const vGrad = ctx.createLinearGradient(0, 0, w, h);
-            if (item.id === 'media-1') {
-              vGrad.addColorStop(0, '#060b19');
-              vGrad.addColorStop(0.5, '#16203d');
-              vGrad.addColorStop(1, '#22183b');
+            const progVid = document.getElementById('programMediaVideo');
+            if (item.videoUrl && progVid) {
+              if (progVid.getAttribute('data-src') !== item.videoUrl) {
+                progVid.src = item.videoUrl;
+                progVid.setAttribute('data-src', item.videoUrl);
+              }
+              ctx.fillStyle = '#000000';
+              ctx.fillRect(0, 0, w, h);
+              if (progVid.readyState >= 2) {
+                try {
+                  ctx.drawImage(progVid, 0, 0, w, h);
+                } catch (e) {}
+              } else {
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 54px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`🎬 ${item.title}`, 960, 520);
+              }
             } else {
-              vGrad.addColorStop(0, '#0f051d');
-              vGrad.addColorStop(0.5, '#1f0d36');
-              vGrad.addColorStop(1, '#091b29');
+              // 1. Full 1920x1080 Video Background Fill (Bleeds over cameras 100%)
+              const vGrad = ctx.createLinearGradient(0, 0, w, h);
+              if (item.id === 'media-1') {
+                vGrad.addColorStop(0, '#060b19');
+                vGrad.addColorStop(0.5, '#16203d');
+                vGrad.addColorStop(1, '#22183b');
+              } else {
+                vGrad.addColorStop(0, '#0f051d');
+                vGrad.addColorStop(0.5, '#1f0d36');
+                vGrad.addColorStop(1, '#091b29');
+              }
+              ctx.fillStyle = vGrad;
+              ctx.fillRect(0, 0, w, h);
+
+              // 2. Animated cinematic light sweep & ambient beams
+              ctx.fillStyle = item.id === 'media-1' ? 'rgba(245, 158, 11, 0.14)' : 'rgba(168, 85, 247, 0.16)';
+              ctx.beginPath();
+              ctx.moveTo(960 + Math.sin(time * 0.9) * 350, 0);
+              ctx.lineTo(150, 1080);
+              ctx.lineTo(1770, 1080);
+              ctx.closePath();
+              ctx.fill();
+
+              // 3. Central Ambient Visual Pulse
+              ctx.fillStyle = 'rgba(56, 189, 248, 0.1)';
+              ctx.beginPath();
+              ctx.arc(960, 480, 260 + Math.sin(time * 1.3) * 20, 0, Math.PI * 2);
+              ctx.fill();
+
+              // 4. Large Cinematic Video Typography
+              ctx.textAlign = 'center';
+              ctx.fillStyle = item.id === 'media-1' ? '#f59e0b' : '#c084fc';
+              ctx.font = 'bold 32px Inter, sans-serif';
+              ctx.fillText(item.id === 'media-1' ? '👑 ALIANZA NACIONAL • IMPACTO GLOBAL' : '🏛️ COMUNICADO NACIONAL OFICIAL', 960, 360);
+
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 64px Inter, sans-serif';
+              ctx.fillText(slide.text || item.title.toUpperCase(), 960, 460);
+
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = '28px Inter, sans-serif';
+              ctx.fillText(slide.subText || 'Transmitiendo video en pantalla completa desde sección Letras', 960, 530);
             }
-            ctx.fillStyle = vGrad;
-            ctx.fillRect(0, 0, w, h);
-
-            // 2. Animated cinematic light sweep & ambient beams
-            ctx.fillStyle = item.id === 'media-1' ? 'rgba(245, 158, 11, 0.14)' : 'rgba(168, 85, 247, 0.16)';
-            ctx.beginPath();
-            ctx.moveTo(960 + Math.sin(time * 0.9) * 350, 0);
-            ctx.lineTo(150, 1080);
-            ctx.lineTo(1770, 1080);
-            ctx.closePath();
-            ctx.fill();
-
-            // 3. Central Ambient Visual Pulse
-            ctx.fillStyle = 'rgba(56, 189, 248, 0.1)';
-            ctx.beginPath();
-            ctx.arc(960, 480, 260 + Math.sin(time * 1.3) * 20, 0, Math.PI * 2);
-            ctx.fill();
-
-            // 4. Large Cinematic Video Typography
-            ctx.textAlign = 'center';
-            ctx.fillStyle = item.id === 'media-1' ? '#f59e0b' : '#c084fc';
-            ctx.font = 'bold 32px Inter, sans-serif';
-            ctx.fillText(item.id === 'media-1' ? '👑 ALIANZA NACIONAL • IMPACTO GLOBAL' : '🏛️ COMUNICADO NACIONAL OFICIAL', 960, 360);
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 64px Inter, sans-serif';
-            ctx.fillText(slide.text || item.title.toUpperCase(), 960, 460);
-
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '28px Inter, sans-serif';
-            ctx.fillText(slide.subText || 'Transmitiendo video en pantalla completa desde sección Letras', 960, 530);
 
             // Telemetry ONLY in Preview (Program is 100% clean broadcast video)
             if (!isProgram) {
@@ -11819,6 +12764,7 @@ Resucitaste en majestad`;
       });
 
       renderSongsList();
+      saveDatabaseToServer();
 
       // Push to backend server via SSE
       fetch('/api/sync', {
@@ -11827,7 +12773,8 @@ Resucitaste en majestad`;
         body: JSON.stringify({
           itemIndex: currentItemIndex,
           slideIndex: currentSlideIndex,
-          libraryItems: libraryItems
+          libraryItems: libraryItems,
+          persistDb: true
         })
       }).catch(() => {});
 
@@ -11839,7 +12786,7 @@ Resucitaste en majestad`;
         updatedCount
       });
 
-      showToast(`🚀 ¡Éxito! ${selected.length} canciones publicadas a las 24 sedes en tiempo real`, '👑');
+      showToast(`🚀 ¡Éxito! ${selected.length} canciones guardadas en Base de Datos y publicadas en tiempo real`, '👑');
       updateHqKpis();
     }
 
@@ -11849,13 +12796,17 @@ Resucitaste en majestad`;
         const officialCount = libraryItems.filter(i => i.scope && i.scope.includes('NACIONAL')).length;
         kpiSongs.textContent = `${officialCount} Oficiales`;
       }
+      const kpiVideos = document.getElementById('hqKpiVideosCount');
+      if (kpiVideos) {
+        const vidCount = libraryItems.filter(i => i.isVideo || i.category === 'medios').length;
+        kpiVideos.textContent = `${vidCount} Videos`;
+      }
     }
 
     function publishNationalVideoCampaign() {
       const titleInput = document.getElementById('hqVideoTitle');
       const urlInput = document.getElementById('hqVideoUrl');
       const durationInput = document.getElementById('hqVideoDuration');
-      const categorySelect = document.getElementById('hqVideoCategory');
 
       const title = titleInput ? titleInput.value.trim() : '';
       const url = urlInput ? urlInput.value.trim() : '';
@@ -11866,8 +12817,43 @@ Resucitaste en majestad`;
         return;
       }
 
-      // Add to wirecast layer 3 video assets if not already present
-      showToast(`🎬 Video "${title}" distribuido satelitalmente a todas las sedes`, '🚀');
+      const newVideoItem = {
+        id: `media-hq-${Date.now()}`,
+        category: 'medios',
+        isVideo: true,
+        videoUrl: url || '',
+        duration: 180,
+        durationFormatted: duration,
+        title: title,
+        author: 'Oficinas Nacionales CDN',
+        scope: '👑 OFICIAL NACIONAL',
+        slides: [
+          {
+            text: title,
+            subText: `Video Oficial (${duration}) • Distribuido en Red`,
+            badge: '🎬 VIDEO CDN'
+          }
+        ]
+      };
+
+      libraryItems.unshift(newVideoItem);
+      if (url) {
+        layer3Videos.push({
+          id: newVideoItem.id,
+          title: title,
+          scope: '👑 OFICIAL NACIONAL',
+          videoUrl: url,
+          duration: 180,
+          durationFormatted: duration
+        });
+      }
+      saveDatabaseToServer();
+      renderSongsList();
+      renderSlidesGrid();
+      renderLayer3VideoShots();
+      updateHqKpis();
+
+      showToast(`🎬 Video "${title}" guardado en Base de Datos y distribuido a todas las sedes`, '🚀');
 
       if (titleInput) titleInput.value = '';
       if (urlInput) urlInput.value = '';
@@ -12377,9 +13363,11 @@ Resucitaste en majestad`;
     loadSavedAppTheme();
     loadSavedCampusSettings();
     loadSavedLyricsStyle();
+    loadDatabaseFromServer();
     updateHqKpis();
     renderSongsList();
     renderSlidesGrid();
+    renderLayer3VideoShots();
     updateWirecastRackUI();
     updateDestinationsLiveBadge();
     broadcastSlide();

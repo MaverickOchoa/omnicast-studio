@@ -9,6 +9,17 @@ const WebSocket = require('ws');
 const PORT = process.env.PORT || 3000;
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const DATA_DIR = path.join(__dirname, 'data');
+const DB_FILE = path.join(DATA_DIR, 'database.json');
+const UPLOADS_VIDEOS_DIR = path.join(PUBLIC_DIR, 'uploads', 'videos');
+
+// Ensure persistent database & video upload directories exist
+try {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  if (!fs.existsSync(UPLOADS_VIDEOS_DIR)) fs.mkdirSync(UPLOADS_VIDEOS_DIR, { recursive: true });
+} catch (dirErr) {
+  console.warn('Warning creating data/uploads dirs:', dirErr.message);
+}
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -17,9 +28,53 @@ const MIME_TYPES = {
   '.json': 'application/json',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.mkv': 'video/x-matroska',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg'
 };
+
+// Persistent Database Helper (data/database.json)
+let persistentDb = {
+  libraryItems: [],
+  layer3Videos: [],
+  updatedAt: null
+};
+
+function loadPersistentDatabase() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const raw = fs.readFileSync(DB_FILE, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        if (Array.isArray(parsed.libraryItems)) persistentDb.libraryItems = parsed.libraryItems;
+        if (Array.isArray(parsed.layer3Videos)) persistentDb.layer3Videos = parsed.layer3Videos;
+        persistentDb.updatedAt = parsed.updatedAt || new Date().toISOString();
+      }
+    }
+  } catch (e) {
+    console.warn('[OmniCast DB] Error reading database.json:', e.message);
+  }
+  return persistentDb;
+}
+
+function savePersistentDatabase() {
+  try {
+    persistentDb.updatedAt = new Date().toISOString();
+    fs.writeFileSync(DB_FILE, JSON.stringify(persistentDb, null, 2), 'utf8');
+  } catch (e) {
+    console.warn('[OmniCast DB] Error writing database.json:', e.message);
+  }
+}
+
+loadPersistentDatabase();
 
 // Global Studio State for Real-Time Multi-Device Sync (WiFi Remote, Stage, Studio)
 let studioState = {
@@ -33,7 +88,7 @@ let studioState = {
   tvMode: 'LOBBY', // 'LOBBY' | 'SERVICE' | 'ANNOUNCEMENTS'
   tvAlert: '',
   lastServiceRecap: null,
-  libraryItems: []
+  libraryItems: persistentDb.libraryItems.length > 0 ? persistentDb.libraryItems : []
 };
 
 // Mobile Cameras & WebRTC State (OmniCast Mobile Cam)
@@ -189,7 +244,17 @@ const requestHandler = (req, res) => {
         if (typeof payload.slideIndex === 'number') studioState.slideIndex = payload.slideIndex;
         if (typeof payload.isBlackout === 'boolean') studioState.isBlackout = payload.isBlackout;
         if (typeof payload.theme === 'string') studioState.theme = payload.theme;
-        if (Array.isArray(payload.libraryItems)) studioState.libraryItems = payload.libraryItems;
+        if (Array.isArray(payload.libraryItems)) {
+          studioState.libraryItems = payload.libraryItems;
+          if (payload.persistDb) {
+            persistentDb.libraryItems = payload.libraryItems;
+            savePersistentDatabase();
+          }
+        }
+        if (payload.currentSlidePayload) {
+          studioState.currentSlidePayload = payload.currentSlidePayload;
+          broadcastSSE('slide_payload', payload.currentSlidePayload);
+        }
 
         broadcastSSE('state', studioState);
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -496,8 +561,220 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  // Static File Serving
-  let reqPath = parsedUrl;
+  // =========================================================================
+  // PERSISTENT DATABASE & MEDIA / VIDEO UPLOAD ENGINE (LETRAS & VIDEOS)
+  // =========================================================================
+
+  // Endpoint: Get Persistent Database (Lyrics, Bible, Uploaded Videos, Layer 3 Videos)
+  if (parsedUrl === '/api/db' && req.method === 'GET') {
+    loadPersistentDatabase();
+    // Also scan uploads/videos directory to ensure any uploaded .mp4/.webm/.mov is indexed
+    let diskVideos = [];
+    try {
+      if (fs.existsSync(UPLOADS_VIDEOS_DIR)) {
+        const files = fs.readdirSync(UPLOADS_VIDEOS_DIR);
+        diskVideos = files.filter(f => /\.(mp4|webm|mov|mkv)$/i.test(f)).map(f => {
+          const st = fs.statSync(path.join(UPLOADS_VIDEOS_DIR, f));
+          return {
+            filename: f,
+            url: `/uploads/videos/${encodeURIComponent(f)}`,
+            sizeBytes: st.size,
+            createdAt: st.mtime
+          };
+        });
+      }
+    } catch (e) {}
+
+    const payload = JSON.stringify({
+      libraryItems: persistentDb.libraryItems,
+      layer3Videos: persistentDb.layer3Videos,
+      diskVideos,
+      updatedAt: persistentDb.updatedAt
+    });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    res.end(payload);
+    return;
+  }
+
+  // Endpoint: Save / Sync Persistent Database (Songs, Lyrics, Videos)
+  if (parsedUrl === '/api/db/save' && req.method === 'POST') {
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => {
+      try {
+        const body = Buffer.concat(chunks).toString('utf8');
+        const data = JSON.parse(body || '{}');
+        if (Array.isArray(data.libraryItems)) {
+          persistentDb.libraryItems = data.libraryItems;
+          studioState.libraryItems = data.libraryItems;
+        }
+        if (Array.isArray(data.layer3Videos)) {
+          persistentDb.layer3Videos = data.layer3Videos;
+        }
+        savePersistentDatabase();
+        broadcastSSE('state', studioState);
+        broadcastSSE('db_update', {
+          libraryItems: persistentDb.libraryItems,
+          layer3Videos: persistentDb.layer3Videos,
+          updatedAt: persistentDb.updatedAt
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          count: persistentDb.libraryItems.length,
+          updatedAt: persistentDb.updatedAt
+        }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // Endpoint: Delete an Item (Song or Video) from Persistent Database
+  if (parsedUrl === '/api/db/delete' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body || '{}');
+        const targetId = data.id;
+        if (!targetId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Falta ID del elemento a eliminar' }));
+          return;
+        }
+
+        const itemToDelete = persistentDb.libraryItems.find(i => i.id === targetId);
+        if (itemToDelete && itemToDelete.videoUrl && itemToDelete.videoUrl.startsWith('/uploads/videos/') && data.deleteFile !== false) {
+          try {
+            const filename = decodeURIComponent(itemToDelete.videoUrl.replace('/uploads/videos/', ''));
+            const safePath = path.join(UPLOADS_VIDEOS_DIR, path.basename(filename));
+            if (fs.existsSync(safePath)) fs.unlinkSync(safePath);
+          } catch (delErr) {}
+        }
+
+        persistentDb.libraryItems = persistentDb.libraryItems.filter(i => i.id !== targetId);
+        persistentDb.layer3Videos = persistentDb.layer3Videos.filter(v => v.id !== targetId);
+        studioState.libraryItems = persistentDb.libraryItems;
+        savePersistentDatabase();
+
+        broadcastSSE('state', studioState);
+        broadcastSSE('db_update', {
+          libraryItems: persistentDb.libraryItems,
+          layer3Videos: persistentDb.layer3Videos,
+          updatedAt: persistentDb.updatedAt
+        });
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, libraryItems: persistentDb.libraryItems, layer3Videos: persistentDb.layer3Videos }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // Endpoint: Stream Upload of Binary Video File (.mp4, .webm, .mov) to Disk & Database
+  if (parsedUrl === '/api/upload/video' && req.method === 'POST') {
+    try {
+      const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      const rawFilename = fullUrl.searchParams.get('filename') || 'video.mp4';
+      const title = (fullUrl.searchParams.get('title') || rawFilename.replace(/\.[^/.]+$/, '')).trim();
+      const author = (fullUrl.searchParams.get('author') || 'Video Proyección HD').trim();
+      const scope = (fullUrl.searchParams.get('scope') || '📍 SEDE LOCAL').trim();
+      const durationSec = parseFloat(fullUrl.searchParams.get('duration') || '120') || 120;
+
+      const ext = path.extname(rawFilename).toLowerCase() || '.mp4';
+      const baseSafe = path.basename(rawFilename, ext).replace(/[^a-zA-Z0-9_\-\.]/g, '_').slice(0, 60) || 'video';
+      const finalFilename = `${Date.now()}_${baseSafe}${ext}`;
+      const destPath = path.join(UPLOADS_VIDEOS_DIR, finalFilename);
+
+      const writeStream = fs.createWriteStream(destPath);
+      let uploadedBytes = 0;
+
+      req.on('data', chunk => {
+        uploadedBytes += chunk.length;
+      });
+
+      req.pipe(writeStream);
+
+      writeStream.on('finish', () => {
+        const videoUrl = `/uploads/videos/${finalFilename}`;
+        const mins = Math.floor(durationSec / 60);
+        const secs = Math.floor(durationSec % 60);
+        const durationFormatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        const sizeMb = (uploadedBytes / (1024 * 1024)).toFixed(1);
+
+        const newVideoItem = {
+          id: `media-${Date.now()}`,
+          category: 'medios',
+          isVideo: true,
+          videoUrl: videoUrl,
+          filename: finalFilename,
+          sizeMb: sizeMb,
+          duration: Math.round(durationSec),
+          durationFormatted: durationFormatted,
+          title: title,
+          author: `${author} (${durationFormatted} • ${sizeMb} MB)`,
+          scope: scope,
+          slides: [
+            {
+              text: title,
+              subText: `Video HD (${durationFormatted}) • Listo para Proyectar y Transmitir`,
+              badge: '🎬 VIDEO HD'
+            }
+          ]
+        };
+
+        loadPersistentDatabase();
+        persistentDb.libraryItems.unshift(newVideoItem);
+        persistentDb.layer3Videos.push({
+          id: newVideoItem.id,
+          title: title,
+          scope: scope,
+          videoUrl: videoUrl,
+          duration: Math.round(durationSec),
+          durationFormatted: durationFormatted,
+          sizeMb: sizeMb
+        });
+        studioState.libraryItems = persistentDb.libraryItems;
+        savePersistentDatabase();
+
+        broadcastSSE('state', studioState);
+        broadcastSSE('db_update', {
+          libraryItems: persistentDb.libraryItems,
+          layer3Videos: persistentDb.layer3Videos,
+          updatedAt: persistentDb.updatedAt
+        });
+
+        console.log(`[OmniCast Video Upload] Saved ${finalFilename} (${sizeMb} MB) -> ${videoUrl}`);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          videoUrl,
+          item: newVideoItem,
+          libraryItems: persistentDb.libraryItems,
+          layer3Videos: persistentDb.layer3Videos
+        }));
+      });
+
+      writeStream.on('error', (err) => {
+        console.error('[OmniCast Video Upload Error]:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      });
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // Static File Serving (with HTTP 206 Range support for smooth MP4/WebM HTML5 Video playback)
+  let reqPath = decodeURIComponent(parsedUrl);
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/index.html';
   }
@@ -520,10 +797,29 @@ const requestHandler = (req, res) => {
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    const range = req.headers.range;
+
+    if (range && /\.(mp4|webm|mov|mkv|mp3|wav|ogg)$/i.test(ext)) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10) || 0;
+      const end = parts[1] ? parseInt(parts[1], 10) : stats.size - 1;
+      const chunksize = (end - start) + 1;
+
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${stats.size}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': contentType
+      });
+      const stream = fs.createReadStream(filePath, { start, end });
+      stream.pipe(res);
+      return;
+    }
 
     res.writeHead(200, {
       'Content-Type': contentType,
       'Content-Length': stats.size,
+      'Accept-Ranges': 'bytes',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0'

@@ -36,6 +36,9 @@
   <!-- Video Loop Background Player (When Video Loop is selected) -->
   <video id="videoLoopPlayer" autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover z-0 hidden"></video>
 
+  <!-- Full-Screen Media Video Player (When an uploaded .mp4/.webm/.mov video is projected) -->
+  <video id="mediaProjectorVideo" playsinline class="absolute inset-0 w-full h-full object-contain bg-black z-30 hidden"></video>
+
   <!-- Procedural Canvas for Dynamic Motion Loops (GPU Animated 60fps) -->
   <canvas id="motionCanvas" class="absolute inset-0 w-full h-full object-cover z-0"></canvas>
 
@@ -78,6 +81,7 @@
     const lyricsBox = document.getElementById('lyricsBox');
     const ambientOverlay = document.getElementById('ambientOverlay');
     const videoLoopPlayer = document.getElementById('videoLoopPlayer');
+    const mediaProjectorVideo = document.getElementById('mediaProjectorVideo');
     const campusIndicator = document.getElementById('campusIndicator');
     const motionCanvas = document.getElementById('motionCanvas');
     const ctx = motionCanvas.getContext('2d');
@@ -329,6 +333,34 @@
     function updateDisplay(data) {
       if (!data) return;
 
+      // Full-screen uploaded video projection handler
+      if (!data.isClear && data.isVideo && data.videoUrl && mediaProjectorVideo) {
+        mediaProjectorVideo.classList.remove('hidden');
+        lyricsWrapper.classList.add('hidden');
+        if (mediaProjectorVideo.getAttribute('data-src') !== data.videoUrl) {
+          mediaProjectorVideo.src = data.videoUrl;
+          mediaProjectorVideo.setAttribute('data-src', data.videoUrl);
+          mediaProjectorVideo.currentTime = 0;
+        }
+        mediaProjectorVideo.loop = Boolean(data.videoLoop);
+        mediaProjectorVideo.muted = data.videoMuted !== undefined ? Boolean(data.videoMuted) : false;
+        if (data.videoAction === 'pause') {
+          mediaProjectorVideo.pause();
+        } else {
+          mediaProjectorVideo.play().catch(() => {
+            mediaProjectorVideo.muted = true;
+            mediaProjectorVideo.play().catch(() => {});
+          });
+        }
+        return;
+      } else if (mediaProjectorVideo) {
+        if (!mediaProjectorVideo.classList.contains('hidden')) {
+          mediaProjectorVideo.pause();
+          mediaProjectorVideo.classList.add('hidden');
+        }
+        lyricsWrapper.classList.remove('hidden');
+      }
+
       mainText.style.opacity = '0';
       subText.style.opacity = '0';
 
@@ -389,9 +421,42 @@
       }, 100);
     }
 
+    function handleVideoControl(cmd) {
+      if (!mediaProjectorVideo || !cmd) return;
+      if (cmd.action === 'play') {
+        if (cmd.videoUrl && mediaProjectorVideo.getAttribute('data-src') !== cmd.videoUrl) {
+          mediaProjectorVideo.src = cmd.videoUrl;
+          mediaProjectorVideo.setAttribute('data-src', cmd.videoUrl);
+        }
+        mediaProjectorVideo.classList.remove('hidden');
+        lyricsWrapper.classList.add('hidden');
+        mediaProjectorVideo.play().catch(() => {
+          mediaProjectorVideo.muted = true;
+          mediaProjectorVideo.play().catch(() => {});
+        });
+      } else if (cmd.action === 'pause') {
+        mediaProjectorVideo.pause();
+      } else if (cmd.action === 'restart') {
+        mediaProjectorVideo.currentTime = 0;
+        mediaProjectorVideo.play().catch(() => {});
+      } else if (cmd.action === 'seek' && typeof cmd.time === 'number') {
+        mediaProjectorVideo.currentTime = cmd.time;
+      } else if (cmd.action === 'mute') {
+        mediaProjectorVideo.muted = Boolean(cmd.muted);
+      } else if (cmd.action === 'loop') {
+        mediaProjectorVideo.loop = Boolean(cmd.loop);
+      } else if (cmd.action === 'stop') {
+        mediaProjectorVideo.pause();
+        mediaProjectorVideo.classList.add('hidden');
+        lyricsWrapper.classList.remove('hidden');
+      }
+    }
+
     channel.onmessage = (event) => {
       if (event.data && event.data.type === 'SLIDE_UPDATE') {
         updateDisplay(event.data.payload);
+      } else if (event.data && event.data.type === 'VIDEO_CONTROL') {
+        handleVideoControl(event.data.payload);
       }
     };
 
@@ -399,6 +464,10 @@
       if (e.key === 'omnicast_current_slide') {
         try {
           updateDisplay(JSON.parse(e.newValue));
+        } catch(err) {}
+      } else if (e.key === 'omnicast_video_control') {
+        try {
+          handleVideoControl(JSON.parse(e.newValue));
         } catch(err) {}
       }
     });
@@ -410,19 +479,31 @@
       } catch(err) {}
     }
 
-    // Connect to Server-Sent Events for WiFi synchronization with remote.html
+    // Connect to Server-Sent Events for WiFi synchronization with remote.html & studio
     const evtSource = new EventSource('/api/events');
+    evtSource.addEventListener('slide_payload', (e) => {
+      try {
+        updateDisplay(JSON.parse(e.data));
+      } catch (err) {}
+    });
     evtSource.addEventListener('state', (e) => {
       try {
         const state = JSON.parse(e.data);
+        if (state.currentSlidePayload) {
+          updateDisplay(state.currentSlidePayload);
+          return;
+        }
         if (state.libraryItems && state.libraryItems[state.itemIndex]) {
           const item = state.libraryItems[state.itemIndex];
           const slide = item.slides && item.slides[state.slideIndex];
+          const isVideo = item.category === 'medios' || Boolean(item.isVideo);
           updateDisplay({
             text: state.isBlackout ? '' : (slide ? slide.text : ''),
             subText: state.isBlackout ? '' : (slide ? slide.subText : ''),
             isClear: state.isBlackout,
-            reference: slide ? slide.badge : '',
+            badge: slide ? slide.badge : '',
+            isVideo: isVideo,
+            videoUrl: item.videoUrl || '',
             theme: state.theme
           });
         }
