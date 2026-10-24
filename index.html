@@ -230,12 +230,23 @@
 <body class="h-full flex flex-col overflow-hidden bg-[#090d16]">
 
   <!-- Impersonation Live Header Banner (When Super Admin or Org operates a church's studio live) -->
-  <div id="impersonationBanner" class="hidden bg-gradient-to-r from-amber-600 via-indigo-700 to-sky-600 text-white px-4 py-2 flex items-center justify-between text-xs font-bold shadow-xl z-40 shrink-0">
+  <div id="impersonationBanner" class="hidden bg-gradient-to-r from-amber-700 via-orange-800 to-amber-900 border-b border-amber-500/50 text-white px-4 py-2 flex items-center justify-between text-xs font-bold shadow-xl z-40 shrink-0 transition-colors duration-300">
     <div class="flex items-center gap-2.5">
-      <span class="w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping"></span>
-      <span class="px-2 py-0.5 rounded bg-black/40 text-[10px] uppercase font-mono tracking-wider border border-amber-300/30">Modo Búnker Master</span>
-      <span class="text-xs">Estás operando en vivo el estudio de: <strong id="impersonationChurchName" class="text-amber-200 underline font-black">Campus Guadalajara Norte</strong></span>
+      <span id="impersonationDot" class="w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping"></span>
+      <span id="impersonationOriginBadge" class="px-2.5 py-0.5 rounded bg-black/50 text-[10px] uppercase font-mono tracking-wider border border-amber-300/40 text-amber-200">
+        MODO BÚNKER ADMIN
+      </span>
+      <span class="text-xs">
+        <span id="impersonationActionText" class="text-slate-200 font-normal">Estás operando en vivo el estudio de:</span> 
+        <strong id="impersonationChurchName" class="text-amber-200 underline font-black">Campus Guadalajara Norte</strong>
+      </span>
     </div>
+    <button onclick="exitImpersonationToHq()" id="impersonationReturnBtn" 
+            class="px-3 py-1.5 rounded-lg bg-black/60 hover:bg-black/90 text-amber-200 hover:text-white border border-amber-300/50 text-[11px] font-bold flex items-center gap-1.5 transition active:scale-95 shadow">
+      <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-400"></i>
+      <span id="impersonationReturnBtnText">Volver a Búnker Admin</span>
+    </button>
+  </div>
     <button onclick="exitImpersonationToHq()" class="px-3 py-1 rounded-lg bg-black/50 hover:bg-black/80 text-amber-200 hover:text-white border border-amber-300/50 text-[11px] font-bold flex items-center gap-1.5 transition active:scale-95 shadow">
       <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-400"></i>
       <span>Volver al Búnker Super Admin</span>
@@ -2493,11 +2504,30 @@ Te adoraré, te adoraré..."
 
 <!-- SUBTAB: VIDEOS & CAMPAÑAS INSTITUCIONALES (CDN) (SOLO ORGANIZACIÓN) -->
         <div id="hqTabContentVideos" class="w-full h-full flex flex-col lg:flex-row gap-3 overflow-hidden hidden">
-          <!-- Left: Register Video -->
+          <!-- Left: Subir Video / Campaña con soporte .MP4 y Caducidad -->
           <div class="w-full lg:w-5/12 h-full flex flex-col bg-[#0d131f] border border-slate-800 rounded-xl p-4 gap-3 overflow-y-auto shadow">
-            <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
-              <i data-lucide="film" class="w-4 h-4 text-sky-400"></i>
-              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Subir Video o Campaña de la Red</h3>
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <div class="flex items-center gap-2">
+                <i data-lucide="film" class="w-4 h-4 text-sky-400"></i>
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider">Subir Video o Campaña de la Red</h3>
+              </div>
+              <span class="text-[9px] font-mono text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded font-bold">
+                MP4 DIRECTO + CDN
+              </span>
+            </div>
+
+            <!-- Selector de Modo de Subida: Archivo Local MP4 vs Enlace CDN -->
+            <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
+              <button type="button" onclick="setHqVideoUploadMode('file')" id="btnHqVideoModeFile"
+                      class="py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+                <span>Archivo .MP4 (PC)</span>
+              </button>
+              <button type="button" onclick="setHqVideoUploadMode('url')" id="btnHqVideoModeUrl"
+                      class="py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5 border border-transparent">
+                <i data-lucide="link" class="w-3.5 h-3.5"></i>
+                <span>Enlace CDN / URL</span>
+              </button>
             </div>
 
             <div class="space-y-3">
@@ -2507,35 +2537,80 @@ Te adoraré, te adoraré..."
                        class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500/50 font-sans">
               </div>
 
-              <div>
-                <label class="text-[11px] font-semibold text-slate-300 block mb-1">Categoría:</label>
-                <select id="hqVideoCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
-                  <option value="campaña">Campaña Institucional / Misiones</option>
-                  <option value="congreso">Congreso de Jóvenes / Mujeres</option>
-                  <option value="ofrenda">Ofrenda & Generosidad</option>
-                  <option value="anuncio">Comunicado Oficial de Presidencia</option>
-                </select>
+              <!-- Modo 1: Subida de Archivo MP4 Directo con Drag & Drop -->
+              <div id="hqVideoFileContainer" class="space-y-2">
+                <label class="text-[11px] font-semibold text-slate-300 block">Archivo de Video (.mp4, .webm, .mov):</label>
+                <div id="hqVideoDropZone" onclick="document.getElementById('hqVideoFileInput').click()"
+                     ondragover="event.preventDefault(); this.classList.add('border-sky-500', 'bg-sky-500/10')"
+                     ondragleave="this.classList.remove('border-sky-500', 'bg-sky-500/10')"
+                     ondrop="handleHqVideoFileDrop(event)"
+                     class="border-2 border-dashed border-slate-700 hover:border-sky-500 bg-slate-950/70 hover:bg-slate-900 rounded-xl p-4 text-center cursor-pointer transition flex flex-col items-center justify-center gap-2 group">
+                  <div class="w-10 h-10 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-400 flex items-center justify-center group-hover:scale-110 transition">
+                    <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <p class="text-xs font-bold text-white group-hover:text-sky-300 transition">Arrastra tu video .mp4 aquí</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">o haz clic para examinar desde tu computadora</p>
+                  </div>
+                  <span class="text-[9px] font-mono text-slate-500">Hasta 500 MB • Compatible con Wirecast Capa 3</span>
+                </div>
+                <input type="file" id="hqVideoFileInput" accept="video/mp4,video/webm,video/quicktime" onchange="handleHqVideoFileSelect(event)" class="hidden">
+
+                <!-- Vista previa y análisis del video local -->
+                <div id="hqVideoFilePreviewBox" class="hidden p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div class="flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="file-video" class="w-4 h-4 text-sky-400"></i>
+                      <span id="hqVideoFileName" class="font-bold text-white truncate max-w-[200px]">video.mp4</span>
+                    </div>
+                    <span id="hqVideoFileSize" class="text-[10px] font-mono text-slate-400">0 MB</span>
+                  </div>
+                  <video id="hqVideoPreviewEl" muted playsinline preload="metadata" class="w-full aspect-video rounded-lg object-cover bg-black hidden"></video>
+                  <p id="hqVideoAnalysisText" class="text-[10px] text-sky-300 font-mono">Analizando duración del video...</p>
+                </div>
               </div>
 
-              <div>
-                <label class="text-[11px] font-semibold text-slate-300 block mb-1">URL de Video (CDN / MP4 / Stream / Archivo):</label>
+              <!-- Modo 2: Enlace CDN Externo -->
+              <div id="hqVideoUrlContainer" class="hidden space-y-1">
+                <label class="text-[11px] font-semibold text-slate-300 block">URL de Video (CDN / MP4 / Stream / Archivo):</label>
                 <input type="text" id="hqVideoUrl" placeholder="https://cdn.alianzacristiana.org/videos/misiones-2026.mp4" 
                        class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 font-mono focus:outline-none focus:border-sky-500/50">
               </div>
 
               <div class="grid grid-cols-2 gap-2">
                 <div>
-                  <label class="text-[11px] font-semibold text-slate-300 block mb-1">Duración (min:seg):</label>
-                  <input type="text" id="hqVideoDuration" placeholder="03:00" 
-                         class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-600 font-mono focus:outline-none focus:border-sky-500/50">
+                  <label class="text-[11px] font-semibold text-slate-300 block mb-1">Categoría:</label>
+                  <select id="hqVideoCategory" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
+                    <option value="campaña">Campaña Institucional / Misiones</option>
+                    <option value="congreso">Congreso de Jóvenes / Mujeres</option>
+                    <option value="ofrenda">Ofrenda & Generosidad</option>
+                    <option value="anuncio">Comunicado Oficial de Presidencia</option>
+                  </select>
                 </div>
                 <div>
-                  <label class="text-[11px] font-semibold text-slate-300 block mb-1">Prioridad:</label>
-                  <select id="hqVideoPriority" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
-                    <option value="alta">Obligatorio en Sedes</option>
+                  <label class="text-[11px] font-semibold text-slate-300 block mb-1">Prioridad en Sedes:</label>
+                  <select id="hqVideoPriority" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
+                    <option value="alta">⚡ Obligatorio en Sedes</option>
                     <option value="media">Opcional para Sedes</option>
                   </select>
                 </div>
+              </div>
+
+              <!-- Caducidad Inteligente (Máximo 30 días) -->
+              <div>
+                <label class="text-[11px] font-semibold text-slate-300 flex items-center justify-between mb-1">
+                  <span>Vigencia / Caducidad de la Campaña:</span>
+                  <span class="text-[10px] text-amber-400 font-mono font-bold">Máx. 30 días</span>
+                </label>
+                <select id="hqVideoExpiration" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500/50">
+                  <option value="weekend">📅 Solo este fin de semana (Domingo 23:59)</option>
+                  <option value="7d">⏱️ 1 Semana (7 días)</option>
+                  <option value="14d">⏱️ 2 Semanas (14 días — Recomendado Campañas)</option>
+                  <option value="30d" selected>🛡️ 1 Mes (30 días — Límite Máximo del Servidor)</option>
+                </select>
+                <p class="text-[9.5px] text-slate-500 mt-1">
+                  Al expirar, el video se retira automáticamente de las pantallas de las sedes y se purga el archivo físico para liberar disco.
+                </p>
               </div>
 
               <div class="p-3 rounded-lg bg-sky-950/30 border border-sky-500/20 text-[10.5px] text-sky-300 space-y-1">
@@ -2544,14 +2619,14 @@ Te adoraré, te adoraré..."
                   Distribución Exclusiva de Red:
                 </span>
                 <p class="text-slate-400 text-[10px] leading-relaxed">
-                  Este video llegará automáticamente y de forma aislada a las pantallas y consolas Wirecast Capa 3 de las sedes filiales de tu organización.
+                  Este video llegará automáticamente a las consolas Wirecast Capa 3 exclusivamente de las sedes filiales de tu red.
                 </p>
               </div>
 
               <div class="pt-2">
-                <button onclick="publishOrgVideoCampaign()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-xs transition active:scale-95 shadow flex items-center justify-center gap-2">
+                <button onclick="publishOrgVideoCampaign()" id="btnPublishOrgVideo" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-xs transition active:scale-95 shadow flex items-center justify-center gap-2">
                   <i data-lucide="send" class="w-4 h-4"></i>
-                  <span>Distribuir a Wirecast de Mis Sedes</span>
+                  <span id="btnPublishOrgVideoText">Distribuir a Wirecast de Mis Sedes</span>
                 </button>
               </div>
             </div>
@@ -2560,7 +2635,10 @@ Te adoraré, te adoraré..."
           <!-- Right: List of registered campaigns -->
           <div class="w-full lg:w-7/12 h-full flex flex-col bg-[#0d131f] border border-slate-800 rounded-xl p-4 gap-3 overflow-hidden shadow">
             <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Videos Activos en la Red Institucional</h3>
+              <div>
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider">Videos y Campañas Activas en la Red</h3>
+                <p class="text-[10px] text-slate-400">Videos con vigencia programada distribuidos a tus sedes</p>
+              </div>
               <span id="hqOrgVideosCountBadge" class="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                 0 Distribuidos
               </span>
@@ -7643,12 +7721,16 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     // -------------------------------------------------------------------------
     // IMPERSONATION ENGINE (SUPER ADMIN / ORG -> 1-CLICK CHURCH STUDIO)
     // -------------------------------------------------------------------------
+    let impersonationOriginAccount = null;
+
     function impersonateChurch(churchId) {
       const church = (churches || []).find(c => c.id === churchId);
       if (!church) return;
 
+      impersonationOriginAccount = currentAccount;
       activeImpersonatedChurch = church;
       const isBranch = church.type === 'branch';
+
       const impersonatedAccount = {
         id: church.id,
         churchId: church.id,
@@ -7670,11 +7752,45 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         tenantKey: church.id
       };
 
-      // Show Impersonation Banner
+      // Configurar Barra según quién entró (Super Admin vs Organización)
       const banner = document.getElementById('impersonationBanner');
-      const bannerName = document.getElementById('impersonationChurchName');
-      if (banner) banner.classList.remove('hidden');
-      if (bannerName) bannerName.textContent = church.name;
+      const badge = document.getElementById('impersonationOriginBadge');
+      const actionText = document.getElementById('impersonationActionText');
+      const churchNameEl = document.getElementById('impersonationChurchName');
+      const returnBtn = document.getElementById('impersonationReturnBtn');
+      const returnBtnText = document.getElementById('impersonationReturnBtnText');
+      const dot = document.getElementById('impersonationDot');
+
+      const isFromOrg = impersonationOriginAccount && impersonationOriginAccount.isOrgAdmin;
+
+      if (banner) {
+        banner.classList.remove('hidden');
+        if (isFromOrg) {
+          banner.className = 'bg-gradient-to-r from-sky-800 via-indigo-900 to-blue-900 border-b border-sky-500/50 text-white px-4 py-2 flex items-center justify-between text-xs font-bold shadow-xl z-40 shrink-0 transition-colors duration-300';
+          if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-sky-300 animate-ping';
+          if (badge) {
+            badge.textContent = `BÚNKER ORGANIZACIÓN: ${impersonationOriginAccount.orgName || 'RED'}`;
+            badge.className = 'px-2.5 py-0.5 rounded bg-sky-950/80 text-[10px] uppercase font-mono tracking-wider border border-sky-400/40 text-sky-200';
+          }
+          if (actionText) actionText.textContent = 'Supervisión en vivo de sede filial:';
+          if (churchNameEl) churchNameEl.className = 'text-sky-200 underline font-black';
+          if (returnBtn) returnBtn.className = 'px-3 py-1.5 rounded-lg bg-sky-950/80 hover:bg-sky-900 text-sky-200 hover:text-white border border-sky-400/50 text-[11px] font-bold flex items-center gap-1.5 transition active:scale-95 shadow';
+          if (returnBtnText) returnBtnText.textContent = 'Volver a Búnker Organización';
+        } else {
+          banner.className = 'bg-gradient-to-r from-amber-700 via-orange-800 to-amber-900 border-b border-amber-500/50 text-white px-4 py-2 flex items-center justify-between text-xs font-bold shadow-xl z-40 shrink-0 transition-colors duration-300';
+          if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-300 animate-ping';
+          if (badge) {
+            badge.textContent = 'MODO BÚNKER ADMIN';
+            badge.className = 'px-2.5 py-0.5 rounded bg-black/50 text-[10px] uppercase font-mono tracking-wider border border-amber-300/40 text-amber-200';
+          }
+          if (actionText) actionText.textContent = 'Estás operando en vivo el estudio de:';
+          if (churchNameEl) churchNameEl.className = 'text-amber-200 underline font-black';
+          if (returnBtn) returnBtn.className = 'px-3 py-1.5 rounded-lg bg-black/60 hover:bg-black/90 text-amber-200 hover:text-white border border-amber-300/50 text-[11px] font-bold flex items-center gap-1.5 transition active:scale-95 shadow';
+          if (returnBtnText) returnBtnText.textContent = 'Volver a Búnker Admin';
+        }
+      }
+
+      if (churchNameEl) churchNameEl.textContent = church.name;
 
       applyTenantSession(impersonatedAccount, false);
       showToast(`🚀 Has entrado al Estudio de: ${church.name}`, '✓');
@@ -7685,24 +7801,25 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (banner) banner.classList.add('hidden');
       activeImpersonatedChurch = null;
 
-      let restored = null;
-      try {
-        const saved = localStorage.getItem('omnicast_session');
-        if (saved) {
-          const s = JSON.parse(saved);
-          restored = resolveAccount(s.username || s.email, 'admin');
-        }
-      } catch (e) {}
+      let restored = impersonationOriginAccount;
+      if (!restored) {
+        try {
+          const saved = localStorage.getItem('omnicast_session');
+          if (saved) {
+            const s = JSON.parse(saved);
+            restored = resolveAccount(s.username || s.email, 'admin');
+          }
+        } catch (e) {}
+      }
 
       if (!restored) {
         restored = resolveAccount('admin', 'admin');
       }
+
+      impersonationOriginAccount = null;
       applyTenantSession(restored, true);
     }
 
-    // -------------------------------------------------------------------------
-    // DIRECTORY MANAGEMENT: ORGANIZATIONS & CHURCHES
-    // -------------------------------------------------------------------------
     let hqChurchesFilter = 'all';
 
     function setHqChurchesFilter(type) {
@@ -9809,6 +9926,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const videos = libraryItems.filter(item => {
         const isVideo = item.category === 'medios' || Boolean(item.isVideo);
         if (!isVideo) return false;
+
+        // Ocultar videos que ya hayan caducado
+        if (item.expiresAt && new Date(item.expiresAt) < new Date()) {
+          return false;
+        }
 
         // Multi-tenant isolation for videos
         if (currentAccount && !currentAccount.isSuperAdmin) {
@@ -15533,32 +15655,168 @@ Resucitaste en majestad`;
     // -------------------------------------------------------------------------
     // ORGANIZACIÓN: GESTIÓN DE VIDEOS / CAMPAÑAS CDN Y RADAR SATELITAL
     // -------------------------------------------------------------------------
-    function publishOrgVideoCampaign() {
+    let hqVideoUploadMode = 'file'; // 'file' or 'url'
+    let hqSelectedVideoFile = null;
+    let hqSelectedVideoDuration = 60; // 1 min default
+
+    function setHqVideoUploadMode(mode) {
+      hqVideoUploadMode = mode;
+      const btnFile = document.getElementById('btnHqVideoModeFile');
+      const btnUrl = document.getElementById('btnHqVideoModeUrl');
+      const fileBox = document.getElementById('hqVideoFileContainer');
+      const urlBox = document.getElementById('hqVideoUrlContainer');
+
+      if (mode === 'file') {
+        if (btnFile) btnFile.className = 'py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/30';
+        if (btnUrl) btnUrl.className = 'py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5 border border-transparent';
+        if (fileBox) fileBox.classList.remove('hidden');
+        if (urlBox) urlBox.classList.add('hidden');
+      } else {
+        if (btnFile) btnFile.className = 'py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5 border border-transparent';
+        if (btnUrl) btnUrl.className = 'py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/30';
+        if (fileBox) fileBox.classList.add('hidden');
+        if (urlBox) urlBox.classList.remove('hidden');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function handleHqVideoFileDrop(e) {
+      e.preventDefault();
+      const dz = document.getElementById('hqVideoDropZone');
+      if (dz) dz.classList.remove('border-sky-500', 'bg-sky-500/10');
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        prepareHqSelectedVideoFile(e.dataTransfer.files[0]);
+      }
+    }
+
+    function handleHqVideoFileSelect(e) {
+      if (e.target && e.target.files && e.target.files.length > 0) {
+        prepareHqSelectedVideoFile(e.target.files[0]);
+      }
+    }
+
+    function prepareHqSelectedVideoFile(file) {
+      hqSelectedVideoFile = file;
+      const titleIn = document.getElementById('hqVideoTitle');
+      if (titleIn && !titleIn.value.trim()) {
+        titleIn.value = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+      }
+
+      const prevBox = document.getElementById('hqVideoFilePreviewBox');
+      const nameEl = document.getElementById('hqVideoFileName');
+      const sizeEl = document.getElementById('hqVideoFileSize');
+      const vidEl = document.getElementById('hqVideoPreviewEl');
+      const textEl = document.getElementById('hqVideoAnalysisText');
+
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      if (nameEl) nameEl.textContent = file.name;
+      if (sizeEl) sizeEl.textContent = `${sizeMb} MB`;
+      if (prevBox) prevBox.classList.remove('hidden');
+
+      if (vidEl) {
+        const objUrl = URL.createObjectURL(file);
+        vidEl.src = objUrl;
+        vidEl.onloadedmetadata = () => {
+          if (vidEl.duration && isFinite(vidEl.duration)) {
+            hqSelectedVideoDuration = Math.round(vidEl.duration);
+          }
+          const durFmt = typeof formatTime === 'function' ? formatTime(hqSelectedVideoDuration) : `${hqSelectedVideoDuration}s`;
+          if (textEl) {
+            textEl.textContent = `Duración detectada: ${durFmt} • ${vidEl.videoWidth || 1920}x${vidEl.videoHeight || 1080} HD • Listo para distribuir`;
+          }
+        };
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function calculateExpirationDate(expType) {
+      const now = new Date();
+      if (expType === 'weekend') {
+        const d = new Date(now);
+        const day = d.getDay(); // 0 is Sunday
+        const diff = day === 0 ? 0 : (7 - day);
+        d.setDate(d.getDate() + diff);
+        d.setHours(23, 59, 59, 999);
+        return d.toISOString();
+      } else if (expType === '7d') {
+        return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      } else if (expType === '14d') {
+        return new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      } else {
+        // 30d default (max)
+        return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      }
+    }
+
+    async function publishOrgVideoCampaign() {
       const title = (document.getElementById('hqVideoTitle')?.value || '').trim();
       const cat = document.getElementById('hqVideoCategory')?.value || 'campaña';
-      const url = (document.getElementById('hqVideoUrl')?.value || '').trim();
-      const dur = (document.getElementById('hqVideoDuration')?.value || '').trim() || '03:00';
       const priority = document.getElementById('hqVideoPriority')?.value || 'alta';
+      const expType = document.getElementById('hqVideoExpiration')?.value || '30d';
 
       if (!title) {
         showToast('⚠️ Ingresa el título del video o campaña', '⚠️');
         return;
       }
-      if (!url) {
-        showToast('⚠️ Ingresa la URL o ruta del video CDN', '⚠️');
-        return;
-      }
-
-      let durSec = 180;
-      if (dur.includes(':')) {
-        const parts = dur.split(':');
-        durSec = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
-      } else if (!isNaN(parseInt(dur, 10))) {
-        durSec = parseInt(dur, 10);
-      }
 
       const orgId = currentAccount ? (currentAccount.orgId || currentAccount.id) : null;
       const orgName = currentAccount ? (currentAccount.orgName || currentAccount.name) : 'Organización';
+      const expiresAt = calculateExpirationDate(expType);
+
+      const publishBtn = document.getElementById('btnPublishOrgVideo');
+      const publishBtnText = document.getElementById('btnPublishOrgVideoText');
+
+      let finalVideoUrl = '';
+      let finalDuration = hqSelectedVideoDuration || 60;
+      let filename = null;
+
+      if (hqVideoUploadMode === 'file') {
+        if (!hqSelectedVideoFile) {
+          showToast('⚠️ Arrastra o selecciona un archivo .mp4 desde tu computadora', '⚠️');
+          return;
+        }
+
+        // Subir vía streaming a /api/upload/video
+        if (publishBtn) publishBtn.disabled = true;
+        if (publishBtnText) publishBtnText.textContent = '⏳ Subiendo video a la red CDN...';
+
+        try {
+          const uploadQuery = new URLSearchParams({
+            filename: hqSelectedVideoFile.name,
+            title: title,
+            author: orgName,
+            scope: `🏢 ${orgName}`,
+            duration: finalDuration
+          });
+
+          const resp = await fetch(`/api/upload/video?${uploadQuery.toString()}`, {
+            method: 'POST',
+            body: hqSelectedVideoFile
+          });
+
+          if (!resp.ok) throw new Error('Error al subir video al servidor');
+          const resData = await resp.json();
+          finalVideoUrl = resData.url;
+          filename = resData.filename;
+        } catch (err) {
+          console.error(err);
+          showToast('❌ Error al subir archivo .mp4 al servidor', '❌');
+          if (publishBtn) publishBtn.disabled = false;
+          if (publishBtnText) publishBtnText.textContent = 'Distribuir a Wirecast de Mis Sedes';
+          return;
+        }
+      } else {
+        // Modo URL / CDN
+        finalVideoUrl = (document.getElementById('hqVideoUrl')?.value || '').trim();
+        if (!finalVideoUrl) {
+          showToast('⚠️ Ingresa la URL o enlace CDN del video', '⚠️');
+          return;
+        }
+      }
+
+      const mins = Math.floor(finalDuration / 60);
+      const secs = Math.floor(finalDuration % 60);
+      const durationFmt = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
       const newVideoItem = {
         id: `vid-org-${Date.now()}`,
@@ -15566,23 +15824,42 @@ Resucitaste en majestad`;
         isVideo: true,
         title: title,
         campaignType: cat,
-        videoUrl: url,
-        duration: durSec,
+        videoUrl: finalVideoUrl,
+        filename: filename,
+        duration: finalDuration,
+        durationFormatted: durationFmt,
         priority: priority,
         targetOrgId: orgId,
         scope: `🏢 ${orgName}`,
-        createdAt: new Date().toISOString()
+        expiresAt: expiresAt,
+        createdAt: new Date().toISOString(),
+        slides: [
+          {
+            text: title,
+            subText: `${orgName} • Campaña Oficial (${durationFmt})`,
+            badge: '🎬 CAMPAÑA RED'
+          }
+        ]
       };
 
-      libraryItems.push(newVideoItem);
+      libraryItems.unshift(newVideoItem);
       saveDatabaseToServer();
 
+      // Reset formulario
+      hqSelectedVideoFile = null;
       if (document.getElementById('hqVideoTitle')) document.getElementById('hqVideoTitle').value = '';
       if (document.getElementById('hqVideoUrl')) document.getElementById('hqVideoUrl').value = '';
+      const prevBox = document.getElementById('hqVideoFilePreviewBox');
+      if (prevBox) prevBox.classList.add('hidden');
+      const fileIn = document.getElementById('hqVideoFileInput');
+      if (fileIn) fileIn.value = '';
+
+      if (publishBtn) publishBtn.disabled = false;
+      if (publishBtnText) publishBtnText.textContent = 'Distribuir a Wirecast de Mis Sedes';
 
       renderHqOrgVideos();
       updateHqKpis();
-      showToast(`🎬 Video "${title}" distribuido a todas las sedes de ${orgName}`, '🚀');
+      showToast(`🎬 Campaña "${title}" distribuida a las sedes (Caduca: ${new Date(expiresAt).toLocaleDateString()})`, '🚀');
     }
 
     function renderHqOrgVideos() {
@@ -15591,6 +15868,8 @@ Resucitaste en majestad`;
       if (!container) return;
 
       const orgId = currentAccount ? (currentAccount.orgId || currentAccount.id) : null;
+      const now = new Date();
+
       const orgVideos = libraryItems.filter(item => {
         const isVideo = item.category === 'medios' || Boolean(item.isVideo);
         if (!isVideo) return false;
@@ -15607,15 +15886,34 @@ Resucitaste en majestad`;
           <div class="h-64 flex flex-col items-center justify-center text-center text-slate-500 p-6 border border-dashed border-slate-800 rounded-xl">
             <i data-lucide="film" class="w-8 h-8 opacity-40 mb-2"></i>
             <p class="text-xs">No hay videos de campaña activos en tu red institucional.</p>
-            <p class="text-[10px] text-slate-600 mt-1">Sube un video en el panel izquierdo para enviarlo automáticamente a las consolas Wirecast de tus sedes filiales.</p>
+            <p class="text-[10px] text-slate-600 mt-1">Sube un video .mp4 o enlace CDN en el panel izquierdo para enviarlo automáticamente a las consolas Wirecast de tus sedes filiales.</p>
           </div>`;
         if (window.lucide) lucide.createIcons();
         return;
       }
 
       container.innerHTML = orgVideos.map(vid => {
-        const durFmt = typeof formatTime === 'function' ? formatTime(vid.duration || 180) : `${Math.floor((vid.duration || 180)/60)}m`;
+        const durFmt = vid.durationFormatted || (typeof formatTime === 'function' ? formatTime(vid.duration || 60) : '01:00');
         const isHigh = vid.priority === 'alta';
+
+        // Cálculo de días restantes
+        let expBadge = '';
+        if (vid.expiresAt) {
+          const expDate = new Date(vid.expiresAt);
+          const diffMs = expDate.getTime() - now.getTime();
+          const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+          if (diffDays <= 0) {
+            expBadge = '<span class="px-2 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-500/30 font-bold">⚠️ VENCIDO (Expirado)</span>';
+          } else if (diffDays <= 3) {
+            expBadge = `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold animate-pulse">⏳ Vence en ${diffDays} día${diffDays === 1 ? '' : 's'}</span>`;
+          } else {
+            expBadge = `<span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">🟢 Vigente (${diffDays} días)</span>`;
+          }
+        } else {
+          expBadge = '<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold">Permanente</span>';
+        }
+
         return `
           <div class="bg-slate-900/80 border border-slate-800 hover:border-sky-500/30 rounded-xl p-3 flex items-center justify-between gap-3 shadow transition">
             <div class="flex items-center gap-3">
@@ -15624,12 +15922,13 @@ Resucitaste en majestad`;
               </div>
               <div>
                 <h4 class="text-xs font-bold text-white leading-tight">${vid.title}</h4>
-                <div class="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
+                <div class="flex flex-wrap items-center gap-2 mt-1 text-[10px] text-slate-400">
                   <span class="px-1.5 py-0.5 rounded bg-slate-800 font-mono text-slate-300">⏱ ${durFmt}</span>
                   <span class="px-1.5 py-0.5 rounded ${isHigh ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-400'} font-semibold">
                     ${isHigh ? '⚡ Obligatorio' : 'Opcional'}
                   </span>
-                  <span class="text-slate-500 font-mono truncate max-w-[150px]">${vid.videoUrl || ''}</span>
+                  ${expBadge}
+                  <span class="text-slate-500 font-mono truncate max-w-[140px]">${vid.videoUrl || ''}</span>
                 </div>
               </div>
             </div>
@@ -15639,7 +15938,7 @@ Resucitaste en majestad`;
                 <i data-lucide="play" class="w-3 h-3 text-emerald-400"></i>
                 <span>Probar</span>
               </button>
-              <button onclick="deleteOrgVideo('${vid.id}')" class="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-500/20 transition">
+              <button onclick="deleteOrgVideo('${vid.id}')" class="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-500/20 transition" title="Eliminar de la red">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -15660,12 +15959,28 @@ Resucitaste en majestad`;
     }
 
     function deleteOrgVideo(vidId) {
-      if (!confirm('¿Eliminar este video de la distribución de red?')) return;
+      const vid = libraryItems.find(i => i.id === vidId);
+      if (!vid) return;
+      if (!confirm(`¿Eliminar el video "${vid.title}" de la distribución de red?`)) return;
+
+      // Si el video fue un archivo subido, solicitar al servidor que lo borre de disco
+      if (vid.videoUrl && vid.videoUrl.startsWith('/uploads/videos/')) {
+        fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'DELETE_VIDEO_FILE',
+            videoUrl: vid.videoUrl,
+            timestamp: Date.now()
+          })
+        }).catch(() => {});
+      }
+
       libraryItems = libraryItems.filter(i => i.id !== vidId);
       saveDatabaseToServer();
       renderHqOrgVideos();
       updateHqKpis();
-      showToast('Video eliminado de la red', '🗑️');
+      showToast('Video eliminado y purgado de la red', '🗑️');
     }
 
     function renderHqTelemetry() {
