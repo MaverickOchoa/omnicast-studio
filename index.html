@@ -2128,6 +2128,7 @@
             </button>
           </div>
         </div>
+      </div>
     </div>
 
     <!-- --------------------------------------------------------------------- -->
@@ -7625,6 +7626,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         switchAtemTab('letras');
       } else {
         switchAtemTab('hq');
+        if (currentAccount && currentAccount.isOrgAdmin) {
+          switchHqSubTab('churches');
+        } else {
+          switchHqSubTab('orgs');
+        }
       }
     }
 
@@ -14931,6 +14937,11 @@ Pues resucitaste, Rey`
           tabHq.classList.add('active');
           tabHq.classList.remove('text-slate-400');
         }
+        if (currentAccount && currentAccount.isOrgAdmin) {
+          switchHqSubTab(currentHqSubTab && currentHqSubTab !== 'orgs' ? currentHqSubTab : 'churches');
+        } else {
+          switchHqSubTab(currentHqSubTab || 'orgs');
+        }
         updateHqKpis();
       }
 
@@ -14946,22 +14957,38 @@ Pues resucitaste, Rey`
     function switchHqSubTab(tab) {
       currentHqSubTab = tab;
       const isOrg = currentAccount && currentAccount.isOrgAdmin;
+      const isSuper = currentAccount && currentAccount.isSuperAdmin;
+
       const activeColorClasses = isOrg 
         ? 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-sky-500/20 text-sky-300 border border-sky-500/40'
         : 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-amber-500/20 text-amber-300 border border-amber-500/40';
+
+      const inactiveClasses = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent';
 
       const tabs = ['orgs', 'churches', 'songs', 'videos', 'telemetry'];
       tabs.forEach(t => {
         const btn = document.getElementById(`hqSubTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
         const contentEl = document.getElementById(`hqTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
-        if (t === tab) {
-          if (btn) btn.className = activeColorClasses;
-          if (contentEl) contentEl.classList.remove('hidden');
-        } else {
-          if (btn) {
-            btn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition flex items-center gap-2 border border-transparent';
+
+        let shouldBeVisible = true;
+        if (t === 'orgs' && isOrg) shouldBeVisible = false;
+        if ((t === 'videos' || t === 'telemetry') && isSuper) shouldBeVisible = false;
+
+        if (btn) {
+          if (!shouldBeVisible) {
+            btn.classList.add('hidden');
+          } else {
+            btn.classList.remove('hidden');
+            btn.className = (t === tab) ? activeColorClasses : inactiveClasses;
           }
-          if (contentEl) contentEl.classList.add('hidden');
+        }
+
+        if (contentEl) {
+          if (t === tab && shouldBeVisible) {
+            contentEl.classList.remove('hidden');
+          } else {
+            contentEl.classList.add('hidden');
+          }
         }
       });
 
