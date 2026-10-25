@@ -343,7 +343,7 @@
           mediaProjectorVideo.currentTime = 0;
         }
         mediaProjectorVideo.loop = Boolean(data.videoLoop);
-        mediaProjectorVideo.muted = data.videoMuted !== undefined ? Boolean(data.videoMuted) : false;
+        mediaProjectorVideo.muted = true; // Muted projection ensures Chrome never blocks autoplay on secondary monitor
         if (data.videoAction === 'play') {
           if (typeof data.currentTime === 'number' && Math.abs(mediaProjectorVideo.currentTime - data.currentTime) > 1.2) {
             mediaProjectorVideo.currentTime = data.currentTime;
@@ -439,10 +439,8 @@
         }
         mediaProjectorVideo.classList.remove('hidden');
         lyricsWrapper.classList.add('hidden');
-        mediaProjectorVideo.play().catch(() => {
-          mediaProjectorVideo.muted = true;
-          mediaProjectorVideo.play().catch(() => {});
-        });
+        mediaProjectorVideo.muted = true;
+        mediaProjectorVideo.play().catch(e => console.warn('Projector play error:', e));
       } else if (cmd.action === 'pause') {
         mediaProjectorVideo.pause();
         if (typeof cmd.time === 'number') {

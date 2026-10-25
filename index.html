@@ -594,7 +594,6 @@
             </div>
           </div>
 
-          <!-- activeVideoTransportBar superseded by master videoCenterDeck -->
           <!-- FONDOS DINÁMICOS & LAYOUT SELECTOR -->
           <div class="px-3 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-3 overflow-x-auto shrink-0 select-none">
             <div class="flex items-center gap-2 shrink-0">
@@ -641,103 +640,6 @@
           </div>
 
           
-          <!-- MASTER LIVE BROADCAST VIDEO PLAYER & DECK (60FPS HARDWARE ACCELERATED) -->
-          <div id="videoCenterDeck" class="hidden flex-1 overflow-y-auto p-4 flex flex-col items-center justify-start gap-4 bg-slate-950/80">
-            <!-- Video Player Stage (16:9 Aspect Ratio) -->
-            <div class="w-full max-w-4xl relative aspect-video bg-black rounded-2xl overflow-hidden border-2 border-rose-500/60 shadow-2xl shadow-rose-950/40 group">
-              <!-- REAL VISIBLE VIDEO ELEMENT -->
-              <video id="programMediaVideo" playsinline preload="auto" class="w-full h-full object-contain bg-black cursor-pointer"></video>
-
-              <!-- Live Top Bar Overlay -->
-              <div class="absolute top-0 inset-x-0 p-3 bg-gradient-to-b from-black/85 via-black/40 to-transparent flex items-center justify-between pointer-events-none select-none z-10">
-                <div id="activeVideoStatusBadge" class="px-2.5 py-1 rounded-full text-xs font-mono bg-emerald-500/20 border border-emerald-500/40 flex items-center text-emerald-300 font-bold shadow">
-                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block mr-1.5"></span>
-                  AL AIRE (PROYECTOR & STREAM)
-                </div>
-                <div class="flex items-center gap-2">
-                  <span id="activeVideoScopeBadge" class="px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold">
-                    👑 OFICIAL RED
-                  </span>
-                  <span class="px-2 py-0.5 rounded bg-black/70 text-slate-300 font-mono text-[10px] border border-slate-700">
-                    1080p FULL HD
-                  </span>
-                </div>
-              </div>
-
-              <!-- Center Big Play/Pause Touch Icon Overlay -->
-              <div id="activeVideoCenterPlayIcon" onclick="toggleActiveVideoPlayPause()" class="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/20 cursor-pointer transition select-none z-10 opacity-0 group-hover:opacity-100">
-                <div class="w-16 h-16 rounded-full bg-rose-600/90 hover:bg-rose-500 text-white flex items-center justify-center shadow-2xl transition transform group-hover:scale-105 active:scale-95">
-                  <i id="activeVideoCenterPlayIconLucide" data-lucide="play" class="w-8 h-8 ml-1"></i>
-                </div>
-              </div>
-
-              <!-- Bottom Timeline & Mini Transport on Video Overlay -->
-              <div class="absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/95 via-black/70 to-transparent flex flex-col gap-2 z-10">
-                <!-- Smooth Interactive Progress Scrubber -->
-                <div class="relative w-full flex items-center group/scrub py-1 cursor-pointer">
-                  <input type="range" id="activeVideoScrubber" min="0" max="100" step="0.1" value="0"
-                    onmousedown="onScrubberMouseDown()"
-                    ontouchstart="onScrubberMouseDown()"
-                    oninput="onScrubberInput(this.value)"
-                    onchange="onScrubberChange(this.value)"
-                    class="w-full accent-rose-500 h-2 bg-slate-800/90 rounded-lg cursor-pointer transition">
-                </div>
-
-                <!-- Video Bottom Info -->
-                <div class="flex items-center justify-between text-xs font-mono select-none">
-                  <div class="flex items-center gap-2">
-                    <span id="activeVideoTimecode" class="font-bold text-white tracking-wider">00:00 / 01:00</span>
-                    <span class="text-slate-500">•</span>
-                    <span id="activeVideoTimecodeRemaining" class="text-amber-400 font-bold" title="Tiempo restante para finalizar">-01:00</span>
-                  </div>
-                  <div class="flex items-center gap-3 text-slate-300 text-[11px]">
-                    <span id="activeVideoSpeedIndicator" class="text-emerald-400 font-bold">● 1.0x NORMAL</span>
-                    <span>PROYECTOR HDMI: <strong class="text-emerald-400">ENLACE ACTIVO</strong></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Master Control Command Panel (Large Buttons & Direct Access) -->
-            <div class="w-full max-w-4xl p-3.5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-between gap-3 select-none">
-              <!-- Left Transport Cluster -->
-              <div class="flex items-center gap-2 flex-wrap">
-                <button onclick="toggleActiveVideoPlayPause()" id="btnVideoPlayPauseMaster" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-950/40 transition active:scale-95">
-                  <i data-lucide="play" class="w-4 h-4"></i>
-                  <span id="btnVideoPlayPauseMasterText">REPRODUCIR VIDEO</span>
-                </button>
-                <button onclick="restartActiveVideo()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition active:scale-95" title="Reiniciar video desde el inicio">
-                  <i data-lucide="rotate-ccw" class="w-4 h-4 text-sky-400"></i>
-                  <span>00:00 Inicio</span>
-                </button>
-                <button onclick="skipActiveVideo(-5)" class="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95" title="Retroceder 5 segundos">
-                  <i data-lucide="rewind" class="w-3.5 h-3.5"></i>
-                  <span>-5s</span>
-                </button>
-                <button onclick="skipActiveVideo(5)" class="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 border border-slate-700 transition active:scale-95" title="Avanzar 5 segundos">
-                  <span>+5s</span>
-                  <i data-lucide="fast-forward" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
-
-              <!-- Right Audio & Mode Cluster -->
-              <div class="flex items-center gap-2 flex-wrap">
-                <button onclick="toggleActiveVideoMute()" id="btnVideoMuteMaster" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition active:scale-95">
-                  <i data-lucide="volume-2" class="w-4 h-4"></i>
-                  <span id="btnVideoMuteMasterText">Audio ON</span>
-                </button>
-                <button onclick="toggleActiveVideoLoop()" id="btnVideoLoopMaster" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold flex items-center gap-1.5 border border-slate-700 transition active:scale-95">
-                  <i data-lucide="repeat" class="w-4 h-4"></i>
-                  <span id="btnVideoLoopMasterText">Loop: OFF</span>
-                </button>
-                <button onclick="stopAndBlackoutVideo()" class="px-3 py-2 rounded-xl bg-rose-950/70 hover:bg-rose-900 text-rose-300 text-xs font-semibold flex items-center gap-1.5 border border-rose-800/60 transition active:scale-95" title="Detener video y poner pantalla en negro">
-                  <i data-lucide="square" class="w-4 h-4 text-rose-400"></i>
-                  <span>Detener / Negro</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
           <div id="slidesGrid" class="flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 auto-rows-max items-start content-start">
             <!-- Populated by JS -->
           </div>
@@ -3432,6 +3334,9 @@ Te adoraré, te adoraré..."
 
   <!-- Active Off-Screen HTML5 Video Elements for Compositor (Hardware-accelerated 60fps rendering without Chrome display:none throttling) -->
   <!-- programMediaVideo is now hosted directly in the Master Video Deck for 100% visible 60fps hardware accelerated playback -->
+    <!-- Hardware-accelerated Video Engine for Letras, Screens & Wirecast Compositor -->
+  <video id="programMediaVideo" playsinline preload="auto" crossorigin="anonymous"
+    style="position: fixed; bottom: 0; right: 0; width: 320px; height: 180px; z-index: -9999; opacity: 0.001; pointer-events: none;"></video>
   <video id="previewMediaVideo" muted playsinline crossorigin="anonymous" style="position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;"></video>
 
   <!-- ========================================================================= -->
@@ -10662,11 +10567,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const activeAuthorEl = document.getElementById('activeSongAuthor');
       if (activeAuthorEl) activeAuthorEl.textContent = `${item.author || ''} • ${item.scope || 'SEDE LOCAL'}`;
 
-      const videoCenterDeck = document.getElementById('videoCenterDeck');
       const slidesGrid = document.getElementById('slidesGrid');
       const grid = slidesGrid;
-      const transportBar = document.getElementById('activeVideoTransportBar');
-      if (transportBar) transportBar.classList.add('hidden'); // Ocultar barra redundante
+      if (!slidesGrid) return;
+      slidesGrid.classList.remove('hidden');
+      slidesGrid.innerHTML = '';
 
       const streamBadge = document.getElementById('activeSongStreamModeBadge');
       if (streamBadge) {
@@ -10682,18 +10587,12 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         }
       }
 
+      const progVid = document.getElementById('programMediaVideo');
+
       // =======================================================================
-      // CASO VIDEO: Activar Master Video Deck con monitor real 60fps
+      // CASO 1: VIDEO (TARJETA LIMPIA Y PROFESIONAL ESTILO PROPRESENTER)
       // =======================================================================
       if (isVideo && item.videoUrl) {
-        if (slidesGrid) slidesGrid.classList.add('hidden');
-        if (videoCenterDeck) {
-          videoCenterDeck.classList.remove('hidden');
-          const scopeBadge = document.getElementById('activeVideoScopeBadge');
-          if (scopeBadge) scopeBadge.textContent = item.scope || '🎬 VIDEO LOCAL';
-        }
-
-        const progVid = document.getElementById('programMediaVideo');
         if (progVid) {
           if (progVid.getAttribute('data-src') !== item.videoUrl) {
             progVid.src = item.videoUrl;
@@ -10701,34 +10600,77 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             progVid.currentTime = 0;
             progVid.load();
           }
-          progVid.muted = Boolean(activeVideoMuted);
-          progVid.loop = Boolean(activeVideoLoopEnabled);
-          progVid.onclick = () => toggleActiveVideoPlayPause();
-
-          // Conectar eventos nativos para fluidez máxima
-          progVid.ontimeupdate = updateActiveVideoTransportUI;
-          progVid.onplay = updateActiveVideoTransportUI;
-          progVid.onpause = updateActiveVideoTransportUI;
-          progVid.onended = () => {
-            updateActiveVideoTransportUI();
-            if (activeVideoLoopEnabled) {
-              progVid.currentTime = 0;
-              safePlayVideo(progVid);
+          progVid.ontimeupdate = () => {
+            const tc = document.getElementById('activeVideoCardTimecode');
+            if (tc && progVid) {
+              const cur = progVid.currentTime || 0;
+              const dur = (progVid.duration && isFinite(progVid.duration)) ? progVid.duration : 60;
+              tc.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
             }
+          };
+          progVid.onended = () => {
+            renderSlidesGrid();
+            broadcastSlide(false, true, 'pause');
           };
         }
 
-        updateActiveVideoTransportUI();
+        const isLive = progVid && !progVid.paused && !progVid.ended;
+        const card = document.createElement('div');
+        card.className = `col-span-full md:col-span-2 aspect-video rounded-2xl border-2 cursor-pointer transition shadow-2xl relative overflow-hidden group select-none ${
+          isLive 
+            ? 'border-emerald-500 bg-slate-950 ring-4 ring-emerald-500/30' 
+            : 'border-slate-800 bg-slate-950 hover:border-slate-600'
+        }`;
+        card.onclick = () => toggleActiveVideoPlayPause();
+
+        card.innerHTML = `
+          <!-- Video Thumbnail Frame -->
+          <video src="${item.videoUrl}#t=1.0" muted playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition pointer-events-none"></video>
+
+          <!-- Top Overlay: Badge & Duration -->
+          <div class="flex items-center justify-between z-10 p-3 relative">
+            <span class="text-xs font-bold px-3 py-1 rounded-full ${
+              isLive ? 'bg-emerald-600 text-white animate-pulse' : 'bg-slate-800 text-slate-300'
+            } shadow flex items-center gap-1.5">
+              <span>${isLive ? '🔴 EN VIVO' : '🎬 VIDEO HD'}</span>
+              <span>•</span>
+              <span>${item.durationFormatted || '01:00'}</span>
+            </span>
+            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-black/80 text-amber-300 border border-amber-500/40">
+              ${item.scope || 'OFICIAL RED'}
+            </span>
+          </div>
+
+          <!-- Center Overlay: Big Clean Play/Pause Trigger -->
+          <div class="z-10 my-auto text-center px-4 relative drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] flex flex-col items-center justify-center gap-2">
+            <div class="w-16 h-16 rounded-full ${
+              isLive ? 'bg-amber-600/90 hover:bg-amber-500' : 'bg-emerald-600/90 hover:bg-emerald-500'
+            } text-white flex items-center justify-center shadow-xl group-hover:scale-110 transition active:scale-95">
+              <i data-lucide="${isLive ? 'pause' : 'play'}" class="w-8 h-8 ${isLive ? '' : 'ml-1'}"></i>
+            </div>
+            <p class="text-lg font-black text-white tracking-wide">${item.title}</p>
+            <p class="text-xs font-semibold ${isLive ? 'text-emerald-300 animate-pulse' : 'text-slate-300'}">
+              ${isLive ? '● TRANSMITIENDO EN VIVO (Click para Pausar)' : 'Haz clic para Proyectar en Pantallas y Wirecast'}
+            </p>
+          </div>
+
+          <!-- Bottom Overlay: Status bar -->
+          <div class="z-10 flex items-center justify-between text-xs font-mono bg-black/85 p-2.5 relative border-t border-slate-800">
+            <span class="${isLive ? 'text-emerald-400 font-bold' : 'text-slate-400'} flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}"></span>
+              ${isLive ? 'AL AIRE EN PANTALLAS Y STREAM' : 'LISTO PARA SALIR AL AIRE'}
+            </span>
+            <span id="activeVideoCardTimecode" class="font-bold text-white tracking-wider">
+              ${formatTime(progVid ? progVid.currentTime : 0)} / ${formatTime(progVid ? progVid.duration : 60)}
+            </span>
+          </div>
+        `;
+
+        slidesGrid.appendChild(card);
         if (window.lucide) lucide.createIcons();
         updateMonitors();
         return;
       }
-
-      // =======================================================================
-      // CASO ALABANZAS O SAGRADAS ESCRITURAS: Activar slidesGrid
-      // =======================================================================
-      if (videoCenterDeck) videoCenterDeck.classList.add('hidden');
-      if (slidesGrid) slidesGrid.classList.remove('hidden');
 
       if (!item.slides || !item.slides.length) {
         item.slides = [{
@@ -10738,9 +10680,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         }];
       }
 
-      slidesGrid.innerHTML = '';
       const currentThemeConfig = themesPalette[currentTheme] || themesPalette.purple;
-
+      
       // Caso 2: Versículos Bíblicos (Diseño Ergonómico ProPresenter)
       if (isBible) {
         (item.slides || []).forEach((slide, idx) => {
@@ -10871,7 +10812,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       recordCurrentSongForRecap();
     }
 
-    function broadcastSlide(isClear = false, sendServerSync = true) {
+    function broadcastSlide(isClear = false, sendServerSync = true, explicitVideoAction = null) {
       const item = libraryItems[currentItemIndex];
       if (!item || !item.slides || !item.slides.length) return;
       const slide = item.slides[currentSlideIndex] || item.slides[0];
@@ -10895,7 +10836,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         songTitle: item.title,
         isVideo: isVideo,
         videoUrl: item.videoUrl || '',
-        videoAction: (() => {
+        videoAction: explicitVideoAction || (() => {
           const progVid = document.getElementById('programMediaVideo');
           return (progVid && !progVid.paused && !progVid.ended) ? 'play' : 'pause';
         })(),
@@ -12176,15 +12117,26 @@ Pues resucitaste, Rey`
 
       const shouldPlay = forcePlay !== null ? forcePlay : progVid.paused;
       if (shouldPlay) {
-        safePlayVideo(progVid).then(() => {
+        progVid.muted = Boolean(activeVideoMuted);
+        progVid.play().then(() => {
           sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
-          broadcastSlide(false);
-          updateActiveVideoTransportUI();
+          broadcastSlide(false, true, 'play');
+          renderSlidesGrid();
+        }).catch(err => {
+          console.warn('Audio play restricted, trying safe mode:', err);
+          progVid.muted = true;
+          activeVideoMuted = true;
+          progVid.play().then(() => {
+            sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
+            broadcastSlide(false, true, 'play');
+            renderSlidesGrid();
+          });
         });
       } else {
         progVid.pause();
         sendProjectorVideoCommand({ action: 'pause', time: progVid.currentTime });
-        updateActiveVideoTransportUI();
+        broadcastSlide(false, true, 'pause');
+        renderSlidesGrid();
       }
     }
 
