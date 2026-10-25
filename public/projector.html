@@ -344,13 +344,19 @@
         }
         mediaProjectorVideo.loop = Boolean(data.videoLoop);
         mediaProjectorVideo.muted = data.videoMuted !== undefined ? Boolean(data.videoMuted) : false;
-        if (data.videoAction === 'pause') {
-          mediaProjectorVideo.pause();
-        } else {
+        if (data.videoAction === 'play') {
+          if (typeof data.currentTime === 'number' && Math.abs(mediaProjectorVideo.currentTime - data.currentTime) > 1.2) {
+            mediaProjectorVideo.currentTime = data.currentTime;
+          }
           mediaProjectorVideo.play().catch(() => {
             mediaProjectorVideo.muted = true;
             mediaProjectorVideo.play().catch(() => {});
           });
+        } else {
+          mediaProjectorVideo.pause();
+          if (typeof data.currentTime === 'number') {
+            mediaProjectorVideo.currentTime = data.currentTime;
+          }
         }
         return;
       } else if (mediaProjectorVideo) {
