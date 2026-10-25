@@ -247,11 +247,6 @@
       <span id="impersonationReturnBtnText">Volver a Búnker Admin</span>
     </button>
   </div>
-    <button onclick="exitImpersonationToHq()" class="px-3 py-1 rounded-lg bg-black/50 hover:bg-black/80 text-amber-200 hover:text-white border border-amber-300/50 text-[11px] font-bold flex items-center gap-1.5 transition active:scale-95 shadow">
-      <i data-lucide="arrow-left" class="w-3.5 h-3.5 text-amber-400"></i>
-      <span>Volver al Búnker Super Admin</span>
-    </button>
-  </div>
 
   <!-- ========================================================================= -->
   <!-- 1. TOP HEADER (BRANDING, SECURE SESSION BADGE, DUAL OUTPUT LAUNCHERS)     -->
@@ -11012,6 +11007,10 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
     function initStudioRemoteEvents() {
       if (studioMainEvtSource) return;
+      if (document.readyState !== 'complete') {
+        window.addEventListener('load', () => setTimeout(initStudioRemoteEvents, 600), { once: true });
+        return;
+      }
       try {
         studioMainEvtSource = new EventSource('/api/events');
 
