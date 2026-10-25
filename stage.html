@@ -231,61 +231,63 @@
       } catch(err) {}
     }
 
-    // Connect to Server-Sent Events for WiFi synchronization with remote.html
-    const evtSource = new EventSource('/api/events');
-    evtSource.addEventListener('timer', (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        const m = String(Math.floor(data.seconds / 60)).padStart(2, '0');
-        const s = String(data.seconds % 60).padStart(2, '0');
-        serviceTimer.textContent = `${m}:${s}`;
-        if (data.seconds <= 60) {
-          serviceTimer.className = 'font-mono text-3xl font-black text-rose-500 animate-pulse';
-        } else if (data.seconds <= 300) {
-          serviceTimer.className = 'font-mono text-3xl font-black text-amber-400';
-        } else {
-          serviceTimer.className = 'font-mono text-3xl font-black text-emerald-400';
-        }
-      } catch (err) {}
-    });
-
-    evtSource.addEventListener('slide_payload', (e) => {
-      try {
-        updateStageDisplay(JSON.parse(e.data));
-      } catch (err) {}
-    });
-
-    evtSource.addEventListener('state', (e) => {
-      try {
-        const state = JSON.parse(e.data);
-        // Stage alert message from remote
-        const alertBanner = document.getElementById('stageAlert');
-        if (alertBanner) {
-          if (state.stageMessage) {
-            alertBanner.textContent = `📢 ${state.stageMessage}`;
-            alertBanner.classList.remove('hidden');
+    // Connect to Server-Sent Events after window load to prevent infinite browser tab spinner
+    window.addEventListener('load', () => {
+      const evtSource = new EventSource('/api/events');
+      evtSource.addEventListener('timer', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          const m = String(Math.floor(data.seconds / 60)).padStart(2, '0');
+          const s = String(data.seconds % 60).padStart(2, '0');
+          serviceTimer.textContent = `${m}:${s}`;
+          if (data.seconds <= 60) {
+            serviceTimer.className = 'font-mono text-3xl font-black text-rose-500 animate-pulse';
+          } else if (data.seconds <= 300) {
+            serviceTimer.className = 'font-mono text-3xl font-black text-amber-400';
           } else {
-            alertBanner.classList.add('hidden');
+            serviceTimer.className = 'font-mono text-3xl font-black text-emerald-400';
           }
-        }
-        if (state.currentSlidePayload) {
-          updateStageDisplay(state.currentSlidePayload);
-          return;
-        }
-        // Slide update from remote
-        if (state.libraryItems && state.libraryItems[state.itemIndex]) {
-          const item = state.libraryItems[state.itemIndex];
-          const slide = item.slides && item.slides[state.slideIndex];
-          const nextSlide = item.slides && item.slides[state.slideIndex + 1];
-          updateStageDisplay({
-            text: state.isBlackout ? '[PANTALLA EN NEGRO / ORACIÓN]' : (slide ? slide.text : ''),
-            subText: state.isBlackout ? '' : (slide ? slide.subText : ''),
-            songTitle: item.title,
-            badge: slide ? slide.badge : '',
-            nextText: nextSlide ? nextSlide.text : (state.itemIndex < state.libraryItems.length - 1 ? `[Sig. Canción] ${state.libraryItems[state.itemIndex + 1].title}` : 'Fin de la lista')
-          });
-        }
-      } catch (err) {}
+        } catch (err) {}
+      });
+
+      evtSource.addEventListener('slide_payload', (e) => {
+        try {
+          updateStageDisplay(JSON.parse(e.data));
+        } catch (err) {}
+      });
+
+      evtSource.addEventListener('state', (e) => {
+        try {
+          const state = JSON.parse(e.data);
+          // Stage alert message from remote
+          const alertBanner = document.getElementById('stageAlert');
+          if (alertBanner) {
+            if (state.stageMessage) {
+              alertBanner.textContent = `📢 ${state.stageMessage}`;
+              alertBanner.classList.remove('hidden');
+            } else {
+              alertBanner.classList.add('hidden');
+            }
+          }
+          if (state.currentSlidePayload) {
+            updateStageDisplay(state.currentSlidePayload);
+            return;
+          }
+          // Slide update from remote
+          if (state.libraryItems && state.libraryItems[state.itemIndex]) {
+            const item = state.libraryItems[state.itemIndex];
+            const slide = item.slides && item.slides[state.slideIndex];
+            const nextSlide = item.slides && item.slides[state.slideIndex + 1];
+            updateStageDisplay({
+              text: state.isBlackout ? '[PANTALLA EN NEGRO / ORACIÓN]' : (slide ? slide.text : ''),
+              subText: state.isBlackout ? '' : (slide ? slide.subText : ''),
+              songTitle: item.title,
+              badge: slide ? slide.badge : '',
+              nextText: nextSlide ? nextSlide.text : (state.itemIndex < state.libraryItems.length - 1 ? `[Sig. Canción] ${state.libraryItems[state.itemIndex + 1].title}` : 'Fin de la lista')
+            });
+          }
+        } catch (err) {}
+      });
     });
   </script>
 </body>

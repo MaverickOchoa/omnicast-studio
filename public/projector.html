@@ -577,39 +577,41 @@
       } catch(err) {}
     }
 
-    // Connect to Server-Sent Events for WiFi synchronization with remote.html & studio
-    const evtSource = new EventSource('/api/events');
-    evtSource.addEventListener('slide_payload', (e) => {
-      try {
-        updateDisplay(JSON.parse(e.data));
-      } catch (err) {}
-    });
-    evtSource.addEventListener('state', (e) => {
-      try {
-        const state = JSON.parse(e.data);
-        if (Array.isArray(state.libraryItems)) {
-          prewarmProjectorVideo(state.libraryItems);
-        }
-        if (state.currentSlidePayload) {
-          updateDisplay(state.currentSlidePayload);
-          return;
-        }
-        if (state.libraryItems && state.libraryItems[state.itemIndex]) {
-          const item = state.libraryItems[state.itemIndex];
-          const slide = item.slides && item.slides[state.slideIndex];
-          const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
-          updateDisplay({
-            text: state.isBlackout ? '' : (slide ? slide.text : ''),
-            subText: state.isBlackout ? '' : (slide ? slide.subText : ''),
-            isClear: state.isBlackout,
-            badge: slide ? slide.badge : '',
-            isVideo: isVideo,
-            videoUrl: item.videoUrl || '',
-            videoAction: state.isBlackout ? 'pause' : 'play',
-            theme: state.theme
-          });
-        }
-      } catch (err) {}
+    // Connect to Server-Sent Events after window load to prevent infinite browser tab spinner
+    window.addEventListener('load', () => {
+      const evtSource = new EventSource('/api/events');
+      evtSource.addEventListener('slide_payload', (e) => {
+        try {
+          updateDisplay(JSON.parse(e.data));
+        } catch (err) {}
+      });
+      evtSource.addEventListener('state', (e) => {
+        try {
+          const state = JSON.parse(e.data);
+          if (Array.isArray(state.libraryItems)) {
+            prewarmProjectorVideo(state.libraryItems);
+          }
+          if (state.currentSlidePayload) {
+            updateDisplay(state.currentSlidePayload);
+            return;
+          }
+          if (state.libraryItems && state.libraryItems[state.itemIndex]) {
+            const item = state.libraryItems[state.itemIndex];
+            const slide = item.slides && item.slides[state.slideIndex];
+            const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
+            updateDisplay({
+              text: state.isBlackout ? '' : (slide ? slide.text : ''),
+              subText: state.isBlackout ? '' : (slide ? slide.subText : ''),
+              isClear: state.isBlackout,
+              badge: slide ? slide.badge : '',
+              isVideo: isVideo,
+              videoUrl: item.videoUrl || '',
+              videoAction: state.isBlackout ? 'pause' : 'play',
+              theme: state.theme
+            });
+          }
+        } catch (err) {}
+      });
     });
   </script>
 </body>

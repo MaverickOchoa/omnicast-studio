@@ -689,7 +689,10 @@
         setTimeout(connectSSE, 3000);
       };
     }
-    connectSSE();
+    // Connect SSE after window load to prevent infinite browser tab spinner
+    window.addEventListener('load', () => {
+      connectSSE();
+    });
 
     // WakeLock API to keep Smart TV screen turned ON indefinitely
     if ('wakeLock' in navigator) {

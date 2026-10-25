@@ -17084,7 +17084,9 @@ Resucitaste en majestad`;
     updateWirecastRackUI();
     updateDestinationsLiveBadge();
     broadcastSlide(false, false);
-    initStudioRemoteEvents();
+    window.addEventListener('load', () => {
+      initStudioRemoteEvents();
+    });
     startFairlightVuMeterEngine();
     startArenaStageCanvasEngine();
     renderRundownUI();
