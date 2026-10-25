@@ -512,14 +512,14 @@
     function handleVideoPlayback(data) {
       if (!mediaTvVideo || !data) return;
       const ts = Number(data.timestamp || data.ts) || 0;
-      if (ts && ts < lastTvVideoTs) return;
-      if (!ts && lastTvVideoTs) return;
-      if (ts) lastTvVideoTs = ts;
-
       if (!data.isClear && data.isVideo && data.videoUrl) {
+        if (ts && ts < lastTvVideoTs) return;
+        if (!ts && lastTvVideoTs) return;
+        if (ts) lastTvVideoTs = ts;
         mediaTvVideo.classList.remove('hidden');
         if (mediaTvVideo.getAttribute('data-src') !== data.videoUrl) {
-          mediaTvVideo.src = data.videoUrl;
+          const sep = data.videoUrl.includes('?') ? '&' : '?';
+          mediaTvVideo.src = `${data.videoUrl}${sep}screen=tv`;
           mediaTvVideo.setAttribute('data-src', data.videoUrl);
         }
         mediaTvVideo.loop = Boolean(data.videoLoop);
@@ -620,6 +620,32 @@
       }
     };
 
+    function prewarmTvVideo(items) {
+      if (!mediaTvVideo || mediaTvVideo.getAttribute('data-src')) return;
+      if (!Array.isArray(items) || !items.length) return;
+      let svcIds = [];
+      try { svcIds = JSON.parse(localStorage.getItem('omnicast_service_items') || '[]'); } catch (e) {}
+      const candidates = items.filter(it => it && it.videoUrl && it.videoUrl.startsWith('/uploads/'));
+      const chosen = candidates.find(it => svcIds.includes(it.id)) || candidates[0];
+      if (chosen && chosen.videoUrl) {
+        const sep = chosen.videoUrl.includes('?') ? '&' : '?';
+        mediaTvVideo.src = `${chosen.videoUrl}${sep}screen=tv`;
+        mediaTvVideo.setAttribute('data-src', chosen.videoUrl);
+        mediaTvVideo.muted = true;
+        try { mediaTvVideo.load(); } catch (e) {}
+      }
+    }
+
+    try {
+      const rawDb = localStorage.getItem('omnicast_library_db');
+      if (rawDb) {
+        const parsedDb = JSON.parse(rawDb);
+        if (parsedDb && Array.isArray(parsedDb.libraryItems)) {
+          prewarmTvVideo(parsedDb.libraryItems);
+        }
+      }
+    } catch (e) {}
+
     // Server-Sent Events for Full Network Synchronicity across Smart TVs
     function connectSSE() {
       const sse = new EventSource('/api/events');
@@ -631,6 +657,9 @@
       sse.addEventListener('state', (e) => {
         try {
           const state = JSON.parse(e.data);
+          if (Array.isArray(state.libraryItems)) {
+            prewarmTvVideo(state.libraryItems);
+          }
           if (state.tvMode) switchMode(state.tvMode);
           if (typeof state.tvAlert === 'string') setTvAlert(state.tvAlert);
           

@@ -387,7 +387,8 @@
         return;
       }
       if (st.url && mediaProjectorVideo.getAttribute('data-src') !== st.url) {
-        mediaProjectorVideo.src = st.url;
+        const sep = st.url.includes('?') ? '&' : '?';
+        mediaProjectorVideo.src = `${st.url}${sep}screen=projector`;
         mediaProjectorVideo.setAttribute('data-src', st.url);
       }
       if (typeof st.loop === 'boolean') mediaProjectorVideo.loop = st.loop;
@@ -435,7 +436,7 @@
         });
         return;
       } else if (mediaProjectorVideo) {
-        if (data.timestamp && data.timestamp < lastVideoMsgTs) return; // texto viejo reenviado: no tapar el video actual
+        if (desiredVideoPlaying && data.timestamp && data.timestamp < lastVideoMsgTs) return; // texto viejo reenviado: no tapar el video actual
         if (data.timestamp) lastVideoMsgTs = data.timestamp;
         desiredVideoPlaying = false;
         mediaProjectorVideo.pause();
@@ -543,6 +544,32 @@
       }
     });
 
+    function prewarmProjectorVideo(items) {
+      if (!mediaProjectorVideo || mediaProjectorVideo.getAttribute('data-src')) return;
+      if (!Array.isArray(items) || !items.length) return;
+      let svcIds = [];
+      try { svcIds = JSON.parse(localStorage.getItem('omnicast_service_items') || '[]'); } catch (e) {}
+      const candidates = items.filter(it => it && it.videoUrl && it.videoUrl.startsWith('/uploads/'));
+      const chosen = candidates.find(it => svcIds.includes(it.id)) || candidates[0];
+      if (chosen && chosen.videoUrl) {
+        const sep = chosen.videoUrl.includes('?') ? '&' : '?';
+        mediaProjectorVideo.src = `${chosen.videoUrl}${sep}screen=projector`;
+        mediaProjectorVideo.setAttribute('data-src', chosen.videoUrl);
+        mediaProjectorVideo.muted = true;
+        try { mediaProjectorVideo.load(); } catch (e) {}
+      }
+    }
+
+    try {
+      const rawDb = localStorage.getItem('omnicast_library_db');
+      if (rawDb) {
+        const parsedDb = JSON.parse(rawDb);
+        if (parsedDb && Array.isArray(parsedDb.libraryItems)) {
+          prewarmProjectorVideo(parsedDb.libraryItems);
+        }
+      }
+    } catch (e) {}
+
     const stored = localStorage.getItem('omnicast_current_slide');
     if (stored) {
       try {
@@ -560,6 +587,9 @@
     evtSource.addEventListener('state', (e) => {
       try {
         const state = JSON.parse(e.data);
+        if (Array.isArray(state.libraryItems)) {
+          prewarmProjectorVideo(state.libraryItems);
+        }
         if (state.currentSlidePayload) {
           updateDisplay(state.currentSlidePayload);
           return;

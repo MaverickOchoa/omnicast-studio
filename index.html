@@ -7475,8 +7475,16 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     }
 
     function applyTenantSession(account, notify = true) {
+      if (!account) return;
       currentAccount = account;
-      currentTenantKey = account.tenantKey;
+      currentTenantKey = account.tenantKey || 'gdl';
+      if (!tenants[currentTenantKey]) {
+        tenants[currentTenantKey] = {
+          name: account.name || 'Sede Local',
+          email: account.email || '',
+          role: account.role || 'SEDE LOCAL'
+        };
+      }
 
       // Update Top Header Church Identity Badge (Strict Isolation)
       const nameEl = document.getElementById('activeTenantName');
@@ -10595,7 +10603,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (isVideo && item.videoUrl) {
         if (progVid) {
           if (progVid.getAttribute('data-src') !== item.videoUrl) {
-            progVid.src = item.videoUrl;
+            const sep = item.videoUrl.includes('?') ? '&' : '?';
+            progVid.src = `${item.videoUrl}${sep}screen=studio`;
             progVid.setAttribute('data-src', item.videoUrl);
             progVid.currentTime = 0;
           }
@@ -10805,7 +10814,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         studioVideoIntendedPlay = true;
         const isSameVideo = (progVid.getAttribute('data-src') === item.videoUrl);
         if (!isSameVideo) {
-          progVid.src = item.videoUrl;
+          const sep = item.videoUrl.includes('?') ? '&' : '?';
+          progVid.src = `${item.videoUrl}${sep}screen=studio`;
           progVid.setAttribute('data-src', item.videoUrl);
           progVid.currentTime = 0;
         }
@@ -10813,20 +10823,17 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         progVid.loop = Boolean(activeVideoLoopEnabled);
 
         // Comportamiento WorshipTools Presenter: al seleccionar un video del orden del culto, arranca inmediatamente al aire
+        const onPlaySuccess = () => {
+          sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime || 0 });
+          broadcastSlide(false, true, 'play');
+          renderSlidesGrid();
+        };
         const startVideoPlayback = () => {
-          progVid.play().then(() => {
-            sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
-            broadcastSlide(false, true, 'play');
-            renderSlidesGrid();
-          }).catch(err => {
+          progVid.play().then(onPlaySuccess, err => {
             console.warn('Autoplay audio fallback a muted:', err);
             progVid.muted = true;
             activeVideoMuted = true;
-            progVid.play().then(() => {
-              sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
-              broadcastSlide(false, true, 'play');
-              renderSlidesGrid();
-            }).catch(e => console.error('Error al reproducir video:', e));
+            progVid.play().then(onPlaySuccess, e => console.error('Error al reproducir video:', e));
           });
         };
 
@@ -10858,10 +10865,17 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
     function broadcastSlide(isClear = false, sendServerSync = true, explicitVideoAction = null) {
       const item = libraryItems[currentItemIndex];
-      if (!item || !item.slides || !item.slides.length) return;
+      if (!item) return;
+      const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
+      if (!item.slides || !item.slides.length) {
+        item.slides = [{
+          text: item.title || '',
+          subText: item.author || '',
+          badge: isVideo ? 'VIDEO' : 'PARTE 1'
+        }];
+      }
       const slide = item.slides[currentSlideIndex] || item.slides[0];
       const nextSlide = item.slides[currentSlideIndex + 1];
-      const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
 
       if (isClear) {
         studioVideoIntendedPlay = false;
@@ -10871,6 +10885,10 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           updateActiveVideoTransportUI();
         }
       }
+
+      const resolvedCampusName = (tenants[currentTenantKey] && tenants[currentTenantKey].name)
+        || (currentAccount && currentAccount.name)
+        || 'Sede Local';
 
       const payload = {
         isClear: isClear,
@@ -10901,7 +10919,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         overlayDarkness: (lyricsStyleConfig.overlayDimmer || 40) / 100,
         backgroundBlur: lyricsStyleConfig.backgroundBlur || 0,
         videoLoopUrl: lyricsStyleConfig.videoLoopUrl || '',
-        campusName: tenants[currentTenantKey].name,
+        campusName: resolvedCampusName,
         timestamp: Date.now()
       };
 
@@ -11759,6 +11777,15 @@ Pues resucitaste, Rey`
         populateChurchOrgSelect();
         renderHqOrgsList();
         renderHqChurchesList();
+        try {
+          localStorage.setItem('omnicast_library_db', JSON.stringify({
+            libraryItems,
+            layer3Videos,
+            organizations,
+            churches,
+            updatedAt: new Date().toISOString()
+          }));
+        } catch (e) {}
         // Also ensure any video item in libraryItems is registered in layer3Videos
         libraryItems.forEach(item => {
           if ((item.isVideo || item.category === 'medios') && item.videoUrl) {
@@ -11775,11 +11802,16 @@ Pues resucitaste, Rey`
           }
         });
         loadServiceItems();
+        if (!studioVideoIntendedPlay && libraryItems[currentItemIndex] && (libraryItems[currentItemIndex].isVideo || libraryItems[currentItemIndex].category === 'medios')) {
+          const firstNonVideoIdx = libraryItems.findIndex(it => it.category !== 'medios' && !it.isVideo && !it.videoUrl);
+          if (firstNonVideoIdx !== -1) currentItemIndex = firstNonVideoIdx;
+        }
         renderSongsList();
         renderSlidesGrid();
         renderLayer3VideoShots();
         renderMediaCatalogModal();
         updateHqKpis();
+        broadcastSlide(false, true);
       } catch (err) {
         console.warn('[OmniCast DB] Fallback to localStorage:', err);
         try {
@@ -12164,7 +12196,8 @@ Pues resucitaste, Rey`
       if (!item || !item.videoUrl || !progVid) return;
 
       if (progVid.getAttribute('data-src') !== item.videoUrl) {
-        progVid.src = item.videoUrl;
+        const sep = item.videoUrl.includes('?') ? '&' : '?';
+        progVid.src = `${item.videoUrl}${sep}screen=studio`;
         progVid.setAttribute('data-src', item.videoUrl);
       }
 
@@ -16668,7 +16701,7 @@ Resucitaste en majestad`;
       const nameEl = document.getElementById('activeTenantName');
       if (nameEl && currentTenantKey !== 'hq') {
         nameEl.textContent = campusName;
-        tenants[currentTenantKey].name = campusName;
+        if (tenants[currentTenantKey]) tenants[currentTenantKey].name = campusName;
       }
 
       closeCampusSettingsModal();
@@ -17050,7 +17083,7 @@ Resucitaste en majestad`;
     renderMediaCatalogModal();
     updateWirecastRackUI();
     updateDestinationsLiveBadge();
-    broadcastSlide();
+    broadcastSlide(false, false);
     initStudioRemoteEvents();
     startFairlightVuMeterEngine();
     startArenaStageCanvasEngine();

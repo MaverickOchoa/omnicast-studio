@@ -249,6 +249,12 @@
       } catch (err) {}
     });
 
+    evtSource.addEventListener('slide_payload', (e) => {
+      try {
+        updateStageDisplay(JSON.parse(e.data));
+      } catch (err) {}
+    });
+
     evtSource.addEventListener('state', (e) => {
       try {
         const state = JSON.parse(e.data);
@@ -261,6 +267,10 @@
           } else {
             alertBanner.classList.add('hidden');
           }
+        }
+        if (state.currentSlidePayload) {
+          updateStageDisplay(state.currentSlidePayload);
+          return;
         }
         // Slide update from remote
         if (state.libraryItems && state.libraryItems[state.itemIndex]) {
