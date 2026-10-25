@@ -283,7 +283,7 @@ const requestHandler = (req, res) => {
       'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no'
     });
-    while (sseClients.size >= 3) { const oldest = sseClients.values().next().value; if (!oldest) break; sseClients.delete(oldest); try { oldest.end(); } catch (e) {} }
+    while (sseClients.size >= 50) { const oldest = sseClients.values().next().value; if (!oldest) break; sseClients.delete(oldest); try { oldest.end(); } catch (e) {} }
     sseClients.add(res);
     // Send immediate current state
     res.write(`event: state\ndata: ${JSON.stringify(studioState)}\n\n`);

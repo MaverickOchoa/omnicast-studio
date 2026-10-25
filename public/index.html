@@ -10774,6 +10774,24 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       updateMonitors();
     }
 
+    let studioVideoIntendedPlay = false;
+    (() => {
+      const pv = document.getElementById('programMediaVideo');
+      if (pv) {
+        pv.addEventListener('ended', () => {
+          studioVideoIntendedPlay = false;
+        });
+        pv.addEventListener('pause', () => {
+          if (studioVideoIntendedPlay && !pv.ended) {
+            pv.play().catch(() => {
+              pv.muted = true;
+              pv.play().catch(() => {});
+            });
+          }
+        });
+      }
+    })();
+
     function selectItem(indexOrId) {
       let index = typeof indexOrId === "number" ? indexOrId : libraryItems.findIndex(i => i.id === indexOrId);
       if (index === -1 || !libraryItems[index]) return;
@@ -10784,6 +10802,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       const progVid = document.getElementById('programMediaVideo');
       if (item && item.videoUrl && progVid) {
+        studioVideoIntendedPlay = true;
         const isSameVideo = (progVid.getAttribute('data-src') === item.videoUrl);
         if (!isSameVideo) {
           progVid.src = item.videoUrl;
@@ -10811,19 +10830,23 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           });
         };
 
+        renderSongsList();
+        renderSlidesGrid();
         if (progVid.paused) {
           startVideoPlayback();
         } else {
           sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
           broadcastSlide(false, true, 'play');
         }
+        return;
       } else if (progVid && !layerPower[3]) {
+        studioVideoIntendedPlay = false;
         progVid.pause();
         sendProjectorVideoCommand({ action: 'stop' });
       }
       renderSongsList();
       renderSlidesGrid();
-      broadcastSlide(false, true, isVideo ? 'play' : null);
+      broadcastSlide();
     }
 
     function triggerSlide(index) {
@@ -10841,6 +10864,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
 
       if (isClear) {
+        studioVideoIntendedPlay = false;
         const progVid = document.getElementById('programMediaVideo');
         if (progVid && !progVid.paused && !layerPower[3]) {
           progVid.pause();
@@ -12113,6 +12137,7 @@ Pues resucitaste, Rey`
     }
 
     function stopAndBlackoutVideo() {
+      studioVideoIntendedPlay = false;
       const progVid = document.getElementById('programMediaVideo');
       if (progVid) {
         progVid.pause();
@@ -12126,8 +12151,10 @@ Pues resucitaste, Rey`
 
     function sendProjectorVideoCommand(payload) {
       try {
-        liveChannel.postMessage({ type: 'VIDEO_CONTROL', payload });
-        localStorage.setItem('omnicast_video_control', JSON.stringify({ ...payload, ts: Date.now() }));
+        // Timestamp en cada comando: las pantallas descartan mensajes viejos y compensan la latencia
+        const stamped = { ...payload, ts: Date.now() };
+        liveChannel.postMessage({ type: 'VIDEO_CONTROL', payload: stamped });
+        localStorage.setItem('omnicast_video_control', JSON.stringify(stamped));
       } catch (e) {}
     }
 
@@ -12143,6 +12170,7 @@ Pues resucitaste, Rey`
 
       const shouldPlay = forcePlay !== null ? forcePlay : progVid.paused;
       if (shouldPlay) {
+        studioVideoIntendedPlay = true;
         progVid.muted = Boolean(activeVideoMuted);
         progVid.play().then(() => {
           sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
@@ -12159,6 +12187,7 @@ Pues resucitaste, Rey`
           });
         });
       } else {
+        studioVideoIntendedPlay = false;
         progVid.pause();
         sendProjectorVideoCommand({ action: 'pause', time: progVid.currentTime });
         broadcastSlide(false, true, 'pause');

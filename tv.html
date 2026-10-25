@@ -474,32 +474,84 @@
     const tvChannel = new BroadcastChannel('omnicast_tv_channel');
     const mediaTvVideo = document.getElementById('mediaTvVideo');
 
+    let lastTvVideoTs = 0;
+    let desiredTvVideoPlaying = false;
+    const tvKeepAliveCanvas = document.createElement('canvas');
+    tvKeepAliveCanvas.width = 2;
+    tvKeepAliveCanvas.height = 2;
+    const tvKeepAliveCtx = tvKeepAliveCanvas.getContext('2d');
+
+    if (mediaTvVideo) {
+      mediaTvVideo.addEventListener('ended', () => {
+        desiredTvVideoPlaying = false;
+      });
+      mediaTvVideo.addEventListener('pause', () => {
+        if (desiredTvVideoPlaying && !mediaTvVideo.ended) {
+          mediaTvVideo.muted = true;
+          mediaTvVideo.play().catch(() => {});
+        }
+      });
+      try {
+        const tvKaWorker = new Worker(URL.createObjectURL(new Blob([
+          "setInterval(() => postMessage('t'), 200);"
+        ], { type: 'application/javascript' })));
+        tvKaWorker.onmessage = () => {
+          if (desiredTvVideoPlaying && mediaTvVideo && !mediaTvVideo.ended) {
+            if (mediaTvVideo.readyState >= 2) {
+              try { tvKeepAliveCtx.drawImage(mediaTvVideo, 0, 0, 2, 2); } catch (e) {}
+            }
+            if (mediaTvVideo.paused) {
+              mediaTvVideo.muted = true;
+              mediaTvVideo.play().catch(() => {});
+            }
+          }
+        };
+      } catch (e) {}
+    }
+
     function handleVideoPlayback(data) {
       if (!mediaTvVideo || !data) return;
+      const ts = Number(data.timestamp || data.ts) || 0;
+      if (ts && ts < lastTvVideoTs) return;
+      if (!ts && lastTvVideoTs) return;
+      if (ts) lastTvVideoTs = ts;
+
       if (!data.isClear && data.isVideo && data.videoUrl) {
         mediaTvVideo.classList.remove('hidden');
         if (mediaTvVideo.getAttribute('data-src') !== data.videoUrl) {
           mediaTvVideo.src = data.videoUrl;
           mediaTvVideo.setAttribute('data-src', data.videoUrl);
-          mediaTvVideo.currentTime = data.currentTime || 0;
         }
         mediaTvVideo.loop = Boolean(data.videoLoop);
         mediaTvVideo.muted = true;
-        if (data.videoAction === 'pause') {
+
+        const isPause = data.videoAction === 'pause';
+        let target = null;
+        if (typeof data.currentTime === 'number') {
+          const elapsed = (!isPause && ts) ? Math.min(5, Math.max(0, (Date.now() - ts) / 1000)) : 0;
+          target = data.currentTime + elapsed;
+        }
+        const syncTime = () => {
+          if (target === null) return;
+          const tol = isPause ? 0.3 : 2;
+          if (Math.abs(mediaTvVideo.currentTime - target) > tol) {
+            mediaTvVideo.currentTime = target;
+          }
+        };
+        if (mediaTvVideo.readyState >= 1) syncTime();
+        else mediaTvVideo.addEventListener('loadedmetadata', syncTime, { once: true });
+
+        if (isPause) {
+          desiredTvVideoPlaying = false;
           mediaTvVideo.pause();
-          if (typeof data.currentTime === 'number') {
-            mediaTvVideo.currentTime = data.currentTime;
-          }
         } else {
-          if (typeof data.currentTime === 'number' && Math.abs(mediaTvVideo.currentTime - data.currentTime) > 1.5) {
-            mediaTvVideo.currentTime = data.currentTime;
-          }
-          mediaTvVideo.play().catch(() => {
-            mediaTvVideo.muted = true;
+          desiredTvVideoPlaying = true;
+          if (mediaTvVideo.paused) {
             mediaTvVideo.play().catch(() => {});
-          });
+          }
         }
       } else {
+        desiredTvVideoPlaying = false;
         if (!mediaTvVideo.classList.contains('hidden')) {
           mediaTvVideo.pause();
           mediaTvVideo.classList.add('hidden');
@@ -525,23 +577,27 @@
       }
     }
 
+    function handleTvVideoControl(cmd) {
+      if (!mediaTvVideo || !cmd) return;
+      const ts = cmd.ts || Date.now();
+      if (cmd.action === 'play') {
+        handleVideoPlayback({ isVideo: true, videoUrl: cmd.videoUrl || mediaTvVideo.getAttribute('data-src'), currentTime: cmd.time, videoAction: 'play', ts });
+      } else if (cmd.action === 'pause') {
+        handleVideoPlayback({ isVideo: true, videoUrl: mediaTvVideo.getAttribute('data-src'), currentTime: cmd.time, videoAction: 'pause', ts });
+      } else if (cmd.action === 'restart') {
+        handleVideoPlayback({ isVideo: true, videoUrl: mediaTvVideo.getAttribute('data-src'), currentTime: 0, videoAction: 'play', ts });
+      } else if (cmd.action === 'seek' && typeof cmd.time === 'number') {
+        if (ts >= lastTvVideoTs) mediaTvVideo.currentTime = cmd.time;
+      } else if (cmd.action === 'stop') {
+        handleVideoPlayback({ isClear: true, ts });
+      }
+    }
+
     liveChannel.onmessage = (e) => {
       if (e.data && e.data.type === 'SLIDE_UPDATE') {
         handleLiveSlideUpdate(e.data.payload);
       } else if (e.data && e.data.type === 'VIDEO_CONTROL') {
-        const cmd = e.data.payload;
-        if (cmd.action === 'play') {
-          handleVideoPlayback({ isVideo: true, videoUrl: cmd.videoUrl, currentTime: cmd.time, videoAction: 'play' });
-        } else if (cmd.action === 'pause') {
-          if (mediaTvVideo) {
-            mediaTvVideo.pause();
-            if (typeof cmd.time === 'number') mediaTvVideo.currentTime = cmd.time;
-          }
-        } else if (cmd.action === 'seek') {
-          if (mediaTvVideo && typeof cmd.time === 'number') mediaTvVideo.currentTime = cmd.time;
-        } else if (cmd.action === 'stop') {
-          handleVideoPlayback({ isClear: true });
-        }
+        handleTvVideoControl(e.data.payload);
       }
     };
 
@@ -552,14 +608,7 @@
         } catch(err) {}
       } else if (e.key === 'omnicast_video_control') {
         try {
-          const cmd = JSON.parse(e.newValue);
-          if (cmd.action === 'play') {
-            handleVideoPlayback({ isVideo: true, videoUrl: cmd.videoUrl, currentTime: cmd.time, videoAction: 'play' });
-          } else if (cmd.action === 'pause' && mediaTvVideo) {
-            mediaTvVideo.pause();
-          } else if (cmd.action === 'stop') {
-            handleVideoPlayback({ isClear: true });
-          }
+          handleTvVideoControl(JSON.parse(e.newValue));
         } catch(err) {}
       }
     });
