@@ -3336,7 +3336,7 @@ Te adoraré, te adoraré..."
   <!-- programMediaVideo is now hosted directly in the Master Video Deck for 100% visible 60fps hardware accelerated playback -->
     <!-- Hardware-accelerated Video Engine for Letras, Screens & Wirecast Compositor -->
   <video id="programMediaVideo" playsinline preload="auto" crossorigin="anonymous"
-    style="position: fixed; bottom: 0; right: 0; width: 320px; height: 180px; z-index: -9999; opacity: 0.001; pointer-events: none;"></video>
+    style="position: fixed; bottom: 0; right: 0; width: 320px; height: 180px; z-index: 99999; opacity: 1; clip-path: polygon(0 0, 0 0, 0 0, 0 0); pointer-events: none;"></video>
   <video id="previewMediaVideo" muted playsinline crossorigin="anonymous" style="position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none;"></video>
 
   <!-- ========================================================================= -->
@@ -10590,7 +10590,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const progVid = document.getElementById('programMediaVideo');
 
       // =======================================================================
-      // CASO 1: VIDEO (TARJETA LIMPIA Y PROFESIONAL ESTILO PROPRESENTER)
+      // CASO 1: VIDEO (TARJETA VIVA EN TIEMPO REAL - ESTILO WORSHIP TOOLS PRESENTER)
       // =======================================================================
       if (isVideo && item.videoUrl) {
         if (progVid) {
@@ -10598,16 +10598,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             progVid.src = item.videoUrl;
             progVid.setAttribute('data-src', item.videoUrl);
             progVid.currentTime = 0;
-            progVid.load();
           }
-          progVid.ontimeupdate = () => {
-            const tc = document.getElementById('activeVideoCardTimecode');
-            if (tc && progVid) {
-              const cur = progVid.currentTime || 0;
-              const dur = (progVid.duration && isFinite(progVid.duration)) ? progVid.duration : 60;
-              tc.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
-            }
-          };
           progVid.onended = () => {
             renderSlidesGrid();
             broadcastSlide(false, true, 'pause');
@@ -10624,15 +10615,15 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         card.onclick = () => toggleActiveVideoPlayPause();
 
         card.innerHTML = `
-          <!-- Video Thumbnail Frame -->
-          <video src="${item.videoUrl}#t=1.0" muted playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition pointer-events-none"></video>
+          <!-- Canvas Espejo de Video en Vivo (Hardware 60fps) -->
+          <canvas id="activeVideoCardCanvas" width="640" height="360" class="absolute inset-0 w-full h-full object-cover pointer-events-none bg-slate-950"></canvas>
 
           <!-- Top Overlay: Badge & Duration -->
           <div class="flex items-center justify-between z-10 p-3 relative">
             <span class="text-xs font-bold px-3 py-1 rounded-full ${
               isLive ? 'bg-emerald-600 text-white animate-pulse' : 'bg-slate-800 text-slate-300'
             } shadow flex items-center gap-1.5">
-              <span>${isLive ? '🔴 EN VIVO' : '🎬 VIDEO HD'}</span>
+              <span>${isLive ? '🔴 EN VIVO' : '⏸️ PAUSADO'}</span>
               <span>•</span>
               <span>${item.durationFormatted || '01:00'}</span>
             </span>
@@ -10641,8 +10632,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             </span>
           </div>
 
-          <!-- Center Overlay: Big Clean Play/Pause Trigger -->
-          <div class="z-10 my-auto text-center px-4 relative drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] flex flex-col items-center justify-center gap-2">
+          <!-- Center Overlay: Controles Táctiles Claros y Limpios -->
+          <div class="z-10 my-auto text-center px-4 relative drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] flex flex-col items-center justify-center gap-2 ${isLive ? 'opacity-0 group-hover:opacity-100 transition duration-200' : 'opacity-100'}">
             <div class="w-16 h-16 rounded-full ${
               isLive ? 'bg-amber-600/90 hover:bg-amber-500' : 'bg-emerald-600/90 hover:bg-emerald-500'
             } text-white flex items-center justify-center shadow-xl group-hover:scale-110 transition active:scale-95">
@@ -10650,19 +10641,24 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             </div>
             <p class="text-lg font-black text-white tracking-wide">${item.title}</p>
             <p class="text-xs font-semibold ${isLive ? 'text-emerald-300 animate-pulse' : 'text-slate-300'}">
-              ${isLive ? '● TRANSMITIENDO EN VIVO (Click para Pausar)' : 'Haz clic para Proyectar en Pantallas y Wirecast'}
+              ${isLive ? '● Clic para Pausar' : 'Clic para Reproducir Video'}
             </p>
           </div>
 
-          <!-- Bottom Overlay: Status bar -->
-          <div class="z-10 flex items-center justify-between text-xs font-mono bg-black/85 p-2.5 relative border-t border-slate-800">
-            <span class="${isLive ? 'text-emerald-400 font-bold' : 'text-slate-400'} flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}"></span>
-              ${isLive ? 'AL AIRE EN PANTALLAS Y STREAM' : 'LISTO PARA SALIR AL AIRE'}
-            </span>
-            <span id="activeVideoCardTimecode" class="font-bold text-white tracking-wider">
-              ${formatTime(progVid ? progVid.currentTime : 0)} / ${formatTime(progVid ? progVid.duration : 60)}
-            </span>
+          <!-- Bottom Overlay: Barra de Tiempo en Movimiento Continuo -->
+          <div class="z-10 flex flex-col bg-black/90 relative border-t border-slate-800">
+            <div class="w-full h-1.5 bg-slate-800 overflow-hidden">
+              <div id="activeVideoCardProgressBar" class="h-full bg-emerald-500 transition-all duration-100" style="width: 0%;"></div>
+            </div>
+            <div class="flex items-center justify-between text-xs font-mono p-2.5">
+              <span class="${isLive ? 'text-emerald-400 font-bold' : 'text-slate-400'} flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}"></span>
+                <span id="activeVideoCardStatusText">${isLive ? 'AL AIRE EN PANTALLAS Y STREAM' : 'PAUSADO'}</span>
+              </span>
+              <span id="activeVideoCardTimecode" class="font-bold text-white tracking-wider">
+                ${formatTime(progVid ? progVid.currentTime : 0)} / ${formatTime(progVid ? progVid.duration : 60)}
+              </span>
+            </div>
           </div>
         `;
 
@@ -10778,7 +10774,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       updateMonitors();
     }
 
-        function selectItem(indexOrId) {
+    function selectItem(indexOrId) {
       let index = typeof indexOrId === "number" ? indexOrId : libraryItems.findIndex(i => i.id === indexOrId);
       if (index === -1 || !libraryItems[index]) return;
       currentItemIndex = index;
@@ -10788,21 +10784,46 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       const progVid = document.getElementById('programMediaVideo');
       if (item && item.videoUrl && progVid) {
-        if (progVid.getAttribute('data-src') !== item.videoUrl) {
+        const isSameVideo = (progVid.getAttribute('data-src') === item.videoUrl);
+        if (!isSameVideo) {
           progVid.src = item.videoUrl;
           progVid.setAttribute('data-src', item.videoUrl);
           progVid.currentTime = 0;
-          progVid.load();
         }
         progVid.muted = Boolean(activeVideoMuted);
         progVid.loop = Boolean(activeVideoLoopEnabled);
+
+        // Comportamiento WorshipTools Presenter: al seleccionar un video del orden del culto, arranca inmediatamente al aire
+        const startVideoPlayback = () => {
+          progVid.play().then(() => {
+            sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
+            broadcastSlide(false, true, 'play');
+            renderSlidesGrid();
+          }).catch(err => {
+            console.warn('Autoplay audio fallback a muted:', err);
+            progVid.muted = true;
+            activeVideoMuted = true;
+            progVid.play().then(() => {
+              sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
+              broadcastSlide(false, true, 'play');
+              renderSlidesGrid();
+            }).catch(e => console.error('Error al reproducir video:', e));
+          });
+        };
+
+        if (progVid.paused) {
+          startVideoPlayback();
+        } else {
+          sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
+          broadcastSlide(false, true, 'play');
+        }
       } else if (progVid && !layerPower[3]) {
         progVid.pause();
         sendProjectorVideoCommand({ action: 'stop' });
       }
       renderSongsList();
       renderSlidesGrid();
-      broadcastSlide();
+      broadcastSlide(false, true, isVideo ? 'play' : null);
     }
 
     function triggerSlide(index) {
@@ -11054,9 +11075,14 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           monLowerThird.style.opacity = '0';
         }
       } else {
-        monProyectorText.textContent = slide.text;
-        monProyectorSub.textContent = slide.subText || '';
-        monStageCurrent.textContent = slide.text;
+        if (isVideo) {
+          monProyectorText.textContent = `🎬 VIDEO: ${item.title}`;
+          monProyectorSub.textContent = 'PROYECTANDO A PANTALLA COMPLETA 1080p';
+        } else {
+          monProyectorText.textContent = slide.text;
+          monProyectorSub.textContent = slide.subText || '';
+        }
+        monStageCurrent.textContent = isVideo ? `🎬 VIDEO: ${item.title}` : slide.text;
         monStageNext.textContent = nextSlide ? nextSlide.text : '--- Fin ---';
 
         if (isVideo) {
@@ -14203,6 +14229,26 @@ Pues resucitaste, Rey`
 
         // Render Preview Canvas
         drawComposedFrame(prevCtx, wirecastState.preview, false);
+
+        // Render Central Video Card live mirror (when playing video in Letras section)
+        const vCardCanvas = document.getElementById('activeVideoCardCanvas');
+        const progVid = document.getElementById('programMediaVideo');
+        if (vCardCanvas && progVid && progVid.readyState >= 2) {
+          const vCtx = vCardCanvas.getContext('2d');
+          vCtx.drawImage(progVid, 0, 0, vCardCanvas.width, vCardCanvas.height);
+        }
+        if (progVid) {
+          const cur = progVid.currentTime || 0;
+          const dur = (progVid.duration && isFinite(progVid.duration) && progVid.duration > 0) ? progVid.duration : 60;
+          const vBar = document.getElementById('activeVideoCardProgressBar');
+          if (vBar) {
+            vBar.style.width = `${Math.min(100, (cur / dur) * 100)}%`;
+          }
+          const vTc = document.getElementById('activeVideoCardTimecode');
+          if (vTc) {
+            vTc.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
+          }
+        }
 
         // Force frame capture on demand if requestFrame is available
         if (typeof activeBroadcastVideoTrack !== 'undefined' && activeBroadcastVideoTrack && typeof activeBroadcastVideoTrack.requestFrame === 'function') {

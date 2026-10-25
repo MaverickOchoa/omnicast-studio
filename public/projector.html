@@ -344,19 +344,20 @@
         }
         mediaProjectorVideo.loop = Boolean(data.videoLoop);
         mediaProjectorVideo.muted = true; // Muted projection ensures Chrome never blocks autoplay on secondary monitor
-        if (data.videoAction === 'play') {
-          if (typeof data.currentTime === 'number' && Math.abs(mediaProjectorVideo.currentTime - data.currentTime) > 1.2) {
+        if (data.videoAction === 'pause') {
+          mediaProjectorVideo.pause();
+          if (typeof data.currentTime === 'number') {
+            mediaProjectorVideo.currentTime = data.currentTime;
+          }
+        } else {
+          // Default to play (WorshipTools Presenter behavior: when video is projected, play immediately)
+          if (typeof data.currentTime === 'number' && Math.abs(mediaProjectorVideo.currentTime - data.currentTime) > 1.5) {
             mediaProjectorVideo.currentTime = data.currentTime;
           }
           mediaProjectorVideo.play().catch(() => {
             mediaProjectorVideo.muted = true;
             mediaProjectorVideo.play().catch(() => {});
           });
-        } else {
-          mediaProjectorVideo.pause();
-          if (typeof data.currentTime === 'number') {
-            mediaProjectorVideo.currentTime = data.currentTime;
-          }
         }
         return;
       } else if (mediaProjectorVideo) {
@@ -506,7 +507,7 @@
         if (state.libraryItems && state.libraryItems[state.itemIndex]) {
           const item = state.libraryItems[state.itemIndex];
           const slide = item.slides && item.slides[state.slideIndex];
-          const isVideo = item.category === 'medios' || Boolean(item.isVideo);
+          const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
           updateDisplay({
             text: state.isBlackout ? '' : (slide ? slide.text : ''),
             subText: state.isBlackout ? '' : (slide ? slide.subText : ''),
@@ -514,6 +515,7 @@
             badge: slide ? slide.badge : '',
             isVideo: isVideo,
             videoUrl: item.videoUrl || '',
+            videoAction: state.isBlackout ? 'pause' : 'play',
             theme: state.theme
           });
         }

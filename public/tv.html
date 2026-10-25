@@ -31,6 +31,9 @@
   <!-- Atmospheric Background Canvas for Light Beams and Floating Dust -->
   <canvas id="bgCanvas" class="absolute inset-0 w-full h-full object-cover z-0 opacity-40"></canvas>
 
+  <!-- Real Full-Screen Media Video Player (When an uploaded .mp4/.webm/.mov video is projected) -->
+  <video id="mediaTvVideo" playsinline muted class="fixed inset-0 w-full h-full object-contain bg-black hidden z-50"></video>
+
   <!-- ========================================================================= -->
   <!-- TOP ALERT BANNER (Llamado a padres / Sala Cuna / Notificaciones Urgentes)  -->
   <!-- ========================================================================= -->
@@ -466,12 +469,47 @@
       }
     }
 
-    // 7. Live Lyrics Synchronization from BroadcastChannel & Server
+    // 7. Live Lyrics & Media Video Synchronization from BroadcastChannel & Server
     const liveChannel = new BroadcastChannel('omnicast_live_channel');
     const tvChannel = new BroadcastChannel('omnicast_tv_channel');
+    const mediaTvVideo = document.getElementById('mediaTvVideo');
+
+    function handleVideoPlayback(data) {
+      if (!mediaTvVideo || !data) return;
+      if (!data.isClear && data.isVideo && data.videoUrl) {
+        mediaTvVideo.classList.remove('hidden');
+        if (mediaTvVideo.getAttribute('data-src') !== data.videoUrl) {
+          mediaTvVideo.src = data.videoUrl;
+          mediaTvVideo.setAttribute('data-src', data.videoUrl);
+          mediaTvVideo.currentTime = data.currentTime || 0;
+        }
+        mediaTvVideo.loop = Boolean(data.videoLoop);
+        mediaTvVideo.muted = true;
+        if (data.videoAction === 'pause') {
+          mediaTvVideo.pause();
+          if (typeof data.currentTime === 'number') {
+            mediaTvVideo.currentTime = data.currentTime;
+          }
+        } else {
+          if (typeof data.currentTime === 'number' && Math.abs(mediaTvVideo.currentTime - data.currentTime) > 1.5) {
+            mediaTvVideo.currentTime = data.currentTime;
+          }
+          mediaTvVideo.play().catch(() => {
+            mediaTvVideo.muted = true;
+            mediaTvVideo.play().catch(() => {});
+          });
+        }
+      } else {
+        if (!mediaTvVideo.classList.contains('hidden')) {
+          mediaTvVideo.pause();
+          mediaTvVideo.classList.add('hidden');
+        }
+      }
+    }
 
     function handleLiveSlideUpdate(payload) {
       if (!payload) return;
+      handleVideoPlayback(payload);
       if (payload.text) {
         document.getElementById('svcMainText').textContent = payload.text;
         document.getElementById('svcSubText').textContent = payload.subText || '';
@@ -490,8 +528,41 @@
     liveChannel.onmessage = (e) => {
       if (e.data && e.data.type === 'SLIDE_UPDATE') {
         handleLiveSlideUpdate(e.data.payload);
+      } else if (e.data && e.data.type === 'VIDEO_CONTROL') {
+        const cmd = e.data.payload;
+        if (cmd.action === 'play') {
+          handleVideoPlayback({ isVideo: true, videoUrl: cmd.videoUrl, currentTime: cmd.time, videoAction: 'play' });
+        } else if (cmd.action === 'pause') {
+          if (mediaTvVideo) {
+            mediaTvVideo.pause();
+            if (typeof cmd.time === 'number') mediaTvVideo.currentTime = cmd.time;
+          }
+        } else if (cmd.action === 'seek') {
+          if (mediaTvVideo && typeof cmd.time === 'number') mediaTvVideo.currentTime = cmd.time;
+        } else if (cmd.action === 'stop') {
+          handleVideoPlayback({ isClear: true });
+        }
       }
     };
+
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'omnicast_current_slide') {
+        try {
+          handleLiveSlideUpdate(JSON.parse(e.newValue));
+        } catch(err) {}
+      } else if (e.key === 'omnicast_video_control') {
+        try {
+          const cmd = JSON.parse(e.newValue);
+          if (cmd.action === 'play') {
+            handleVideoPlayback({ isVideo: true, videoUrl: cmd.videoUrl, currentTime: cmd.time, videoAction: 'play' });
+          } else if (cmd.action === 'pause' && mediaTvVideo) {
+            mediaTvVideo.pause();
+          } else if (cmd.action === 'stop') {
+            handleVideoPlayback({ isClear: true });
+          }
+        } catch(err) {}
+      }
+    });
 
     tvChannel.onmessage = (e) => {
       if (e.data) {
@@ -503,20 +574,34 @@
     // Server-Sent Events for Full Network Synchronicity across Smart TVs
     function connectSSE() {
       const sse = new EventSource('/api/events');
+      sse.addEventListener('slide_payload', (e) => {
+        try {
+          handleLiveSlideUpdate(JSON.parse(e.data));
+        } catch (err) {}
+      });
       sse.addEventListener('state', (e) => {
         try {
           const state = JSON.parse(e.data);
           if (state.tvMode) switchMode(state.tvMode);
           if (typeof state.tvAlert === 'string') setTvAlert(state.tvAlert);
           
+          if (state.currentSlidePayload) {
+            handleLiveSlideUpdate(state.currentSlidePayload);
+            return;
+          }
+
           if (state.libraryItems && state.libraryItems[state.itemIndex]) {
             const item = state.libraryItems[state.itemIndex];
             const slide = item.slides && item.slides[state.slideIndex];
+            const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
             handleLiveSlideUpdate({
               text: slide ? slide.text : '',
               subText: slide ? slide.subText : '',
               songTitle: item.title,
-              badge: slide ? slide.badge : ''
+              badge: slide ? slide.badge : '',
+              isVideo: isVideo,
+              videoUrl: item.videoUrl || '',
+              videoAction: state.isBlackout ? 'pause' : 'play'
             });
           }
         } catch(err) {}
