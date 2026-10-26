@@ -10558,7 +10558,10 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (window.lucide) lucide.createIcons();
     }
 
-            function renderSlidesGrid() {
+    var activeVideoMuted = false;
+    var activeVideoLoopEnabled = false;
+
+    function renderSlidesGrid() {
       const item = libraryItems[currentItemIndex];
       if (!item) return;
       const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
@@ -10593,7 +10596,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const progVid = document.getElementById('programMediaVideo');
 
       // =======================================================================
-      // CASO 1: VIDEO (TARJETA VIVA EN TIEMPO REAL - ESTILO WORSHIP TOOLS PRESENTER)
+      // CASO 1: VIDEO (DECK PROFESIONAL DE TRANSPORTE Y CONTROL EN VIVO)
       // =======================================================================
       if (isVideo && item.videoUrl) {
         if (progVid) {
@@ -10603,65 +10606,120 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             progVid.setAttribute('data-src', item.videoUrl);
             progVid.currentTime = 0;
           }
+          progVid.loop = Boolean(activeVideoLoopEnabled);
           progVid.onended = () => {
+            if (activeVideoLoopEnabled) {
+              progVid.currentTime = 0;
+              progVid.play().catch(() => {});
+              sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: 0, loop: true });
+              broadcastSlide(false, true, 'play');
+              return;
+            }
+            studioVideoIntendedPlay = false;
             renderSlidesGrid();
             broadcastSlide(false, true, 'pause');
           };
         }
 
         const isLive = progVid && !progVid.paused && !progVid.ended;
+        const dur = (progVid && progVid.duration && isFinite(progVid.duration) && progVid.duration > 0) ? progVid.duration : (item.duration || 60);
+        const cur = (progVid && progVid.currentTime) ? progVid.currentTime : 0;
+        const rem = Math.max(0, dur - cur);
+
         const card = document.createElement('div');
-        card.className = `col-span-full md:col-span-2 aspect-video rounded-2xl border-2 cursor-pointer transition shadow-2xl relative overflow-hidden group select-none ${
-          isLive 
-            ? 'border-emerald-500 bg-slate-950 ring-4 ring-emerald-500/30' 
-            : 'border-slate-800 bg-slate-950 hover:border-slate-600'
-        }`;
-        card.onclick = () => toggleActiveVideoPlayPause();
+        card.className = 'col-span-full md:col-span-2 rounded-2xl border-2 border-slate-800 bg-slate-950 overflow-hidden shadow-2xl flex flex-col';
 
         card.innerHTML = `
-          <!-- Canvas Espejo de Video en Vivo (Hardware 60fps) -->
-          <canvas id="activeVideoCardCanvas" width="640" height="360" class="absolute inset-0 w-full h-full object-cover pointer-events-none bg-slate-950"></canvas>
+          <!-- Top: Preview Canvas con clic para Play/Pause -->
+          <div class="aspect-video relative overflow-hidden cursor-pointer group bg-black" onclick="toggleActiveVideoPlayPause(event)">
+            <canvas id="activeVideoCardCanvas" width="640" height="360" class="absolute inset-0 w-full h-full object-contain pointer-events-none bg-black"></canvas>
 
-          <!-- Top Overlay: Badge & Duration -->
-          <div class="flex items-center justify-between z-10 p-3 relative">
-            <span class="text-xs font-bold px-3 py-1 rounded-full ${
-              isLive ? 'bg-emerald-600 text-white animate-pulse' : 'bg-slate-800 text-slate-300'
-            } shadow flex items-center gap-1.5">
-              <span>${isLive ? '🔴 EN VIVO' : '⏸️ PAUSADO'}</span>
-              <span>•</span>
-              <span>${item.durationFormatted || '01:00'}</span>
-            </span>
-            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-black/80 text-amber-300 border border-amber-500/40">
-              ${item.scope || 'OFICIAL RED'}
-            </span>
+            <!-- Top Overlay: Badge y Estado -->
+            <div class="flex items-center justify-between z-10 p-3 relative pointer-events-none">
+              <span class="text-xs font-bold px-3 py-1 rounded-full ${
+                isLive ? 'bg-emerald-600 text-white animate-pulse' : 'bg-slate-800 text-slate-300'
+              } shadow flex items-center gap-1.5">
+                <span>${isLive ? '🔴 AL AIRE' : '⏸️ PAUSADO'}</span>
+                <span>•</span>
+                <span>${item.durationFormatted || formatTime(dur)}</span>
+              </span>
+              <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-black/80 text-amber-300 border border-amber-500/40">
+                ${item.scope || 'OFICIAL RED'}
+              </span>
+            </div>
+
+            <!-- Centro: Icono Play/Pausa -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-200 ${
+              isLive ? 'opacity-0 group-hover:opacity-100 bg-black/40' : 'opacity-100 bg-black/55'
+            }">
+              <div class="w-16 h-16 rounded-full ${
+                isLive ? 'bg-amber-600/90' : 'bg-emerald-600/90'
+              } text-white flex items-center justify-center shadow-2xl">
+                <i data-lucide="${isLive ? 'pause' : 'play'}" class="w-8 h-8 ${isLive ? '' : 'ml-1'}"></i>
+              </div>
+              <p class="text-xs font-black text-white mt-2 drop-shadow tracking-wide">
+                ${isLive ? 'Clic para pausar' : 'Clic para reproducir'}
+              </p>
+            </div>
           </div>
 
-          <!-- Center Overlay: Controles Táctiles Claros y Limpios -->
-          <div class="z-10 my-auto text-center px-4 relative drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)] flex flex-col items-center justify-center gap-2 ${isLive ? 'opacity-0 group-hover:opacity-100 transition duration-200' : 'opacity-100'}">
-            <div class="w-16 h-16 rounded-full ${
-              isLive ? 'bg-amber-600/90 hover:bg-amber-500' : 'bg-emerald-600/90 hover:bg-emerald-500'
-            } text-white flex items-center justify-center shadow-xl group-hover:scale-110 transition active:scale-95">
-              <i data-lucide="${isLive ? 'pause' : 'play'}" class="w-8 h-8 ${isLive ? '' : 'ml-1'}"></i>
+          <!-- Barra de Tiempo Interactiva (Scrubber) -->
+          <div class="px-4 pt-3 pb-2 bg-slate-900/95 border-t border-slate-800/80 flex flex-col gap-1.5 select-none">
+            <div class="relative flex items-center">
+              <input type="range" id="activeVideoCardScrubber" min="0" max="100" step="0.1" value="${((cur / dur) * 100).toFixed(1)}"
+                     class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 focus:outline-none"
+                     onmousedown="isVideoScrubberDragging = true"
+                     onmouseup="isVideoScrubberDragging = false"
+                     oninput="onCardScrubberInput(this.value)"
+                     onchange="onCardScrubberChange(this.value)">
             </div>
-            <p class="text-lg font-black text-white tracking-wide">${item.title}</p>
-            <p class="text-xs font-semibold ${isLive ? 'text-emerald-300 animate-pulse' : 'text-slate-300'}">
-              ${isLive ? '● Clic para Pausar' : 'Clic para Reproducir Video'}
-            </p>
+            <div class="flex items-center justify-between text-xs font-mono">
+              <span id="activeVideoCardCurrentTime" class="text-emerald-400 font-bold">${formatTime(cur)}</span>
+              <span class="text-slate-500">/</span>
+              <span class="text-slate-300 font-semibold">${formatTime(dur)}</span>
+              <span id="activeVideoCardRemainingTime" class="text-amber-400/90 ml-auto font-bold">-${formatTime(rem)}</span>
+            </div>
           </div>
 
-          <!-- Bottom Overlay: Barra de Tiempo en Movimiento Continuo -->
-          <div class="z-10 flex flex-col bg-black/90 relative border-t border-slate-800">
-            <div class="w-full h-1.5 bg-slate-800 overflow-hidden">
-              <div id="activeVideoCardProgressBar" class="h-full bg-emerald-500 transition-all duration-100" style="width: 0%;"></div>
+          <!-- Barra de Controles de Transporte (Estilo WorshipTools & Wirecast) -->
+          <div class="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap select-none">
+            <div class="flex items-center gap-2">
+              <!-- Botón Play / Pause -->
+              <button onclick="toggleActiveVideoPlayPause(event)" 
+                      class="px-4 py-2 rounded-xl ${isLive ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'} text-xs font-bold flex items-center gap-2 shadow-lg transition active:scale-95">
+                <i data-lucide="${isLive ? 'pause' : 'play'}" class="w-4 h-4"></i>
+                <span>${isLive ? 'Pausar' : 'Reproducir'}</span>
+              </button>
+
+              <!-- Botón Reiniciar 00:00 -->
+              <button onclick="restartActiveVideo(event)" title="Reiniciar video desde 00:00"
+                      class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition active:scale-95">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-sky-400"></i>
+                <span>Reiniciar</span>
+              </button>
+
+              <!-- Botón Bucle / Loop ON-OFF -->
+              <button onclick="toggleActiveVideoLoop(event)" title="Activar/desactivar reproducción infinita en bucle"
+                      class="px-3.5 py-2 rounded-xl ${activeVideoLoopEnabled ? 'bg-sky-500/25 text-sky-300 border-sky-400 ring-2 ring-sky-400/30' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'} text-xs font-bold flex items-center gap-2 border transition active:scale-95">
+                <i data-lucide="repeat" class="w-3.5 h-3.5 ${activeVideoLoopEnabled ? 'text-sky-300' : 'text-slate-400'}"></i>
+                <span>${activeVideoLoopEnabled ? '🔁 Bucle: ON' : 'Bucle: OFF'}</span>
+              </button>
             </div>
-            <div class="flex items-center justify-between text-xs font-mono p-2.5">
-              <span class="${isLive ? 'text-emerald-400 font-bold' : 'text-slate-400'} flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}"></span>
-                <span id="activeVideoCardStatusText">${isLive ? 'AL AIRE EN PANTALLAS Y STREAM' : 'PAUSADO'}</span>
-              </span>
-              <span id="activeVideoCardTimecode" class="font-bold text-white tracking-wider">
-                ${formatTime(progVid ? progVid.currentTime : 0)} / ${formatTime(progVid ? progVid.duration : 60)}
-              </span>
+
+            <div class="flex items-center gap-2">
+              <!-- Botón Silenciar / Audio -->
+              <button onclick="toggleActiveVideoMute(event)" title="Activar o silenciar audio del video"
+                      class="px-3 py-2 rounded-xl ${activeVideoMuted ? 'bg-rose-950/70 text-rose-300 border-rose-800' : 'bg-slate-800 text-emerald-300 border-slate-700 hover:bg-slate-700'} text-xs font-bold flex items-center gap-1.5 border transition active:scale-95">
+                <i data-lucide="${activeVideoMuted ? 'volume-x' : 'volume-2'}" class="w-3.5 h-3.5"></i>
+                <span>${activeVideoMuted ? 'Silenciado' : 'Audio ON'}</span>
+              </button>
+
+              <!-- Botón Detener / Limpiar Pantallas -->
+              <button onclick="stopAndBlackoutVideo(event)" title="Detener video y poner pantallas en negro"
+                      class="px-3 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-bold border border-rose-800/40 flex items-center gap-1.5 transition active:scale-95">
+                <i data-lucide="square" class="w-3.5 h-3.5"></i>
+                <span>Detener</span>
+              </button>
             </div>
           </div>
         `;
@@ -10783,6 +10841,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const pv = document.getElementById('programMediaVideo');
       if (pv) {
         pv.addEventListener('ended', () => {
+          if (activeVideoLoopEnabled) {
+            pv.currentTime = 0;
+            pv.play().catch(() => {});
+            return;
+          }
           studioVideoIntendedPlay = false;
         });
         pv.addEventListener('pause', () => {
@@ -10813,17 +10876,22 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           progVid.src = `${item.videoUrl}${sep}screen=studio`;
           progVid.setAttribute('data-src', item.videoUrl);
           progVid.currentTime = 0;
+        } else if (progVid.ended || (progVid.duration > 0 && progVid.currentTime >= (progVid.duration - 0.3))) {
+          progVid.currentTime = 0;
         }
         progVid.muted = Boolean(activeVideoMuted);
         progVid.loop = Boolean(activeVideoLoopEnabled);
 
         // Comportamiento WorshipTools Presenter: al seleccionar un video del orden del culto, arranca inmediatamente al aire
         const onPlaySuccess = () => {
-          sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime || 0 });
+          sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime || 0, loop: Boolean(activeVideoLoopEnabled) });
           broadcastSlide(false, true, 'play');
           renderSlidesGrid();
         };
         const startVideoPlayback = () => {
+          if (progVid.ended || (progVid.duration > 0 && progVid.currentTime >= (progVid.duration - 0.3))) {
+            progVid.currentTime = 0;
+          }
           progVid.play().then(onPlaySuccess, err => {
             console.warn('Autoplay audio fallback a muted:', err);
             progVid.muted = true;
@@ -11390,8 +11458,6 @@ Pues resucitaste, Rey`
     let layer3Videos = [];
     let selectedUploadVideoFile = null;
     let selectedUploadVideoDuration = 120;
-    let activeVideoMuted = false;
-    let activeVideoLoopEnabled = false;
 
     function slidesToRawLyrics(slides) {
       if (!Array.isArray(slides) || slides.length === 0) return '';
@@ -12157,6 +12223,29 @@ Pues resucitaste, Rey`
       seekActiveVideo(val);
     }
 
+    function onCardScrubberInput(val) {
+      isVideoScrubberDragging = true;
+      const progVid = document.getElementById('programMediaVideo');
+      if (!progVid) return;
+      const dur = (progVid.duration && isFinite(progVid.duration) && progVid.duration > 0) ? progVid.duration : 60;
+      const targetTime = (parseFloat(val) / 100) * dur;
+      const curEl = document.getElementById('activeVideoCardCurrentTime');
+      const remEl = document.getElementById('activeVideoCardRemainingTime');
+      if (curEl) curEl.textContent = formatTime(targetTime);
+      if (remEl) remEl.textContent = `-${formatTime(Math.max(0, dur - targetTime))}`;
+    }
+
+    function onCardScrubberChange(val) {
+      isVideoScrubberDragging = false;
+      const progVid = document.getElementById('programMediaVideo');
+      if (!progVid) return;
+      const dur = (progVid.duration && isFinite(progVid.duration) && progVid.duration > 0) ? progVid.duration : 60;
+      const targetTime = (parseFloat(val) / 100) * dur;
+      progVid.currentTime = targetTime;
+      sendProjectorVideoCommand({ action: 'seek', time: targetTime });
+      updateActiveVideoTransportUI();
+    }
+
     function skipActiveVideo(deltaSec) {
       const progVid = document.getElementById('programMediaVideo');
       if (!progVid) return;
@@ -12167,7 +12256,10 @@ Pues resucitaste, Rey`
       updateActiveVideoTransportUI();
     }
 
-    function stopAndBlackoutVideo() {
+    function stopAndBlackoutVideo(event = null) {
+      if (event && typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
       studioVideoIntendedPlay = false;
       const progVid = document.getElementById('programMediaVideo');
       if (progVid) {
@@ -12175,9 +12267,10 @@ Pues resucitaste, Rey`
         progVid.currentTime = 0;
       }
       sendProjectorVideoCommand({ action: 'stop' });
-      broadcastSlide(true);
+      broadcastSlide(true, true, 'stop');
+      renderSlidesGrid();
       updateActiveVideoTransportUI();
-      showToast('⏹ Video detenido y proyector en negro', '🎬');
+      showToast('⏹ Video detenido y pantallas despejadas', '🎬');
     }
 
     function sendProjectorVideoCommand(payload) {
@@ -12189,7 +12282,13 @@ Pues resucitaste, Rey`
       } catch (e) {}
     }
 
-    function toggleActiveVideoPlayPause(forcePlay = null) {
+    function toggleActiveVideoPlayPause(eventOrForcePlay = null, maybeForcePlay = null) {
+      if (eventOrForcePlay && typeof eventOrForcePlay.stopPropagation === 'function') {
+        eventOrForcePlay.stopPropagation();
+        if (typeof eventOrForcePlay.preventDefault === 'function') eventOrForcePlay.preventDefault();
+      }
+      const forcePlay = (typeof eventOrForcePlay === 'boolean') ? eventOrForcePlay : ((typeof maybeForcePlay === 'boolean') ? maybeForcePlay : null);
+
       const item = libraryItems[currentItemIndex];
       const progVid = document.getElementById('programMediaVideo');
       if (!item || !item.videoUrl || !progVid) return;
@@ -12198,14 +12297,19 @@ Pues resucitaste, Rey`
         const sep = item.videoUrl.includes('?') ? '&' : '?';
         progVid.src = `${item.videoUrl}${sep}screen=studio`;
         progVid.setAttribute('data-src', item.videoUrl);
+        progVid.currentTime = 0;
       }
 
       const shouldPlay = forcePlay !== null ? forcePlay : progVid.paused;
       if (shouldPlay) {
+        if (progVid.ended || (progVid.duration > 0 && progVid.currentTime >= (progVid.duration - 0.3))) {
+          progVid.currentTime = 0;
+        }
         studioVideoIntendedPlay = true;
         progVid.muted = Boolean(activeVideoMuted);
+        progVid.loop = Boolean(activeVideoLoopEnabled);
         progVid.play().then(() => {
-          sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
+          sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime, loop: Boolean(activeVideoLoopEnabled) });
           broadcastSlide(false, true, 'play');
           renderSlidesGrid();
         }).catch(err => {
@@ -12213,10 +12317,10 @@ Pues resucitaste, Rey`
           progVid.muted = true;
           activeVideoMuted = true;
           progVid.play().then(() => {
-            sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime });
+            sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime, loop: Boolean(activeVideoLoopEnabled) });
             broadcastSlide(false, true, 'play');
             renderSlidesGrid();
-          });
+          }).catch(e => console.error('Play failed completely:', e));
         });
       } else {
         studioVideoIntendedPlay = false;
@@ -12227,37 +12331,57 @@ Pues resucitaste, Rey`
       }
     }
 
-    function restartActiveVideo() {
+    function restartActiveVideo(event = null) {
+      if (event && typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
       const item = libraryItems[currentItemIndex];
       const progVid = document.getElementById('programMediaVideo');
       if (progVid) {
         progVid.currentTime = 0;
+        studioVideoIntendedPlay = true;
+        progVid.muted = Boolean(activeVideoMuted);
+        progVid.loop = Boolean(activeVideoLoopEnabled);
         safePlayVideo(progVid).then(() => {
           if (item && item.videoUrl) {
-            sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: 0 });
-            broadcastSlide(false);
+            sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: 0, loop: Boolean(activeVideoLoopEnabled) });
+            broadcastSlide(false, true, 'play');
           }
+          renderSlidesGrid();
         });
+      } else {
+        sendProjectorVideoCommand({ action: 'restart' });
       }
-      sendProjectorVideoCommand({ action: 'restart' });
+      renderSlidesGrid();
       updateActiveVideoTransportUI();
       showToast('⏮ Video reiniciado desde 00:00', '🎬');
     }
 
-    function toggleActiveVideoMute() {
+    function toggleActiveVideoMute(event = null) {
+      if (event && typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
       activeVideoMuted = !activeVideoMuted;
       const progVid = document.getElementById('programMediaVideo');
-      if (progVid) progVid.muted = activeVideoMuted;
+      if (progVid) progVid.muted = Boolean(activeVideoMuted);
       sendProjectorVideoCommand({ action: 'mute', muted: activeVideoMuted });
+      renderSlidesGrid();
       updateActiveVideoTransportUI();
+      showToast(activeVideoMuted ? '🔇 Audio de Video Silenciado' : '🔊 Audio de Video Activado', '🎬');
     }
 
-    function toggleActiveVideoLoop() {
+    function toggleActiveVideoLoop(event = null) {
+      if (event && typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
       activeVideoLoopEnabled = !activeVideoLoopEnabled;
       const progVid = document.getElementById('programMediaVideo');
-      if (progVid) progVid.loop = activeVideoLoopEnabled;
+      if (progVid) progVid.loop = Boolean(activeVideoLoopEnabled);
       sendProjectorVideoCommand({ action: 'loop', loop: activeVideoLoopEnabled });
+      broadcastSlide(false, true, (progVid && !progVid.paused && !progVid.ended) ? 'play' : 'pause');
+      renderSlidesGrid();
       updateActiveVideoTransportUI();
+      showToast(activeVideoLoopEnabled ? '🔁 Bucle Activado (Repetición Continua)' : '⏹ Bucle Desactivado', '🎬');
     }
 
     function seekActiveVideo(pctVal) {
@@ -12350,6 +12474,16 @@ Pues resucitaste, Rey`
           lucideCenter.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
         }
       }
+
+      // 8. Sincronizar Scrubber y Timecodes de la tarjeta central si está en pantalla
+      const cardScrub = document.getElementById('activeVideoCardScrubber');
+      if (cardScrub && !isVideoScrubberDragging && dur > 0) {
+        cardScrub.value = ((cur / dur) * 100).toFixed(1);
+      }
+      const cardCur = document.getElementById('activeVideoCardCurrentTime');
+      if (cardCur) cardCur.textContent = formatTime(cur);
+      const cardRem = document.getElementById('activeVideoCardRemainingTime');
+      if (cardRem) cardRem.textContent = `-${formatTime(remaining)}`;
 
       // Sincronizar también la barra antigua si existe
       const btnPlayTextOld = document.getElementById('btnVideoPlayPauseText');

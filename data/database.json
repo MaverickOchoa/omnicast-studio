@@ -525,6 +525,14 @@
       "videoUrl": "https://drive.google.com/file/d/1xZ2vQMqrBpH-1XpTzuRvq9uEwPlVOe-p/view?usp=drive_link",
       "duration": 180,
       "durationFormatted": "03:00"
+    },
+    {
+      "id": "vid-org-1792857770477",
+      "title": "campa",
+      "scope": "👑 OFICIAL RED (Alianza Cristiana)",
+      "videoUrl": "/uploads/videos/1792857708345_Count_down_hebron.mp4",
+      "duration": 60,
+      "durationFormatted": "01:00"
     }
   ],
   "organizations": [
@@ -585,5 +593,5 @@
       "status": "active"
     }
   ],
-  "updatedAt": "2026-10-24T16:02:50.480Z"
+  "updatedAt": "2026-10-25T14:50:43.029Z"
 }

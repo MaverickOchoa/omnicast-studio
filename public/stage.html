@@ -155,6 +155,9 @@
       if (data.isClear) {
         stageCurrentText.textContent = '[PANTALLA LIMPIA / PAUSA]';
         stageCurrentSub.textContent = '';
+      } else if (data.isVideo) {
+        stageCurrentText.textContent = `🎬 VIDEO AL AIRE: ${data.songTitle || data.text || 'Video'}`;
+        stageCurrentSub.textContent = 'Reproducción de video a pantalla completa en Proyector y Transmisión';
       } else {
         stageCurrentText.textContent = data.text || '';
         stageCurrentSub.textContent = data.subText || '';

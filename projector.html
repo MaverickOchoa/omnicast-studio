@@ -345,7 +345,12 @@
 
     if (mediaProjectorVideo) {
       mediaProjectorVideo.addEventListener('ended', () => {
-        desiredVideoPlaying = false;
+        if (mediaProjectorVideo.loop) {
+          mediaProjectorVideo.currentTime = 0;
+          mediaProjectorVideo.play().catch(() => {});
+        } else {
+          desiredVideoPlaying = false;
+        }
       });
       // Evita que Chrome suspenda el video a los 2s cuando la ventana del proyector está en segundo plano
       mediaProjectorVideo.addEventListener('pause', () => {
@@ -359,7 +364,10 @@
           "setInterval(() => postMessage('t'), 200);"
         ], { type: 'application/javascript' })));
         kaWorker.onmessage = () => {
-          if (desiredVideoPlaying && mediaProjectorVideo && !mediaProjectorVideo.ended) {
+          if (desiredVideoPlaying && mediaProjectorVideo && (!mediaProjectorVideo.ended || mediaProjectorVideo.loop)) {
+            if (mediaProjectorVideo.ended && mediaProjectorVideo.loop) {
+              mediaProjectorVideo.currentTime = 0;
+            }
             if (mediaProjectorVideo.readyState >= 2) {
               try { keepAliveCtx.drawImage(mediaProjectorVideo, 0, 0, 2, 2); } catch (e) {}
             }
@@ -416,6 +424,9 @@
         mediaProjectorVideo.pause();
       } else if (st.action === 'play') {
         desiredVideoPlaying = true;
+        if (mediaProjectorVideo.ended || (mediaProjectorVideo.duration > 0 && mediaProjectorVideo.currentTime >= (mediaProjectorVideo.duration - 0.3))) {
+          mediaProjectorVideo.currentTime = 0;
+        }
         if (mediaProjectorVideo.paused) {
           mediaProjectorVideo.play().catch(() => {});
         }

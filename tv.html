@@ -483,7 +483,12 @@
 
     if (mediaTvVideo) {
       mediaTvVideo.addEventListener('ended', () => {
-        desiredTvVideoPlaying = false;
+        if (mediaTvVideo.loop) {
+          mediaTvVideo.currentTime = 0;
+          mediaTvVideo.play().catch(() => {});
+        } else {
+          desiredTvVideoPlaying = false;
+        }
       });
       mediaTvVideo.addEventListener('pause', () => {
         if (desiredTvVideoPlaying && !mediaTvVideo.ended) {
@@ -496,7 +501,10 @@
           "setInterval(() => postMessage('t'), 200);"
         ], { type: 'application/javascript' })));
         tvKaWorker.onmessage = () => {
-          if (desiredTvVideoPlaying && mediaTvVideo && !mediaTvVideo.ended) {
+          if (desiredTvVideoPlaying && mediaTvVideo && (!mediaTvVideo.ended || mediaTvVideo.loop)) {
+            if (mediaTvVideo.ended && mediaTvVideo.loop) {
+              mediaTvVideo.currentTime = 0;
+            }
             if (mediaTvVideo.readyState >= 2) {
               try { tvKeepAliveCtx.drawImage(mediaTvVideo, 0, 0, 2, 2); } catch (e) {}
             }
@@ -546,6 +554,9 @@
           mediaTvVideo.pause();
         } else {
           desiredTvVideoPlaying = true;
+          if (mediaTvVideo.ended || (mediaTvVideo.duration > 0 && mediaTvVideo.currentTime >= (mediaTvVideo.duration - 0.3))) {
+            mediaTvVideo.currentTime = 0;
+          }
           if (mediaTvVideo.paused) {
             mediaTvVideo.play().catch(() => {});
           }
