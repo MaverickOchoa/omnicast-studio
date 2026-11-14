@@ -4,7 +4,8 @@
   "description": "Multi-Tenant Presentation and Live Broadcast Suite",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "tunnel": "node tunnel.js"
   },
   "keywords": [
     "propresenter",

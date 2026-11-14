@@ -31,13 +31,23 @@
   <!-- Atmospheric Background Canvas for Light Beams and Floating Dust -->
   <canvas id="bgCanvas" class="absolute inset-0 w-full h-full object-cover z-0 opacity-40"></canvas>
 
-  <!-- Real Full-Screen Media Video Player (When an uploaded .mp4/.webm/.mov video is projected) -->
-  <video id="mediaTvVideo" playsinline muted class="fixed inset-0 w-full h-full object-contain bg-black hidden z-50"></video>
+  <!-- Video Loop Background Player for Lyrics on Smart TVs -->
+  <video id="tvVideoLoopPlayer" autoplay loop muted playsinline class="fixed inset-0 w-full h-full object-cover z-0 hidden opacity-60"></video>
+
+  <!-- Real Full-Screen Media Video Player (When an uploaded .mp4/.webm/.mov video is projected standalone) -->
+  <video id="mediaTvVideo" playsinline class="fixed inset-0 w-full h-full object-contain bg-black hidden z-50"></video>
+
+  <!-- Floating Unmute Prompt Banner (shown only if browser autoplay blocked room audio until first touch) -->
+  <button id="tvAudioUnlockPrompt" onclick="unlockTvRoomAudio()"
+          class="hidden fixed bottom-6 right-6 z-[75] px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm shadow-2xl shadow-amber-500/40 border-2 border-white/80 flex items-center gap-2.5 animate-bounce cursor-pointer">
+    <i data-lucide="volume-2" class="w-5 h-5"></i>
+    <span>TOCA AQUÍ PARA ACTIVAR AUDIO DE SALA</span>
+  </button>
 
   <!-- ========================================================================= -->
   <!-- TOP ALERT BANNER (Llamado a padres / Sala Cuna / Notificaciones Urgentes)  -->
   <!-- ========================================================================= -->
-  <div id="tvAlertBanner" class="hidden absolute top-0 left-0 right-0 z-50 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white px-8 py-4 shadow-2xl border-b-2 border-red-300 flex items-center justify-between animate-bounce">
+  <div id="tvAlertBanner" class="hidden absolute top-0 left-0 right-0 z-[80] bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white px-8 py-4 shadow-2xl border-b-2 border-red-300 flex items-center justify-between animate-bounce">
     <div class="flex items-center gap-4">
       <div class="p-2 rounded-full bg-white text-red-600 animate-pulse">
         <i data-lucide="bell" class="w-8 h-8"></i>
@@ -73,6 +83,9 @@
           <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/40 font-bold">
             SMART TV HUB
           </span>
+          <span id="tvRoomBadge" class="hidden text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold uppercase">
+            SALA
+          </span>
         </div>
         <p id="campusSubtitle" class="text-xs text-slate-400 font-medium">Campus Guadalajara Norte • Red WiFi Pasillos & Lobby</p>
       </div>
@@ -87,14 +100,21 @@
         </span>
       </div>
       <div class="h-12 w-[1px] bg-slate-800"></div>
-      <div class="flex flex-col items-end">
-        <span id="tvModeBadge" class="px-3.5 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg">
-          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-          <span>MODO: LOBBY & BIENVENIDA</span>
-        </span>
-        <span id="wifiConnectionTag" class="text-[10px] font-mono text-emerald-400 mt-1 flex items-center gap-1">
-          <i data-lucide="wifi" class="w-3 h-3"></i> Conectado por Wi-Fi (Sin Cables)
-        </span>
+      <div class="flex items-center gap-3">
+        <button id="btnTvAudioToggle" onclick="toggleTvRoomAudio()"
+                class="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg transition active:scale-95 cursor-pointer">
+          <i id="tvAudioBtnIcon" data-lucide="volume-2" class="w-4 h-4"></i>
+          <span id="tvAudioBtnLabel">AUDIO: ACTIVO</span>
+        </button>
+        <div class="flex flex-col items-end">
+          <span id="tvModeBadge" class="px-3.5 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+            <span>MODO: LOBBY & BIENVENIDA</span>
+          </span>
+          <span id="wifiConnectionTag" class="text-[10px] font-mono text-emerald-400 mt-1 flex items-center gap-1">
+            <i data-lucide="wifi" class="w-3 h-3"></i> Conectado por Wi-Fi (Sin Cables)
+          </span>
+        </div>
       </div>
     </div>
   </header>
@@ -204,8 +224,32 @@
 
     </div>
 
-    <!-- MODE B: SERVICE FEED (Pasillos, Sala Cuna & Cafetería) -->
-    <div id="viewModeService" class="hidden w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+    <!-- MODE B: SERVICE FEED (Pasillos, Sala Cuna, Lobby & Cafetería) -->
+    <div id="viewModeService" class="hidden w-full h-full flex flex-col">
+
+      <!-- B.1: FULL PROGRAM SWITCHER + FAIRLIGHT AUDIO LIVE FEED (Active during Live / REC / Salas Broadcast) -->
+      <div id="tvServiceLiveStage" class="hidden w-full h-full flex flex-col gap-3">
+        <div class="relative flex-1 min-h-0 rounded-3xl overflow-hidden bg-black border-2 border-red-500/40 shadow-2xl flex items-center justify-center">
+          <video id="tvServiceLiveVideo" playsinline autoplay class="w-full h-full object-contain bg-black"></video>
+          <div class="absolute top-4 left-4 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-600/90 backdrop-blur-md text-white text-xs font-bold font-mono shadow-lg">
+            <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
+            <span>SERVICIO EN VIVO • SEÑAL COMPLETA DEL ESTUDIO</span>
+          </div>
+          <div id="tvLiveBufferingTag" class="hidden absolute bottom-4 right-4 px-3 py-1 rounded-lg bg-slate-950/80 border border-slate-700 text-xs font-mono text-amber-300">
+            Sincronizando señal del estudio...
+          </div>
+        </div>
+        <div class="flex items-center justify-between px-5 py-3 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs font-mono shrink-0">
+          <div class="flex items-center gap-3 min-w-0">
+            <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">VIDEO + AUDIO MASTER</span>
+            <span id="svcLiveSongInfo" class="text-slate-200 font-semibold truncate">Conectado al Program Switcher y Consola Fairlight</span>
+          </div>
+          <span id="svcLiveRoomHint" class="text-sky-400 font-bold shrink-0">Transmisión Interna LAN</span>
+        </div>
+      </div>
+
+      <!-- B.2: FALLBACK LYRICS & SCHEDULE VIEW (When no full-service stream is active) -->
+      <div id="tvServiceLyricsFallback" class="w-full h-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
       
       <!-- Left: Big Live Lyrics Display (8 cols) -->
       <div class="lg:col-span-8 flex flex-col justify-center h-full pr-4 space-y-4">
@@ -273,6 +317,7 @@
 
       </div>
 
+      </div>
     </div>
 
     <!-- MODE C: ANNOUNCEMENTS CAROUSEL (Pantalla Completa) -->
@@ -428,11 +473,157 @@
     }
     renderBg();
 
-    // 5. Modes & Live Signal Engine
-    let currentMode = 'LOBBY'; // 'LOBBY' | 'SERVICE' | 'ANNOUNCEMENTS'
+    // 5. Modes, Room Configuration, Room Audio & Live Signal Engine
+    const tvParams = new URLSearchParams(window.location.search);
+    const tvRoomName = (tvParams.get('room') || '').trim();
+    let lockedTvMode = (tvParams.get('mode') || '').trim().toUpperCase();
 
-    function switchMode(mode) {
-      currentMode = mode || 'LOBBY';
+    // Intelligent auto-lock mode based on room if not explicitly defined in query parameters
+    if (!lockedTvMode && tvRoomName) {
+      const rLower = tvRoomName.toLowerCase();
+      if (rLower.includes('cunero') || rLower.includes('cuna') || rLower.includes('nursery') || rLower.includes('kids') || rLower.includes('culto') || rLower.includes('vivo') || rLower.includes('servicio')) {
+        lockedTvMode = 'SERVICE';
+      } else if (rLower.includes('cartelera') || rLower.includes('anuncio') || rLower.includes('aviso') || rLower.includes('pantalla-avisos')) {
+        lockedTvMode = 'ANNOUNCEMENTS';
+      } else if (rLower.includes('lobby') || rLower.includes('pasillo') || rLower.includes('recepcion') || rLower.includes('entrada') || rLower.includes('bienvenida')) {
+        lockedTvMode = 'LOBBY';
+      }
+    }
+    const tvAudioStorageKey = 'omnicast_tv_room_muted_' + (tvRoomName.toLowerCase() || 'default');
+
+    let currentMode = (lockedTvMode === 'SERVICE' || lockedTvMode === 'LOBBY' || lockedTvMode === 'ANNOUNCEMENTS')
+      ? lockedTvMode
+      : 'LOBBY';
+    let tvBroadcastActive = false;
+    let tvRoomMuted = tvParams.get('mute') === '1';
+    if (tvParams.get('mute') !== '1' && tvParams.get('mute') !== '0') {
+      try {
+        tvRoomMuted = localStorage.getItem(tvAudioStorageKey) === 'true';
+      } catch (e) {}
+    }
+    let tvAutoplayBlocked = false;
+
+    const tvRoomBadgeEl = document.getElementById('tvRoomBadge');
+    if (tvRoomBadgeEl) {
+      if (tvRoomName && tvRoomName.toLowerCase() !== 'general') {
+        tvRoomBadgeEl.textContent = `SALA: ${tvRoomName.toUpperCase()}${lockedTvMode ? ' • MODO FIJO' : ''}`;
+        tvRoomBadgeEl.className = 'text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold uppercase';
+        tvRoomBadgeEl.classList.remove('hidden');
+        const hintEl = document.getElementById('svcLiveRoomHint');
+        if (hintEl) hintEl.textContent = `Sala conectada: ${tvRoomName}`;
+      } else {
+        tvRoomBadgeEl.textContent = 'PANTALLA DINÁMICA (SIGUE AL ESTUDIO)';
+        tvRoomBadgeEl.className = 'text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold uppercase';
+        tvRoomBadgeEl.classList.remove('hidden');
+      }
+    }
+
+    function updateTvAudioUI() {
+      const btn = document.getElementById('btnTvAudioToggle');
+      const icon = document.getElementById('tvAudioBtnIcon');
+      const label = document.getElementById('tvAudioBtnLabel');
+      const prompt = document.getElementById('tvAudioUnlockPrompt');
+      if (btn && icon && label) {
+        if (tvRoomMuted) {
+          btn.className = 'px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-600 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg transition active:scale-95 cursor-pointer';
+          icon.setAttribute('data-lucide', 'volume-x');
+          label.textContent = 'TV SILENCIADA';
+        } else if (tvAutoplayBlocked) {
+          btn.className = 'px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg animate-pulse transition active:scale-95 cursor-pointer';
+          icon.setAttribute('data-lucide', 'volume-2');
+          label.textContent = 'ACTIVAR AUDIO';
+        } else {
+          btn.className = 'px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg transition active:scale-95 cursor-pointer';
+          icon.setAttribute('data-lucide', 'volume-2');
+          label.textContent = 'AUDIO: ACTIVO';
+        }
+        if (window.lucide) lucide.createIcons();
+      }
+      if (prompt) {
+        if (!tvRoomMuted && tvAutoplayBlocked) {
+          prompt.classList.remove('hidden');
+        } else {
+          prompt.classList.add('hidden');
+        }
+      }
+    }
+
+    function applyRoomAudioToVideo(videoEl) {
+      if (!videoEl) return;
+      videoEl.muted = Boolean(tvRoomMuted || tvAutoplayBlocked);
+    }
+
+    function tryPlayTvVideo(videoEl) {
+      if (!videoEl) return;
+      videoEl.muted = Boolean(tvRoomMuted);
+      const p = videoEl.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch((err) => {
+          if (!tvRoomMuted && err && err.name === 'NotAllowedError') {
+            tvAutoplayBlocked = true;
+            videoEl.muted = true;
+            updateTvAudioUI();
+            videoEl.play().catch(() => {});
+          }
+        });
+      }
+    }
+
+    function unlockTvRoomAudio() {
+      tvRoomMuted = false;
+      tvAutoplayBlocked = false;
+      try { localStorage.setItem(tvAudioStorageKey, 'false'); } catch (e) {}
+      const svcVid = document.getElementById('tvServiceLiveVideo');
+      if (svcVid) {
+        svcVid.muted = false;
+        if (svcVid.paused && svcVid.readyState >= 2) svcVid.play().catch(() => {});
+      }
+      if (mediaTvVideo) {
+        mediaTvVideo.muted = false;
+        if (desiredTvVideoPlaying && mediaTvVideo.paused) mediaTvVideo.play().catch(() => {});
+      }
+      updateTvAudioUI();
+    }
+
+    function toggleTvRoomAudio() {
+      if (tvAutoplayBlocked || tvRoomMuted) {
+        unlockTvRoomAudio();
+        return;
+      }
+      tvRoomMuted = true;
+      try { localStorage.setItem(tvAudioStorageKey, 'true'); } catch (e) {}
+      const svcVid = document.getElementById('tvServiceLiveVideo');
+      if (svcVid) svcVid.muted = true;
+      if (mediaTvVideo) mediaTvVideo.muted = true;
+      updateTvAudioUI();
+    }
+
+    function updateTvServiceStageVisibility() {
+      const liveStage = document.getElementById('tvServiceLiveStage');
+      const lyricsFallback = document.getElementById('tvServiceLyricsFallback');
+      if (!liveStage || !lyricsFallback) return;
+      if (tvBroadcastActive && currentMode === 'SERVICE') {
+        liveStage.classList.remove('hidden');
+        lyricsFallback.classList.add('hidden');
+        // Prevent double audio/visual overlap if standalone video element was previously showing
+        if (mediaTvVideo && !mediaTvVideo.classList.contains('hidden')) {
+          desiredTvVideoPlaying = false;
+          mediaTvVideo.pause();
+          mediaTvVideo.classList.add('hidden');
+        }
+      } else {
+        liveStage.classList.add('hidden');
+        lyricsFallback.classList.remove('hidden');
+      }
+    }
+
+    function switchMode(mode, forceManual = false) {
+      if (!forceManual && (lockedTvMode === 'SERVICE' || lockedTvMode === 'LOBBY' || lockedTvMode === 'ANNOUNCEMENTS')) {
+        currentMode = lockedTvMode;
+        return; // Modo fijo de sala: ignorar cambios globales de switcher del estudio
+      } else {
+        currentMode = mode || 'LOBBY';
+      }
       const vLobby = document.getElementById('viewModeLobby');
       const vService = document.getElementById('viewModeService');
       const vAnn = document.getElementById('viewModeAnnouncements');
@@ -455,6 +646,13 @@
         badge.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span><span>MODO: LOBBY & BIENVENIDA</span>';
         badge.className = 'px-3.5 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-mono font-bold tracking-wider uppercase flex items-center gap-2 shadow-lg';
       }
+      updateTvServiceStageVisibility();
+    }
+    updateTvAudioUI();
+    if (lockedTvMode) {
+      switchMode(lockedTvMode, true);
+    } else {
+      switchMode(currentMode, true);
     }
 
     // 6. Alert Banner Engine
@@ -492,8 +690,7 @@
       });
       mediaTvVideo.addEventListener('pause', () => {
         if (desiredTvVideoPlaying && !mediaTvVideo.ended) {
-          mediaTvVideo.muted = true;
-          mediaTvVideo.play().catch(() => {});
+          tryPlayTvVideo(mediaTvVideo);
         }
       });
       try {
@@ -509,8 +706,7 @@
               try { tvKeepAliveCtx.drawImage(mediaTvVideo, 0, 0, 2, 2); } catch (e) {}
             }
             if (mediaTvVideo.paused) {
-              mediaTvVideo.muted = true;
-              mediaTvVideo.play().catch(() => {});
+              tryPlayTvVideo(mediaTvVideo);
             }
           }
         };
@@ -519,10 +715,17 @@
 
     function handleVideoPlayback(data) {
       if (!mediaTvVideo || !data) return;
+      if (!data.isVideo && tvBroadcastActive && currentMode === 'SERVICE') {
+        desiredTvVideoPlaying = false;
+        if (!mediaTvVideo.classList.contains('hidden')) {
+          mediaTvVideo.pause();
+          mediaTvVideo.classList.add('hidden');
+        }
+        return;
+      }
       const ts = Number(data.timestamp || data.ts) || 0;
       if (!data.isClear && data.isVideo && data.videoUrl) {
         if (ts && ts < lastTvVideoTs) return;
-        if (!ts && lastTvVideoTs) return;
         if (ts) lastTvVideoTs = ts;
         mediaTvVideo.classList.remove('hidden');
         if (mediaTvVideo.getAttribute('data-src') !== data.videoUrl) {
@@ -531,7 +734,7 @@
           mediaTvVideo.setAttribute('data-src', data.videoUrl);
         }
         mediaTvVideo.loop = Boolean(data.videoLoop);
-        mediaTvVideo.muted = true;
+        applyRoomAudioToVideo(mediaTvVideo);
 
         const isPause = data.videoAction === 'pause';
         let target = null;
@@ -541,7 +744,7 @@
         }
         const syncTime = () => {
           if (target === null) return;
-          const tol = isPause ? 0.3 : 2;
+          const tol = 0.15;
           if (Math.abs(mediaTvVideo.currentTime - target) > tol) {
             mediaTvVideo.currentTime = target;
           }
@@ -557,8 +760,16 @@
           if (mediaTvVideo.ended || (mediaTvVideo.duration > 0 && mediaTvVideo.currentTime >= (mediaTvVideo.duration - 0.3))) {
             mediaTvVideo.currentTime = 0;
           }
-          if (mediaTvVideo.paused) {
-            mediaTvVideo.play().catch(() => {});
+          const playTvSafe = () => {
+            if (!desiredTvVideoPlaying) return;
+            applyRoomAudioToVideo(mediaTvVideo);
+            tryPlayTvVideo(mediaTvVideo);
+          };
+          if (mediaTvVideo.readyState >= 2) {
+            playTvSafe();
+          } else {
+            mediaTvVideo.addEventListener('canplay', playTvSafe, { once: true });
+            playTvSafe();
           }
         }
       } else {
@@ -573,12 +784,43 @@
     function handleLiveSlideUpdate(payload) {
       if (!payload) return;
       handleVideoPlayback(payload);
+
+      // Background video loop for lyrics on Smart TVs
+      const loopVid = document.getElementById('tvVideoLoopPlayer');
+      if (loopVid) {
+        if (payload.videoLoopUrl) {
+          if (loopVid.getAttribute('data-src') !== payload.videoLoopUrl) {
+            loopVid.src = payload.videoLoopUrl;
+            loopVid.setAttribute('data-src', payload.videoLoopUrl);
+            loopVid.muted = true;
+            loopVid.loop = true;
+            loopVid.classList.remove('hidden');
+            const p = loopVid.play();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
+            loopVid.oncanplay = () => loopVid.play().catch(() => {});
+          }
+        } else {
+          if (!loopVid.classList.contains('hidden')) {
+            loopVid.classList.add('hidden');
+            loopVid.pause();
+            loopVid.removeAttribute('src');
+            loopVid.removeAttribute('data-src');
+          }
+        }
+      }
+
       if (payload.text) {
         document.getElementById('svcMainText').textContent = payload.text;
         document.getElementById('svcSubText').textContent = payload.subText || '';
       }
       if (payload.songTitle) {
         document.getElementById('svcSongTitle').textContent = `• ${payload.songTitle}`;
+        const liveSong = document.getElementById('svcLiveSongInfo');
+        if (liveSong) {
+          liveSong.textContent = payload.text
+            ? `${payload.songTitle} — ${payload.text}`
+            : payload.songTitle;
+        }
       }
       if (payload.badge) {
         document.getElementById('svcSongBadge').textContent = payload.badge;
@@ -609,6 +851,16 @@
         handleLiveSlideUpdate(e.data.payload);
       } else if (e.data && e.data.type === 'VIDEO_CONTROL') {
         handleTvVideoControl(e.data.payload);
+      } else if (e.data && e.data.type === 'VIDEO_SYNC_PULSE') {
+        if (!mediaTvVideo || mediaTvVideo.readyState < 1) return;
+        const elapsed = (Date.now() - (e.data.ts || Date.now())) / 1000;
+        const target = (e.data.time || 0) + elapsed;
+        if (Math.abs(mediaTvVideo.currentTime - target) > 0.15) {
+          mediaTvVideo.currentTime = target;
+        }
+        if (mediaTvVideo.paused) {
+          mediaTvVideo.play().catch(() => {});
+        }
       }
     };
 
@@ -660,19 +912,35 @@
     // Server-Sent Events for Full Network Synchronicity across Smart TVs
     function connectSSE() {
       const sse = new EventSource('/api/events');
+      sse.addEventListener('video_control', (e) => {
+        try {
+          handleTvVideoControl(JSON.parse(e.data));
+        } catch (err) {}
+      });
       sse.addEventListener('slide_payload', (e) => {
         try {
           handleLiveSlideUpdate(JSON.parse(e.data));
         } catch (err) {}
       });
+      sse.addEventListener('tv_service_live', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          tvBroadcastActive = Boolean(d && d.active);
+          updateTvServiceStageVisibility();
+        } catch (err) {}
+      });
       sse.addEventListener('state', (e) => {
         try {
           const state = JSON.parse(e.data);
+          if (typeof state.tvServiceLive === 'boolean') {
+            tvBroadcastActive = state.tvServiceLive;
+          }
           if (Array.isArray(state.libraryItems)) {
             prewarmTvVideo(state.libraryItems);
           }
           if (state.tvMode) switchMode(state.tvMode);
           if (typeof state.tvAlert === 'string') setTvAlert(state.tvAlert);
+          updateTvServiceStageVisibility();
           
           if (state.currentSlidePayload) {
             handleLiveSlideUpdate(state.currentSlidePayload);
@@ -700,9 +968,172 @@
         setTimeout(connectSSE, 3000);
       };
     }
-    // Connect SSE after window load to prevent infinite browser tab spinner
+
+    // 8. Live Full-Service Broadcast Receiver (fMP4 MSE via /api/tv/ws + Native HLS fallback)
+    const tvLiveVideoEl = document.getElementById('tvServiceLiveVideo');
+    const tvBufferingTag = document.getElementById('tvLiveBufferingTag');
+    let tvMediaSource = null;
+    let tvSourceBuffer = null;
+    let tvMediaObjUrl = null;
+    let tvAppendQueue = [];
+    let tvLiveWs = null;
+    let tvWsReconnectTimer = null;
+
+    function resetTvMsePlayer() {
+      tvAppendQueue = [];
+      if (tvSourceBuffer) {
+        try { tvSourceBuffer.abort(); } catch (e) {}
+        tvSourceBuffer = null;
+      }
+      if (tvMediaSource) {
+        try {
+          if (tvMediaSource.readyState === 'open') tvMediaSource.endOfStream();
+        } catch (e) {}
+        tvMediaSource = null;
+      }
+      if (tvMediaObjUrl) {
+        try { URL.revokeObjectURL(tvMediaObjUrl); } catch (e) {}
+        tvMediaObjUrl = null;
+      }
+      if (tvLiveVideoEl) {
+        try { tvLiveVideoEl.pause(); } catch (e) {}
+        tvLiveVideoEl.removeAttribute('src');
+        tvLiveVideoEl.load();
+      }
+    }
+
+    function pumpTvAppendQueue() {
+      if (!tvSourceBuffer || tvSourceBuffer.updating || tvAppendQueue.length === 0) return;
+      if (!tvMediaSource || tvMediaSource.readyState !== 'open') return;
+      const nextBuf = tvAppendQueue.shift();
+      try {
+        tvSourceBuffer.appendBuffer(nextBuf);
+      } catch (err) {
+        if (err && err.name === 'QuotaExceededError' && tvLiveVideoEl) {
+          try {
+            if (tvSourceBuffer.buffered.length > 0) {
+              const start = tvSourceBuffer.buffered.start(0);
+              const trimEnd = Math.max(start + 1, tvLiveVideoEl.currentTime - 5);
+              if (trimEnd > start && !tvSourceBuffer.updating) {
+                tvSourceBuffer.remove(start, trimEnd);
+                tvAppendQueue.unshift(nextBuf);
+                return;
+              }
+            }
+          } catch (e2) {}
+        }
+        tvAppendQueue.length = 0;
+      }
+    }
+
+    function initTvMseStream(mimeCodec) {
+      if (!tvLiveVideoEl) return;
+      const supportsMse = typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported(mimeCodec);
+      if (!supportsMse) {
+        // Fallback for iOS Safari / Apple TV using native HLS
+        resetTvMsePlayer();
+        tvBroadcastActive = true;
+        updateTvServiceStageVisibility();
+        tvLiveVideoEl.src = `/tv-hls/live.m3u8?t=${Date.now()}`;
+        tryPlayTvVideo(tvLiveVideoEl);
+        return;
+      }
+
+      resetTvMsePlayer();
+      tvBroadcastActive = true;
+      updateTvServiceStageVisibility();
+      if (tvBufferingTag) tvBufferingTag.classList.remove('hidden');
+
+      const ms = new MediaSource();
+      tvMediaSource = ms;
+      tvMediaObjUrl = URL.createObjectURL(ms);
+      tvLiveVideoEl.src = tvMediaObjUrl;
+
+      ms.addEventListener('sourceopen', () => {
+        if (tvMediaSource !== ms) return;
+        try {
+          const sb = ms.addSourceBuffer(mimeCodec);
+          tvSourceBuffer = sb;
+          sb.addEventListener('updateend', () => {
+            if (tvSourceBuffer !== sb || !tvLiveVideoEl) return;
+            try {
+              if (tvLiveVideoEl.buffered.length > 0) {
+                const start = tvLiveVideoEl.buffered.start(0);
+                const end = tvLiveVideoEl.buffered.end(tvLiveVideoEl.buffered.length - 1);
+                if (tvBufferingTag) tvBufferingTag.classList.add('hidden');
+                // Keep live latency tight (< 2.2s) and evict past history (> 20s)
+                if (end - tvLiveVideoEl.currentTime > 2.2) {
+                  tvLiveVideoEl.currentTime = Math.max(start, end - 0.5);
+                }
+                if (tvLiveVideoEl.paused && end - start > 0.1) {
+                  tryPlayTvVideo(tvLiveVideoEl);
+                }
+                if (!sb.updating && tvLiveVideoEl.currentTime - start > 20) {
+                  sb.remove(start, tvLiveVideoEl.currentTime - 10);
+                  return;
+                }
+              }
+            } catch (e) {}
+            pumpTvAppendQueue();
+          });
+          pumpTvAppendQueue();
+        } catch (err) {
+          console.warn('[TV MSE] SourceBuffer error:', err.message);
+        }
+      });
+    }
+
+    function connectTvLiveStreamWs() {
+      if (tvWsReconnectTimer) {
+        clearTimeout(tvWsReconnectTimer);
+        tvWsReconnectTimer = null;
+      }
+      if (tvLiveWs && (tvLiveWs.readyState === WebSocket.OPEN || tvLiveWs.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
+      try {
+        const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${proto}//${window.location.host}/api/tv/ws`);
+        ws.binaryType = 'arraybuffer';
+        tvLiveWs = ws;
+
+        ws.onmessage = (ev) => {
+          if (typeof ev.data === 'string') {
+            try {
+              const msg = JSON.parse(ev.data);
+              if (msg.type === 'tv_status') {
+                tvBroadcastActive = Boolean(msg.active);
+                if (!tvBroadcastActive) {
+                  resetTvMsePlayer();
+                }
+                updateTvServiceStageVisibility();
+              } else if (msg.type === 'tv_init' && msg.mime) {
+                initTvMseStream(msg.mime);
+              }
+            } catch (e) {}
+          } else if (ev.data instanceof ArrayBuffer) {
+            tvAppendQueue.push(ev.data);
+            if (tvAppendQueue.length > 30) tvAppendQueue.shift();
+            pumpTvAppendQueue();
+          }
+        };
+
+        ws.onclose = () => {
+          if (tvLiveWs === ws) tvLiveWs = null;
+          tvWsReconnectTimer = setTimeout(connectTvLiveStreamWs, 2000);
+        };
+        ws.onerror = () => {
+          try { ws.close(); } catch (e) {}
+        };
+      } catch (e) {
+        tvWsReconnectTimer = setTimeout(connectTvLiveStreamWs, 3000);
+      }
+    }
+
+    // Connect SSE & Live TV WebSocket after window load to prevent infinite browser tab spinner
     window.addEventListener('load', () => {
       setTimeout(connectSSE, 600);
+      setTimeout(connectTvLiveStreamWs, 700);
     });
 
     // WakeLock API to keep Smart TV screen turned ON indefinitely

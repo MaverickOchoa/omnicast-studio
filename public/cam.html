@@ -217,21 +217,36 @@
           localStream.getTracks().forEach(t => t.stop());
         }
 
-        const constraints = {
-          video: {
-            facingMode: currentFacingMode,
-            width: { ideal: 1920, min: 1280 },
-            height: { ideal: 1080, min: 720 },
-            frameRate: { ideal: 30, min: 24 }
-          },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true
+        let stream = null;
+        // Tier 1: Ideal 1080p mobile constraints without strict min limits
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: currentFacingMode },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            },
+            audio: { echoCancellation: true, noiseSuppression: true }
+          });
+        } catch (e1) {
+          console.warn('Fallback to standard constraints:', e1);
+          // Tier 2: Flexible constraints
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: currentFacingMode } },
+              audio: true
+            });
+          } catch (e2) {
+            console.warn('Fallback to basic constraints:', e2);
+            // Tier 3: Universal video capture
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
           }
-        };
+        }
 
-        localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        localStream = stream;
         const vid = document.getElementById('viewfinderVideo');
+        vid.muted = true;
+        vid.playsInline = true;
         vid.srcObject = localStream;
         await vid.play().catch(() => {});
 
@@ -243,11 +258,13 @@
           const settings = vTrack.getSettings();
           const resEl = document.getElementById('resPill');
           if (resEl && settings.width && settings.height) {
-            resEl.textContent = `${settings.height}p`;
+            resEl.textContent = `${Math.min(settings.width, settings.height)}p`;
           }
         }
 
         initWebRTC();
+        initCamWebSocket();
+        startWsFrameStreamLoop();
 
       } catch (err) {
         console.error('Error starting camera:', err);
@@ -328,14 +345,121 @@
     }
 
     // =========================================================================
+    // WEBSOCKET HIGH-SPEED LOW-LATENCY FRAME STREAMER (FIREWALL/LAN RELAY)
+    // =========================================================================
+    let camWebSocket = null;
+    let wsFrameLoopRunning = false;
+    const sendCanvas = document.createElement('canvas');
+    const sendCtx = sendCanvas.getContext('2d');
+    sendCanvas.width = 1280;
+    sendCanvas.height = 720;
+
+    function initCamWebSocket() {
+      if (camWebSocket) {
+        try { camWebSocket.close(); } catch(e) {}
+      }
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${proto}//${window.location.host}/api/cam/ws?role=sender&cam=${currentCamId}`;
+      camWebSocket = new WebSocket(wsUrl);
+      camWebSocket.binaryType = 'arraybuffer';
+      
+      camWebSocket.onopen = () => {
+        console.log('[Mobile Cam WS] Conectado a OmniCast Studio Video Relay');
+        if (!wsFrameLoopRunning) startWsFrameStreamLoop();
+      };
+      
+      camWebSocket.onclose = () => {
+        setTimeout(() => {
+          if (localStream) initCamWebSocket();
+        }, 2000);
+      };
+    }
+
+    let isSendingFrame = false;
+    let lastFrameSentTs = 0;
+    let wsFrameStreamTimeout = null;
+
+    function stopWsFrameStreamLoop() {
+      wsFrameLoopRunning = false;
+      if (wsFrameStreamTimeout) {
+        clearTimeout(wsFrameStreamTimeout);
+        wsFrameStreamTimeout = null;
+      }
+    }
+
+    function startWsFrameStreamLoop() {
+      if (wsFrameLoopRunning) return;
+      if (isConnectedToStudio) return; // Do not burn mobile CPU if native WebRTC is active
+
+      wsFrameLoopRunning = true;
+      const vid = document.getElementById('viewfinderVideo');
+
+      const streamFrame = () => {
+        if (!wsFrameLoopRunning || isConnectedToStudio || !localStream) {
+          wsFrameLoopRunning = false;
+          return;
+        }
+
+        const now = Date.now();
+        // Fallback: auto-recover if a previous network request took longer than 400ms
+        if (isSendingFrame && (now - lastFrameSentTs > 400)) {
+          isSendingFrame = false;
+        }
+
+        if (!isSendingFrame && vid && vid.videoWidth > 0 && vid.videoHeight > 0) {
+          isSendingFrame = true;
+          lastFrameSentTs = now;
+          try {
+            sendCtx.drawImage(vid, 0, 0, 640, 360);
+            sendCanvas.toBlob((blob) => {
+              if (!blob) {
+                isSendingFrame = false;
+                return;
+              }
+              if (camWebSocket && camWebSocket.readyState === WebSocket.OPEN) {
+                blob.arrayBuffer().then((buf) => {
+                  try {
+                    camWebSocket.send(buf);
+                  } catch (e) {}
+                  isSendingFrame = false;
+                }).catch(() => { isSendingFrame = false; });
+              } else {
+                // Dual Direct HTTPS POST relay (works 100% on Android Chrome with accepted SSL)
+                fetch(`/api/cam/frame?cam=${currentCamId}`, {
+                  method: 'POST',
+                  body: blob,
+                  headers: { 'Content-Type': 'image/jpeg' }
+                }).then(() => {
+                  isSendingFrame = false;
+                }).catch(() => {
+                  isSendingFrame = false;
+                });
+              }
+            }, 'image/jpeg', 0.65);
+          } catch(e) {
+            isSendingFrame = false;
+          }
+        }
+        wsFrameStreamTimeout = setTimeout(() => requestAnimationFrame(streamFrame), 66);
+      };
+
+      requestAnimationFrame(streamFrame);
+    }
+
+    // =========================================================================
     // WEBRTC PEER CONNECTION & SIGNALING ENGINE                                
     // =========================================================================
+    let phoneCandidateQueue = [];
+    let isPhoneRemoteDescriptionSet = false;
+
     async function initWebRTC() {
       if (!localStream) return;
       if (peerConnection) {
         try { peerConnection.close(); } catch (e) {}
       }
 
+      phoneCandidateQueue = [];
+      isPhoneRemoteDescriptionSet = false;
       peerConnection = new RTCPeerConnection(rtcConfig);
 
       // Add local media tracks
@@ -359,9 +483,11 @@
         if (peerConnection.connectionState === 'connected') {
           isConnectedToStudio = true;
           setTallyState(currentTally);
+          stopWsFrameStreamLoop(); // WebRTC is active: stop software encoding to free 100% of mobile CPU
         } else if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
           isConnectedToStudio = false;
           setTallyState('DISCONNECTED');
+          startWsFrameStreamLoop(); // Fallback if WebRTC drops
         }
       };
 
@@ -434,6 +560,15 @@
         } catch (err) {}
       });
 
+      sseEventSource.addEventListener('cam_renegotiate', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.camId === currentCamId || data.camId === 'all') {
+            reconnectWebRTC();
+          }
+        } catch (err) {}
+      });
+
       // Polling fallback every 1.5 seconds in case SSE drops
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(async () => {
@@ -455,18 +590,37 @@
     }
 
     async function handleIncomingSignal(signal) {
+      if (!signal) return;
+      if (signal.type === 'renegotiate') {
+        reconnectWebRTC();
+        return;
+      }
       if (!peerConnection) return;
       if (signal.type === 'answer') {
+        if (!peerConnection || peerConnection.signalingState !== 'have-local-offer') {
+          return;
+        }
         try {
           await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+          isPhoneRemoteDescriptionSet = true;
+          while (phoneCandidateQueue.length > 0) {
+            const cand = phoneCandidateQueue.shift();
+            try {
+              await peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+            } catch (e) {}
+          }
         } catch (err) {
           console.warn('Error setting remote answer:', err);
         }
       } else if (signal.type === 'candidate' && signal.candidate) {
-        try {
-          await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
-        } catch (err) {
-          console.warn('Error adding ice candidate:', err);
+        if (!isPhoneRemoteDescriptionSet) {
+          phoneCandidateQueue.push(signal.candidate);
+        } else {
+          try {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          } catch (err) {
+            console.warn('Error adding ice candidate:', err);
+          }
         }
       }
     }
@@ -536,6 +690,7 @@
     function reconnectWebRTC() {
       setTallyState('DISCONNECTED');
       initWebRTC();
+      initCamWebSocket();
     }
   </script>
 </body>

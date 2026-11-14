@@ -39,6 +39,11 @@
   <!-- Full-Screen Media Video Player (When an uploaded .mp4/.webm/.mov video is projected) -->
   <video id="mediaProjectorVideo" muted playsinline preload="auto" class="absolute inset-0 w-full h-full object-contain bg-black z-30 hidden"></video>
 
+  <!-- YouTube Full-Screen Player (When a YouTube video is projected or played in Capa 4 / Media) -->
+  <div id="youtubeProjectorLayer" class="absolute inset-0 w-full h-full z-25 hidden">
+    <iframe id="youtubeProjectorIframe" class="w-full h-full border-0 pointer-events-none" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  </div>
+
   <!-- Procedural Canvas for Dynamic Motion Loops (GPU Animated 60fps) -->
   <canvas id="motionCanvas" class="absolute inset-0 w-full h-full object-cover z-0"></canvas>
 
@@ -82,9 +87,17 @@
     const ambientOverlay = document.getElementById('ambientOverlay');
     const videoLoopPlayer = document.getElementById('videoLoopPlayer');
     const mediaProjectorVideo = document.getElementById('mediaProjectorVideo');
+    const youtubeProjectorLayer = document.getElementById('youtubeProjectorLayer');
+    const youtubeProjectorIframe = document.getElementById('youtubeProjectorIframe');
     const campusIndicator = document.getElementById('campusIndicator');
     const motionCanvas = document.getElementById('motionCanvas');
     const ctx = motionCanvas.getContext('2d');
+
+    function extractYouTubeId(url) {
+      if (!url) return null;
+      const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i);
+      return m ? m[1] : null;
+    }
 
     // High DPI Canvas setup
     function resizeCanvas() {
@@ -321,7 +334,14 @@
       if (data.videoLoopUrl && data.videoLoopUrl !== activeVideoLoop) {
         activeVideoLoop = data.videoLoopUrl;
         videoLoopPlayer.src = activeVideoLoop;
+        videoLoopPlayer.muted = true;
+        videoLoopPlayer.loop = true;
         videoLoopPlayer.classList.remove('hidden');
+        const p = videoLoopPlayer.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+        videoLoopPlayer.oncanplay = () => {
+          videoLoopPlayer.play().catch(() => {});
+        };
       } else if (!data.videoLoopUrl && activeVideoLoop) {
         activeVideoLoop = '';
         videoLoopPlayer.pause();
@@ -381,19 +401,53 @@
     }
 
     function applyVideoState(st) {
-      if (!mediaProjectorVideo) return;
       const ts = Number(st.ts) || 0;
       if (ts && ts < lastVideoMsgTs) return; // mensaje viejo: descartar
-      if (!ts && lastVideoMsgTs) return;     // mensaje sin hora y ya tenemos uno más nuevo
       if (ts) lastVideoMsgTs = ts;
+
+      const ytId = extractYouTubeId(st.url);
 
       if (st.action === 'stop') {
         desiredVideoPlaying = false;
-        mediaProjectorVideo.pause();
-        mediaProjectorVideo.classList.add('hidden');
+        if (mediaProjectorVideo) {
+          mediaProjectorVideo.pause();
+          mediaProjectorVideo.classList.add('hidden');
+        }
+        if (youtubeProjectorLayer && youtubeProjectorIframe) {
+          youtubeProjectorLayer.classList.add('hidden');
+          youtubeProjectorIframe.src = '';
+          youtubeProjectorIframe.removeAttribute('data-active-yt');
+        }
         lyricsWrapper.classList.remove('hidden');
         return;
       }
+
+      if (ytId) {
+        desiredVideoPlaying = true;
+        if (mediaProjectorVideo) {
+          mediaProjectorVideo.pause();
+          mediaProjectorVideo.classList.add('hidden');
+        }
+        if (youtubeProjectorLayer && youtubeProjectorIframe) {
+          youtubeProjectorLayer.classList.remove('hidden');
+          if (youtubeProjectorIframe.getAttribute('data-active-yt') !== ytId) {
+            youtubeProjectorIframe.src = `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=0&controls=0&loop=1&playlist=${ytId}&enablejsapi=1`;
+            youtubeProjectorIframe.setAttribute('data-active-yt', ytId);
+          }
+        }
+        lyricsWrapper.classList.add('hidden');
+        return;
+      }
+
+      // Direct Video (.mp4 / .webm)
+      if (youtubeProjectorLayer && youtubeProjectorIframe) {
+        youtubeProjectorLayer.classList.add('hidden');
+        youtubeProjectorIframe.src = '';
+        youtubeProjectorIframe.removeAttribute('data-active-yt');
+      }
+
+      if (!mediaProjectorVideo) return;
+
       if (st.url && mediaProjectorVideo.getAttribute('data-src') !== st.url) {
         const sep = st.url.includes('?') ? '&' : '?';
         mediaProjectorVideo.src = `${st.url}${sep}screen=projector`;
@@ -411,7 +465,7 @@
       }
       const syncTime = () => {
         if (target === null) return;
-        const tol = st.action === 'play' ? 2 : 0.3;
+        const tol = 0.15;
         if (Math.abs(mediaProjectorVideo.currentTime - target) > tol) {
           mediaProjectorVideo.currentTime = target;
         }
@@ -427,8 +481,21 @@
         if (mediaProjectorVideo.ended || (mediaProjectorVideo.duration > 0 && mediaProjectorVideo.currentTime >= (mediaProjectorVideo.duration - 0.3))) {
           mediaProjectorVideo.currentTime = 0;
         }
-        if (mediaProjectorVideo.paused) {
-          mediaProjectorVideo.play().catch(() => {});
+        const playSafe = () => {
+          if (!desiredVideoPlaying) return;
+          mediaProjectorVideo.muted = true;
+          const p = mediaProjectorVideo.play();
+          if (p && typeof p.catch === 'function') {
+            p.catch((err) => {
+              console.warn('[Projector Video Autoplay]', err);
+            });
+          }
+        };
+        if (mediaProjectorVideo.readyState >= 2) {
+          playSafe();
+        } else {
+          mediaProjectorVideo.addEventListener('canplay', playSafe, { once: true });
+          playSafe();
         }
       }
     }
@@ -436,8 +503,8 @@
     function updateDisplay(data) {
       if (!data) return;
 
-      // Full-screen uploaded video projection handler
-      if (!data.isClear && data.isVideo && data.videoUrl && mediaProjectorVideo) {
+      // Full-screen video projection handler (supports direct files and YouTube)
+      if (!data.isClear && data.isVideo && data.videoUrl) {
         applyVideoState({
           url: data.videoUrl,
           action: data.videoAction === 'pause' ? 'pause' : 'play',
@@ -446,12 +513,19 @@
           loop: Boolean(data.videoLoop)
         });
         return;
-      } else if (mediaProjectorVideo) {
-        if (desiredVideoPlaying && data.timestamp && data.timestamp < lastVideoMsgTs) return; // texto viejo reenviado: no tapar el video actual
+      } else {
+        if (desiredVideoPlaying && data.timestamp && data.timestamp < lastVideoMsgTs) return;
         if (data.timestamp) lastVideoMsgTs = data.timestamp;
         desiredVideoPlaying = false;
-        mediaProjectorVideo.pause();
-        mediaProjectorVideo.classList.add('hidden');
+        if (mediaProjectorVideo) {
+          mediaProjectorVideo.pause();
+          mediaProjectorVideo.classList.add('hidden');
+        }
+        if (youtubeProjectorLayer && youtubeProjectorIframe) {
+          youtubeProjectorLayer.classList.add('hidden');
+          youtubeProjectorIframe.src = '';
+          youtubeProjectorIframe.removeAttribute('data-active-yt');
+        }
         lyricsWrapper.classList.remove('hidden');
       }
 
@@ -516,7 +590,7 @@
     }
 
     function handleVideoControl(cmd) {
-      if (!mediaProjectorVideo || !cmd) return;
+      if (!cmd) return;
       const ts = cmd.ts || Date.now();
       if (cmd.action === 'play') {
         applyVideoState({ url: cmd.videoUrl, action: 'play', time: cmd.time, ts });
@@ -525,11 +599,11 @@
       } else if (cmd.action === 'restart') {
         applyVideoState({ action: 'play', time: 0, ts });
       } else if (cmd.action === 'seek' && typeof cmd.time === 'number') {
-        if (ts >= lastVideoMsgTs) mediaProjectorVideo.currentTime = cmd.time;
+        if (mediaProjectorVideo && ts >= lastVideoMsgTs) mediaProjectorVideo.currentTime = cmd.time;
       } else if (cmd.action === 'mute') {
         // El proyector siempre va en silencio: el audio sale del estudio / consola
       } else if (cmd.action === 'loop') {
-        mediaProjectorVideo.loop = Boolean(cmd.loop);
+        if (mediaProjectorVideo) mediaProjectorVideo.loop = Boolean(cmd.loop);
       } else if (cmd.action === 'stop') {
         applyVideoState({ action: 'stop', ts });
       }
@@ -540,6 +614,16 @@
         updateDisplay(event.data.payload);
       } else if (event.data && event.data.type === 'VIDEO_CONTROL') {
         handleVideoControl(event.data.payload);
+      } else if (event.data && event.data.type === 'VIDEO_SYNC_PULSE') {
+        if (!mediaProjectorVideo || mediaProjectorVideo.readyState < 1) return;
+        const elapsed = (Date.now() - (event.data.ts || Date.now())) / 1000;
+        const target = (event.data.time || 0) + elapsed;
+        if (Math.abs(mediaProjectorVideo.currentTime - target) > 0.15) {
+          mediaProjectorVideo.currentTime = target;
+        }
+        if (mediaProjectorVideo.paused) {
+          mediaProjectorVideo.play().catch(() => {});
+        }
       }
     };
 
@@ -589,9 +673,25 @@
     }
 
     // Connect to Server-Sent Events after window load to prevent infinite browser tab spinner
+    document.addEventListener('click', () => {
+      if (desiredVideoPlaying && mediaProjectorVideo && mediaProjectorVideo.paused) {
+        mediaProjectorVideo.muted = true;
+        mediaProjectorVideo.play().catch(() => {});
+      }
+      if (videoLoopPlayer && !videoLoopPlayer.classList.contains('hidden') && videoLoopPlayer.paused) {
+        videoLoopPlayer.muted = true;
+        videoLoopPlayer.play().catch(() => {});
+      }
+    });
+
     window.addEventListener('load', () => {
       setTimeout(() => {
         const evtSource = new EventSource('/api/events');
+        evtSource.addEventListener('video_control', (e) => {
+          try {
+            handleVideoControl(JSON.parse(e.data));
+          } catch (err) {}
+        });
         evtSource.addEventListener('slide_payload', (e) => {
           try {
             updateDisplay(JSON.parse(e.data));

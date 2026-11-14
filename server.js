@@ -12,14 +12,23 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
 const UPLOADS_VIDEOS_DIR = path.join(PUBLIC_DIR, 'uploads', 'videos');
+const TV_HLS_DIR = path.join(PUBLIC_DIR, 'tv-hls');
 
 // Ensure persistent database & video upload directories exist
 try {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(UPLOADS_VIDEOS_DIR)) fs.mkdirSync(UPLOADS_VIDEOS_DIR, { recursive: true });
+  if (!fs.existsSync(TV_HLS_DIR)) fs.mkdirSync(TV_HLS_DIR, { recursive: true });
 } catch (dirErr) {
   console.warn('Warning creating data/uploads dirs:', dirErr.message);
 }
+
+process.on('uncaughtException', (err) => {
+  console.error('[OmniCast Server UncaughtException]:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[OmniCast Server UnhandledRejection]:', reason);
+});
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -36,6 +45,8 @@ const MIME_TYPES = {
   '.webm': 'video/webm',
   '.mov': 'video/quicktime',
   '.mkv': 'video/x-matroska',
+  '.m3u8': 'application/vnd.apple.mpegurl',
+  '.ts': 'video/mp2t',
   '.mp3': 'audio/mpeg',
   '.wav': 'audio/wav',
   '.ogg': 'audio/ogg'
@@ -156,6 +167,7 @@ let studioState = {
   theme: 'purple',
   tvMode: 'LOBBY', // 'LOBBY' | 'SERVICE' | 'ANNOUNCEMENTS'
   tvAlert: '',
+  tvServiceLive: false,
   lastServiceRecap: null,
   libraryItems: persistentDb.libraryItems.length > 0 ? persistentDb.libraryItems : []
 };
@@ -165,8 +177,11 @@ let mobileCamsState = {
   1: { connected: false, name: 'Cámara 1 (Púlpito)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
   2: { connected: false, name: 'Cámara 2 (Altar)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
   3: { connected: false, name: 'Cámara 3 (Músicos)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
-  4: { connected: false, name: 'Cámara 4 (Móvil)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 }
+  4: { connected: false, name: 'Cámara 4 (Móvil)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
+  5: { connected: false, name: 'Cámara 5 (Auxiliar)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 }
 };
+
+const mobileCamLatestFrames = { 1: null, 2: null, 3: null, 4: null, 5: null };
 
 // Master RTMP / RTMPS Live Streaming State (Facebook Live & YouTube Live Multi-Destination)
 let liveStreamState = {
@@ -185,8 +200,27 @@ let liveStreamState = {
     error: null
   }
 };
+
+let activeCloudflareTunnelUrl = '';
+try {
+  const initTunnelFile = path.join(__dirname, 'data', 'public_tunnel.json');
+  if (fs.existsSync(initTunnelFile)) {
+    const initTunnel = JSON.parse(fs.readFileSync(initTunnelFile, 'utf8'));
+    if (initTunnel && initTunnel.active && initTunnel.url) {
+      activeCloudflareTunnelUrl = initTunnel.url;
+    }
+  }
+} catch (e) {}
 let activeFfmpegProcess = null;
 let activeStreamWebSocket = null;
+let activeTvFfmpegProcess = null;
+let tvFramePumpTimer = null;
+let tvAudioPumpTimer = null;
+let tvFmp4InitSegment = null;
+let tvLatestFragment = null;
+let tvFmp4Mime = 'video/mp4; codecs="avc1.42E01F, mp4a.40.2"';
+let tvFragmentCount = 0;
+const tvStreamClients = new Set();
 let currentTallyState = { programCam: 0, previewCam: 0 };
 const camSignalsForStudio = []; // Signals from phones for studio
 const camSignalsForPhones = { 1: [], 2: [], 3: [], 4: [] }; // Signals from studio for phones
@@ -215,6 +249,17 @@ setInterval(() => {
     broadcastSSE('timer', { seconds: 0, running: false });
   }
 }, 1000);
+
+// SSE Keepalive Heartbeat: prevents Cloudflare tunnels, NAT routers, and Chrome from dropping idle connections
+setInterval(() => {
+  for (const client of sseClients) {
+    try {
+      client.write(': keepalive\n\n');
+    } catch (e) {
+      sseClients.delete(client);
+    }
+  }
+}, 10000);
 
 function getLocalIpAddresses() {
   const interfaces = os.networkInterfaces();
@@ -245,33 +290,88 @@ const requestHandler = (req, res) => {
 
   const parsedUrl = req.url.split('?')[0];
 
-  // API 1: Local Network Info & QR Details
+  // API 1: Local Network Info & Cloudflare Public Tunnel Details
   if (parsedUrl === '/api/info') {
     const ips = getLocalIpAddresses();
     const primaryIp = ips[0] || 'localhost';
+    if (!activeCloudflareTunnelUrl) {
+      try {
+        const tFile = path.join(__dirname, 'data', 'public_tunnel.json');
+        if (fs.existsSync(tFile)) {
+          const tData = JSON.parse(fs.readFileSync(tFile, 'utf8'));
+          if (tData.active && tData.url) activeCloudflareTunnelUrl = tData.url;
+        }
+      } catch (e) {}
+    }
+    const publicUrl = activeCloudflareTunnelUrl || null;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       primaryIp,
       port: PORT,
       httpsPort: HTTPS_PORT,
       allIps: ips,
-      remoteUrl: `http://${primaryIp}:${PORT}/remote.html`,
-      stageUrl: `http://${primaryIp}:${PORT}/stage.html`,
+      tunnelUrl: publicUrl,
+      isTunnelActive: Boolean(publicUrl),
+      remoteUrl: publicUrl ? `${publicUrl}/remote.html` : `http://${primaryIp}:${PORT}/remote.html`,
+      localRemoteUrl: `http://${primaryIp}:${PORT}/remote.html`,
+      stageUrl: publicUrl ? `${publicUrl}/stage.html` : `http://${primaryIp}:${PORT}/stage.html`,
       projectorUrl: `http://${primaryIp}:${PORT}/projector.html`,
-      tvUrl: `http://${primaryIp}:${PORT}/tv.html`,
+      tvUrl: publicUrl ? `${publicUrl}/tv.html?room=Cuneros&mode=service` : `http://${primaryIp}:${PORT}/tv.html?room=Cuneros&mode=service`,
+      localTvUrl: `http://${primaryIp}:${PORT}/tv.html?room=Cuneros&mode=service`,
       camUrls: {
-        1: `http://${primaryIp}:${PORT}/cam.html?id=1`,
-        2: `http://${primaryIp}:${PORT}/cam.html?id=2`,
-        3: `http://${primaryIp}:${PORT}/cam.html?id=3`,
-        4: `http://${primaryIp}:${PORT}/cam.html?id=4`
+        1: publicUrl ? `${publicUrl}/cam.html?id=1` : `http://${primaryIp}:${PORT}/cam.html?id=1`,
+        2: publicUrl ? `${publicUrl}/cam.html?id=2` : `http://${primaryIp}:${PORT}/cam.html?id=2`,
+        3: publicUrl ? `${publicUrl}/cam.html?id=3` : `http://${primaryIp}:${PORT}/cam.html?id=3`,
+        4: publicUrl ? `${publicUrl}/cam.html?id=4` : `http://${primaryIp}:${PORT}/cam.html?id=4`
       },
       camHttpsUrls: {
-        1: `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=1`,
-        2: `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=2`,
-        3: `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=3`,
-        4: `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=4`
+        1: publicUrl ? `${publicUrl}/cam.html?id=1` : `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=1`,
+        2: publicUrl ? `${publicUrl}/cam.html?id=2` : `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=2`,
+        3: publicUrl ? `${publicUrl}/cam.html?id=3` : `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=3`,
+        4: publicUrl ? `${publicUrl}/cam.html?id=4` : `https://${primaryIp}:${HTTPS_PORT}/cam.html?id=4`
       }
     }));
+    return;
+  }
+
+  // API 1.5: Cloudflare Tunnel Status & Registration
+  if (parsedUrl === '/api/tunnel' && req.method === 'GET') {
+    if (!activeCloudflareTunnelUrl) {
+      try {
+        const tFile = path.join(__dirname, 'data', 'public_tunnel.json');
+        if (fs.existsSync(tFile)) {
+          const tData = JSON.parse(fs.readFileSync(tFile, 'utf8'));
+          if (tData.active && tData.url) activeCloudflareTunnelUrl = tData.url;
+        }
+      } catch (e) {}
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({
+      active: Boolean(activeCloudflareTunnelUrl),
+      url: activeCloudflareTunnelUrl || '',
+      remoteUrl: activeCloudflareTunnelUrl ? `${activeCloudflareTunnelUrl}/remote.html` : '',
+      stageUrl: activeCloudflareTunnelUrl ? `${activeCloudflareTunnelUrl}/stage.html` : '',
+      tvUrl: activeCloudflareTunnelUrl ? `${activeCloudflareTunnelUrl}/tv.html?room=Cuneros&mode=service` : '',
+      camUrl: activeCloudflareTunnelUrl ? `${activeCloudflareTunnelUrl}/cam.html?id=1` : ''
+    }));
+    return;
+  }
+
+  if (parsedUrl === '/api/tunnel/register' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        activeCloudflareTunnelUrl = payload.active ? (payload.url || '') : '';
+        broadcastSSE('tunnel_update', { url: activeCloudflareTunnelUrl, active: Boolean(activeCloudflareTunnelUrl) });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, active: Boolean(activeCloudflareTunnelUrl), url: activeCloudflareTunnelUrl }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
     return;
   }
 
@@ -336,6 +436,34 @@ const requestHandler = (req, res) => {
     return;
   }
 
+  // API 4.5: Master Video Transport Control (Play, Pause, Restart, Seek, Loop, Mute across all screens)
+  if (parsedUrl === '/api/video-control' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const cmd = JSON.parse(body);
+        if (cmd) {
+          if (studioState.currentSlidePayload) {
+            studioState.currentSlidePayload.videoAction = cmd.action;
+            if (typeof cmd.time === 'number') studioState.currentSlidePayload.currentTime = cmd.time;
+            if (typeof cmd.loop === 'boolean') studioState.currentSlidePayload.videoLoop = cmd.loop;
+            if (typeof cmd.muted === 'boolean') studioState.currentSlidePayload.videoMuted = cmd.muted;
+            if (cmd.videoUrl) studioState.currentSlidePayload.videoUrl = cmd.videoUrl;
+          }
+          broadcastSSE('video_control', cmd);
+          broadcastSSE('state', studioState);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
   // API 5: Receive Actions from Mobile Remote (Next slide, Prev slide, Timer, etc.)
   if (parsedUrl === '/api/action' && req.method === 'POST') {
     let body = '';
@@ -387,6 +515,13 @@ const requestHandler = (req, res) => {
           studioState.tvMode = data.mode || 'LOBBY';
         } else if (action === 'set_tv_alert') {
           studioState.tvAlert = data.alert || '';
+        } else if (action === 'set_tv_service_live') {
+          const nextActive = Boolean(data.active);
+          if (nextActive) {
+            startTvFfmpegBroadcast();
+          } else {
+            stopTvFfmpegBroadcast();
+          }
         }
 
         broadcastSSE('state', studioState);
@@ -412,6 +547,19 @@ const requestHandler = (req, res) => {
       try {
         const sig = JSON.parse(body);
         const camId = parseInt(sig.camId || 1, 10);
+
+        // De-mDNS any .local candidates so mobile devices can connect on local WiFi
+        const primaryIp = getLocalIpAddresses()[0] || '127.0.0.1';
+        const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').replace(/^.*:/, '');
+        const targetIp = (sig.from === 'phone') ? (clientIp || primaryIp) : primaryIp;
+
+        if (sig.candidate && typeof sig.candidate.candidate === 'string') {
+          sig.candidate.candidate = sig.candidate.candidate.replace(/[a-f0-9-]+\.local/gi, targetIp);
+        }
+        if (sig.sdp && typeof sig.sdp.sdp === 'string') {
+          sig.sdp.sdp = sig.sdp.sdp.replace(/[a-f0-9-]+\.local/gi, targetIp);
+        }
+
         if (sig.from === 'phone') {
           camSignalsForStudio.push(sig);
           broadcastSSE('cam_signal', sig);
@@ -427,6 +575,54 @@ const requestHandler = (req, res) => {
         res.end(JSON.stringify({ error: e.message }));
       }
     });
+    return;
+  }
+
+  // Endpoint: Direct HTTPS POST Frame Ingest (zero-fail video stream from phone)
+  if (parsedUrl === '/api/cam/frame' && req.method === 'POST') {
+    const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const camId = parseInt(fullUrl.searchParams.get('cam') || '1', 10);
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => {
+      const buffer = Buffer.concat(chunks);
+      if (buffer.length > 0) {
+        mobileCamLatestFrames[camId] = buffer;
+        if (mobileCamsState[camId]) {
+          mobileCamsState[camId].connected = true;
+          mobileCamsState[camId].lastPing = Date.now();
+        }
+        const recs = mobileCamReceivers[camId];
+        if (recs && recs.size > 0) {
+          for (const r of recs) {
+            if (r.readyState === WebSocket.OPEN) {
+              r.send(buffer, { binary: true });
+            }
+          }
+        }
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end('{"ok":true}');
+    });
+    return;
+  }
+
+  // Endpoint: Fetch Latest Frame (polling fallback for studio canvas)
+  if (parsedUrl === '/api/cam/frame' && req.method === 'GET') {
+    const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const camId = parseInt(fullUrl.searchParams.get('cam') || '1', 10);
+    const buf = mobileCamLatestFrames[camId];
+    if (buf && buf.length > 0) {
+      res.writeHead(200, {
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Content-Length': buf.length
+      });
+      res.end(buf);
+    } else {
+      res.writeHead(204);
+      res.end();
+    }
     return;
   }
 
@@ -471,6 +667,29 @@ const requestHandler = (req, res) => {
           if (status.userAgent) mobileCamsState[camId].userAgent = status.userAgent;
         }
         broadcastSSE('cam_status', { camId, status: mobileCamsState[camId] });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // Endpoint: Request Phone to Renegotiate/Re-send Offer
+  if (parsedUrl === '/api/cam/renegotiate' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        const targetCams = (payload.camId === 'all' || !payload.camId) ? [1, 2, 3, 4] : [parseInt(payload.camId, 10)];
+        targetCams.forEach(id => {
+          if (!camSignalsForPhones[id]) camSignalsForPhones[id] = [];
+          camSignalsForPhones[id].push({ type: 'renegotiate', camId: id });
+        });
+        broadcastSSE('cam_renegotiate', payload);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
@@ -527,6 +746,21 @@ const requestHandler = (req, res) => {
   }
   // =========================================================================
   // MASTER RTMP / RTMPS LIVE STREAMING PIPELINE (FACEBOOK LIVE & YOUTUBE LIVE)
+  // Endpoint: Local Smart TV Service Broadcast Status
+  if (parsedUrl === '/api/tv/status' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({
+      active: Boolean(studioState.tvServiceLive && activeTvFfmpegProcess),
+      tvMode: studioState.tvMode,
+      clients: tvStreamClients.size,
+      hasInit: Boolean(tvFmp4InitSegment),
+      mime: tvFmp4Mime,
+      fragments: tvFragmentCount,
+      hlsUrl: '/tv-hls/live.m3u8'
+    }));
+    return;
+  }
+
   // Endpoint: Get Live Streaming Status & Real Telemetry
   if (parsedUrl === '/api/stream/status' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -536,6 +770,22 @@ const requestHandler = (req, res) => {
       stats: liveStreamState.stats,
       destinations: liveStreamState.destinations
     }));
+    return;
+  }
+
+  // Endpoint: Fetch Current Stream Frame being sent to FFmpeg (Instant Live Inspection)
+  if (parsedUrl === '/api/stream/frame' && req.method === 'GET') {
+    if (currentFrameJpeg && currentFrameJpeg.length > 100) {
+      res.writeHead(200, {
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Content-Length': currentFrameJpeg.length
+      });
+      res.end(currentFrameJpeg);
+    } else {
+      res.writeHead(204);
+      res.end();
+    }
     return;
   }
 
@@ -569,7 +819,7 @@ const requestHandler = (req, res) => {
         if (fb.enabled && fb.key && fb.key.trim() && fb.key.trim() !== 'FB-1049284729184712-live') {
           targetNames.push('Facebook Live');
         }
-        if (yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni') {
+        if (!dest.localTest && yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni') {
           targetNames.push('YouTube Live');
         }
         if (targetNames.length === 0) {
@@ -897,23 +1147,36 @@ const requestHandler = (req, res) => {
         'Accept-Ranges': 'bytes',
         'Content-Length': chunksize,
         'Content-Type': contentType,
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, HEAD',
+        'Access-Control-Allow-Headers': 'Content-Type, Range',
+        'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges',
+        'Cache-Control': 'no-store'
       });
+      if (req.method === 'HEAD') {
+        res.end();
+        return;
+      }
       const stream = fs.createReadStream(filePath, { start, end });
       stream.pipe(res);
       return;
     }
 
+    const isMedia = /\.(mp4|webm|mov|mkv|mp3|wav|ogg)$/i.test(ext);
     res.writeHead(200, {
       'Content-Type': contentType,
       'Content-Length': stats.size,
       'Accept-Ranges': 'bytes',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, HEAD',
+      'Access-Control-Allow-Headers': 'Content-Type, Range',
+      'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges',
+      'Cache-Control': 'no-store'
     });
+    if (req.method === 'HEAD') {
+      res.end();
+      return;
+    }
     const readStream = fs.createReadStream(filePath);
     readStream.pipe(res);
   });
@@ -927,6 +1190,81 @@ let streamChunkCount = 0;
 let pendingStreamChunks = [];
 let activeTargetNames = [];
 let ffmpegFramePumpTimer = null;
+let ffmpegAudioPumpTimer = null;
+let pcmAudioQueue = [];
+let pcmQueueBytes = 0;
+let tvPcmAudioQueue = [];
+let tvPcmQueueBytes = 0;
+let liveAudioMutedFlag = false;
+let pcmPacketCount = 0;
+const PCM_SAMPLE_RATE = 44100;
+const PCM_BYTES_PER_SAMPLE = 4; // 16-bit stereo (2 bytes * 2 channels)
+const PCM_BYTES_PER_SEC = PCM_SAMPLE_RATE * PCM_BYTES_PER_SAMPLE;
+const MAX_PCM_QUEUE_BYTES = Math.floor(PCM_BYTES_PER_SEC * 0.25); // Cap latency at ~250ms
+const SILENCE_3528 = Buffer.alloc(3528, 0);
+
+function pushFifoPcm(queue, currentBytes, pcmBuf) {
+  queue.push(pcmBuf);
+  let total = currentBytes + pcmBuf.length;
+  while (total > MAX_PCM_QUEUE_BYTES && queue.length > 1) {
+    const dropped = queue.shift();
+    total -= dropped.length;
+  }
+  return total;
+}
+
+function shiftFifoPcm(queue, currentBytes, bytesNeeded) {
+  if (bytesNeeded <= 0) return { chunk: Buffer.alloc(0), remaining: currentBytes };
+  if (liveAudioMutedFlag || currentBytes === 0) {
+    return {
+      chunk: bytesNeeded === 3528 ? SILENCE_3528 : Buffer.alloc(bytesNeeded, 0),
+      remaining: currentBytes
+    };
+  }
+  const out = Buffer.alloc(bytesNeeded, 0);
+  let offset = 0;
+  let remaining = currentBytes;
+  while (offset < bytesNeeded && queue.length > 0) {
+    const head = queue[0];
+    const take = Math.min(bytesNeeded - offset, head.length);
+    head.copy(out, offset, 0, take);
+    offset += take;
+    remaining -= take;
+    if (take < head.length) {
+      queue[0] = head.subarray(take);
+    } else {
+      queue.shift();
+    }
+  }
+  return { chunk: out, remaining };
+}
+
+function enqueuePcmAudioChunk(pcmBuf) {
+  if (!pcmBuf || pcmBuf.length === 0 || liveAudioMutedFlag) return;
+  if (!activeFfmpegProcess && !activeTvFfmpegProcess) return;
+  pcmPacketCount++;
+  if (liveStreamState && liveStreamState.stats) {
+    liveStreamState.stats.pcmPackets = pcmPacketCount;
+  }
+  if (activeFfmpegProcess) {
+    pcmQueueBytes = pushFifoPcm(pcmAudioQueue, pcmQueueBytes, pcmBuf);
+  }
+  if (activeTvFfmpegProcess) {
+    tvPcmQueueBytes = pushFifoPcm(tvPcmAudioQueue, tvPcmQueueBytes, pcmBuf);
+  }
+}
+
+function dequeuePcmBytes(bytesNeeded) {
+  const res = shiftFifoPcm(pcmAudioQueue, pcmQueueBytes, bytesNeeded);
+  pcmQueueBytes = res.remaining;
+  return res.chunk;
+}
+
+function dequeueTvPcmBytes(bytesNeeded) {
+  const res = shiftFifoPcm(tvPcmAudioQueue, tvPcmQueueBytes, bytesNeeded);
+  tvPcmQueueBytes = res.remaining;
+  return res.chunk;
+}
 let standbyJpegBuffer = null;
 let currentFrameJpeg = null;
 
@@ -971,16 +1309,62 @@ function writeChunkToFfmpeg(rawData, source = 'WS') {
   }
 }
 
+let cachedDirectShowAudioDevice = null;
+
+// STREAM HEALTH MONITOR (como el panel de estadísticas de OBS): cuántos cuadros REALES llegan del navegador.
+// Si llegan < 20 fps, el servidor está repitiendo el último cuadro (imagen congelada en Facebook).
+let lastHealthChunkCount = 0;
+setInterval(() => {
+  if (!activeFfmpegProcess) { lastHealthChunkCount = streamChunkCount; return; }
+  const fps = (streamChunkCount - lastHealthChunkCount) / 5;
+  lastHealthChunkCount = streamChunkCount;
+  liveStreamState.stats.browserFps = fps;
+  console.log(`[Stream Health] Cuadros reales del navegador: ${fps.toFixed(1)} fps${fps < 20 ? '  <-- CONGELAMIENTO: el navegador no está enviando cuadros' : ''}`);
+  if (activeStreamWebSocket && activeStreamWebSocket.readyState === WebSocket.OPEN) {
+    try { activeStreamWebSocket.send(JSON.stringify({ type: 'health', browserFps: fps })); } catch (e) {}
+  }
+}, 5000);
+function detectDirectShowAudioDevice() {
+  if (cachedDirectShowAudioDevice !== null) return cachedDirectShowAudioDevice;
+  try {
+    const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
+    if (fs.existsSync(ffmpegPath)) {
+      const res = spawnSync(ffmpegPath, ['-list_devices', 'true', '-f', 'dshow', '-i', 'dummy'], { encoding: 'utf8' });
+      const output = (res.stderr || '') + (res.stdout || '');
+      const audioSection = output.split('DirectShow audio devices')[1] || '';
+      const matches = [...audioSection.matchAll(/\"([^\"]+)\"/g)].map(m => m[1]);
+      // Prefer real physical microphones (Realtek, USB, etc.), avoid virtual loopbacks
+      const best = matches.find(m => /realtek|mic|microf|usb|audio/i.test(m)) || matches[0];
+      if (best) {
+        cachedDirectShowAudioDevice = best;
+        console.log(`[FFmpeg Audio] DirectShow physical microphone detected: "${best}"`);
+        return best;
+      }
+    }
+  } catch (e) {
+    console.warn('[FFmpeg Audio] Device detection warning:', e.message);
+  }
+  cachedDirectShowAudioDevice = '';
+  return '';
+}
+
 function stopFfmpegStream(notifyClient = true) {
   if (ffmpegFramePumpTimer) {
     clearInterval(ffmpegFramePumpTimer);
     ffmpegFramePumpTimer = null;
+  }
+  if (ffmpegAudioPumpTimer) {
+    clearInterval(ffmpegAudioPumpTimer);
+    ffmpegAudioPumpTimer = null;
   }
   liveStreamState.isStreaming = false;
   liveStreamState.startTime = null;
   streamHasValidHeader = false;
   streamChunkCount = 0;
   pendingStreamChunks = [];
+  pcmAudioQueue = [];
+  pcmQueueBytes = 0;
+  pcmPacketCount = 0;
   activeTargetNames = [];
 
   if (activeFfmpegProcess) {
@@ -988,15 +1372,21 @@ function stopFfmpegStream(notifyClient = true) {
     activeFfmpegProcess = null;
 
     try {
-      proc.stdin.end(); // Clean EOF -> triggers RTMP unpublish
+      if (proc.stdin && proc.stdin.writable) {
+        proc.stdin.end(); // Clean EOF -> triggers RTMP unpublish
+      }
+      if (proc.stdio && proc.stdio[3] && proc.stdio[3].writable) {
+        proc.stdio[3].end();
+      }
     } catch (e) {}
 
     const killTimer = setTimeout(() => {
       try { proc.kill(); } catch (e) {}
-    }, 3000);
+    }, 2500);
 
-    proc.once('close', () => {
+    proc.once('close', (code) => {
       clearTimeout(killTimer);
+      console.log(`[FFmpeg RTMP] Stream finished cleanly with code ${code}`);
     });
   }
 
@@ -1045,7 +1435,19 @@ function startFfmpegStream(dest, activeWs) {
   }
 
   const targets = [];
-  const resolvedFbKey = resolveLatestFacebookKey(fb.key);
+
+  // PRUEBA LOCAL (como la grabación de prueba de Wirecast/OBS): misma tubería exacta, pero escribe a un archivo
+  // en vez de Facebook/YouTube, para verificar que el video de salida realmente se mueve.
+  if (dest.localTest) {
+    const recDir = path.join(__dirname, 'recordings');
+    if (!fs.existsSync(recDir)) fs.mkdirSync(recDir, { recursive: true });
+    const outFile = path.join(recDir, `prueba_local_${Date.now()}.flv`);
+    targets.push({ name: 'Prueba Local', url: outFile });
+    liveStreamState.lastLocalTestFile = outFile;
+    console.log(`[FFmpeg RTMP] PRUEBA LOCAL -> ${outFile}`);
+  }
+
+  const resolvedFbKey = dest.localTest ? null : resolveLatestFacebookKey(fb.key);
   if (fb.enabled && resolvedFbKey && resolvedFbKey !== 'FB-1049284729184712-live') {
     // Use OBS Studio's exact RTMPS endpoint for Facebook Live
     let rawUrl = (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').trim();
@@ -1056,7 +1458,7 @@ function startFfmpegStream(dest, activeWs) {
     targets.push({ name: 'Facebook Live', url: targetUrl });
   }
 
-  if (yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni') {
+  if (!dest.localTest && yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni') {
     const rawUrl = (yt.url || 'rtmp://a.rtmp.youtube.com/live2').trim();
     const cleanKey = yt.key.trim();
     const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;
@@ -1089,27 +1491,41 @@ function startFfmpegStream(dest, activeWs) {
     getStandbyJpegBuffer();
   }
 
-  // Match OBS Studio's H.264 Main Profile CBR + AAC stereo with lightweight 3-thread ultrafast CPU usage
+  // Pipeline unificado OBS-grade: Video JPEG en pipe:0 + Mezcla Real WebAudio PCM 44.1kHz Estéreo en pipe:3
+  liveAudioMutedFlag = Boolean(dest && dest.audioMuted);
+  pcmAudioQueue = [];
+  pcmQueueBytes = 0;
+  pcmPacketCount = 0;
+  console.log(`[FFmpeg Audio] Ingesting live Fairlight WebAudio mix via pipe:3 (initial mute: ${liveAudioMutedFlag})`);
+
   const ffmpegArgs = [
     '-thread_queue_size', '4096',
     '-f', 'image2pipe',
     '-vcodec', 'mjpeg',
     '-framerate', '30',
     '-i', 'pipe:0',
-    '-f', 'lavfi',
-    '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+    '-thread_queue_size', '4096',
+    '-f', 's16le',
+    '-ar', String(PCM_SAMPLE_RATE),
+    '-ac', '2',
+    '-i', 'pipe:3'
+  ];
+
+  ffmpegArgs.push(
     '-map', '0:v:0',
     '-map', '1:a:0',
-    '-vf', 'scale=1280:720,format=yuv420p',
+    '-vf', 'scale=1280:720,format=yuv420p,setpts=N/(30*TB)',
+    '-af', 'aresample=async=1000:min_hard_comp=0.100000:first_pts=0',
     '-c:v', 'libx264',
     '-preset', 'ultrafast',
     '-tune', 'zerolatency',
     '-threads', '3',
     '-profile:v', 'main',
-    '-b:v', '3000k',
-    '-minrate', '3000k',
-    '-maxrate', '3000k',
-    '-bufsize', '3000k',
+    '-b:v', '3500k',
+    '-minrate', '3500k',
+    '-maxrate', '3500k',
+    '-bufsize', '3500k',
+    '-x264-params', 'nal-hrd=cbr:force-cfr=1',
     '-pix_fmt', 'yuv420p',
     '-r', '30',
     '-g', '60',
@@ -1119,10 +1535,9 @@ function startFfmpegStream(dest, activeWs) {
     '-b:a', '160k',
     '-ar', '44100',
     '-ac', '2',
-    '-shortest',
     '-max_muxing_queue_size', '9999',
     '-flvflags', 'no_duration_filesize'
-  ];
+  );
 
   if (targets.length === 1) {
     ffmpegArgs.push('-f', 'flv', targets[0].url);
@@ -1133,7 +1548,7 @@ function startFfmpegStream(dest, activeWs) {
 
   activeTargetNames = targets.map(t => t.name);
   console.log(`[FFmpeg RTMP] Spawning OBS-grade 30fps pipeline for: ${activeTargetNames.join(' & ')}`);
-  const proc = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe'] });
+  const proc = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] });
   activeFfmpegProcess = proc;
   streamHasValidHeader = true;
   streamChunkCount = 0;
@@ -1141,16 +1556,16 @@ function startFfmpegStream(dest, activeWs) {
   liveStreamState.isStreaming = true;
   liveStreamState.startTime = Date.now();
   liveStreamState.destinations = dest;
-  liveStreamState.stats = { fps: 30, bitrate: 4500, speed: '1x', totalBytes: 0, droppedFrames: 0, error: null };
+  liveStreamState.stats = { fps: 30, bitrate: 3500, speed: '1x', totalBytes: 0, droppedFrames: 0, pcmPackets: 0, error: null };
 
-  // Immediately pump the initial frame and start the rock-solid 30.00 FPS server clock
-  if (currentFrameJpeg && proc.stdin && proc.stdin.writable) {
+  // Immediately pump the initial frame and start the rock-solid 30.00 FPS + 44.1kHz PCM server clocks
+  if (currentFrameJpeg && proc.stdin && proc.stdin.writable && !proc.stdin.destroyed) {
     try { proc.stdin.write(currentFrameJpeg); } catch (e) {}
   }
 
   clearInterval(ffmpegFramePumpTimer);
   ffmpegFramePumpTimer = setInterval(() => {
-    if (!activeFfmpegProcess || activeFfmpegProcess !== proc || !proc.stdin || !proc.stdin.writable) return;
+    if (!activeFfmpegProcess || activeFfmpegProcess !== proc || !proc.stdin || !proc.stdin.writable || proc.stdin.destroyed) return;
     if (currentFrameJpeg) {
       try {
         proc.stdin.write(currentFrameJpeg);
@@ -1158,9 +1573,43 @@ function startFfmpegStream(dest, activeWs) {
     }
   }, 33);
 
+  clearInterval(ffmpegAudioPumpTimer);
+  const audioClockStart = Date.now();
+  let audioBytesWritten = 0;
+  // Pre-seed 40ms of silence on pipe:3 so FFmpeg probes audio stream header at t=0.00s immediately
+  const audioPipeInit = proc.stdio && proc.stdio[3];
+  if (audioPipeInit && audioPipeInit.writable && !audioPipeInit.destroyed) {
+    try {
+      const seed = Buffer.alloc(Math.floor(PCM_SAMPLE_RATE * 0.04) * PCM_BYTES_PER_SAMPLE, 0);
+      audioPipeInit.write(seed);
+      audioBytesWritten += seed.length;
+    } catch (e) {}
+  }
+  ffmpegAudioPumpTimer = setInterval(() => {
+    if (!activeFfmpegProcess || activeFfmpegProcess !== proc) return;
+    const audioPipe = proc.stdio && proc.stdio[3];
+    if (!audioPipe || !audioPipe.writable || audioPipe.destroyed) return;
+    const targetBytes = Math.floor(((Date.now() - audioClockStart) / 1000) * PCM_SAMPLE_RATE) * PCM_BYTES_PER_SAMPLE + Math.floor(PCM_SAMPLE_RATE * 0.04) * PCM_BYTES_PER_SAMPLE;
+    let due = targetBytes - audioBytesWritten;
+    due = due - (due % PCM_BYTES_PER_SAMPLE);
+    if (due <= 0) return;
+    const maxStep = Math.floor(PCM_BYTES_PER_SEC * 0.2);
+    if (due > maxStep) due = maxStep - (maxStep % PCM_BYTES_PER_SAMPLE);
+    const chunk = dequeuePcmBytes(due);
+    try {
+      audioPipe.write(chunk);
+      audioBytesWritten += chunk.length;
+    } catch (e) {}
+  }, 20);
+
   proc.stdin.on('error', (err) => {
     console.warn('[FFmpeg stdin error]:', err.message);
   });
+  if (proc.stdio && proc.stdio[3]) {
+    proc.stdio[3].on('error', (err) => {
+      console.warn('[FFmpeg audio pipe error]:', err.message);
+    });
+  }
 
   proc.stderr.on('data', (data) => {
     const text = data.toString();
@@ -1206,6 +1655,12 @@ function startFfmpegStream(dest, activeWs) {
         clearInterval(ffmpegFramePumpTimer);
         ffmpegFramePumpTimer = null;
       }
+      if (ffmpegAudioPumpTimer) {
+        clearInterval(ffmpegAudioPumpTimer);
+        ffmpegAudioPumpTimer = null;
+      }
+      pcmAudioQueue = [];
+      pcmQueueBytes = 0;
       activeFfmpegProcess = null;
       liveStreamState.isStreaming = false;
       streamHasValidHeader = false;
@@ -1242,6 +1697,280 @@ function startFfmpegStream(dest, activeWs) {
   return { success: true, destinations: activeTargetNames };
 }
 
+// =========================================================================
+// OMNICAST LOCAL TV BROADCAST: SINGLE-ENCODE fMP4 (MSE) + HLS FOR SALAS/TVs
+// =========================================================================
+function extractAvcCodecFromMoov(moovBuf) {
+  try {
+    const idx = moovBuf.indexOf(Buffer.from('avcC'));
+    if (idx !== -1 && idx + 8 < moovBuf.length) {
+      // ISO BMFF avcC payload starts immediately after 4-byte 'avcC' tag:
+      // [version=1, AVCProfileIndication, profile_compatibility, AVCLevelIndication]
+      const prof = moovBuf[idx + 5].toString(16).padStart(2, '0');
+      const comp = moovBuf[idx + 6].toString(16).padStart(2, '0');
+      const lvl = moovBuf[idx + 7].toString(16).padStart(2, '0');
+      return `video/mp4; codecs="avc1.${prof}${comp}${lvl}, mp4a.40.2"`;
+    }
+  } catch (e) {}
+  return 'video/mp4; codecs="avc1.42E01F, mp4a.40.2"';
+}
+
+function broadcastTvControl(payloadObj) {
+  const msg = JSON.stringify(payloadObj);
+  for (const client of tvStreamClients) {
+    if (client.readyState === WebSocket.OPEN) {
+      try { client.send(msg); } catch (e) {}
+    }
+  }
+}
+
+function broadcastTvBinary(buf) {
+  for (const client of tvStreamClients) {
+    if (client.readyState === WebSocket.OPEN && client.bufferedAmount <= 1024 * 1024) {
+      try { client.send(buf, { binary: true }); } catch (e) {}
+    }
+  }
+}
+
+function stopTvFfmpegBroadcast() {
+  if (tvFramePumpTimer) {
+    clearInterval(tvFramePumpTimer);
+    tvFramePumpTimer = null;
+  }
+  if (tvAudioPumpTimer) {
+    clearInterval(tvAudioPumpTimer);
+    tvAudioPumpTimer = null;
+  }
+  studioState.tvServiceLive = false;
+  tvPcmAudioQueue = [];
+  tvPcmQueueBytes = 0;
+  tvFmp4InitSegment = null;
+  tvLatestFragment = null;
+  tvFragmentCount = 0;
+
+  if (activeTvFfmpegProcess) {
+    const proc = activeTvFfmpegProcess;
+    activeTvFfmpegProcess = null;
+    try {
+      if (proc.stdin && proc.stdin.writable) proc.stdin.end();
+      if (proc.stdio && proc.stdio[3] && proc.stdio[3].writable) proc.stdio[3].end();
+    } catch (e) {}
+    const killTimer = setTimeout(() => {
+      try { proc.kill(); } catch (e) {}
+    }, 2000);
+    proc.once('close', () => clearTimeout(killTimer));
+  }
+
+  broadcastTvControl({ type: 'tv_status', active: false });
+  broadcastSSE('tv_service_live', { active: false });
+  broadcastSSE('state', studioState);
+}
+
+function startTvFfmpegBroadcast() {
+  if (activeTvFfmpegProcess && studioState.tvServiceLive) {
+    return { success: true, alreadyRunning: true };
+  }
+
+  const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
+  if (!fs.existsSync(ffmpegPath)) {
+    return { error: `Binario FFmpeg no encontrado en ${ffmpegPath}` };
+  }
+
+  stopTvFfmpegBroadcast();
+  if (!currentFrameJpeg) {
+    getStandbyJpegBuffer();
+  }
+
+  try {
+    if (!fs.existsSync(TV_HLS_DIR)) fs.mkdirSync(TV_HLS_DIR, { recursive: true });
+    for (const f of fs.readdirSync(TV_HLS_DIR)) {
+      if (/\.(m3u8|ts|m4s)$/i.test(f)) {
+        try { fs.unlinkSync(path.join(TV_HLS_DIR, f)); } catch (e) {}
+      }
+    }
+  } catch (e) {}
+
+  const hlsManifest = path.join(TV_HLS_DIR, 'live.m3u8').replace(/\\/g, '/');
+  const teeTarget = `[f=mp4:movflags=frag_keyframe+empty_moov+default_base_moof:onfail=ignore]pipe:1|[f=hls:hls_time=1:hls_list_size=5:hls_flags=delete_segments:onfail=ignore]${hlsManifest}`;
+
+  const tvArgs = [
+    '-thread_queue_size', '2048',
+    '-f', 'image2pipe',
+    '-vcodec', 'mjpeg',
+    '-framerate', '30',
+    '-i', 'pipe:0',
+    '-thread_queue_size', '2048',
+    '-f', 's16le',
+    '-ar', String(PCM_SAMPLE_RATE),
+    '-ac', '2',
+    '-i', 'pipe:3',
+    '-map', '0:v:0',
+    '-map', '1:a:0',
+    '-vf', 'scale=960:540,format=yuv420p,setpts=N/(30*TB)',
+    '-af', 'aresample=async=1000:min_hard_comp=0.100000:first_pts=0',
+    '-c:v', 'libx264',
+    '-preset', 'ultrafast',
+    '-tune', 'zerolatency',
+    '-threads', '2',
+    '-profile:v', 'baseline',
+    '-level', '3.1',
+    '-b:v', '1800k',
+    '-maxrate', '2000k',
+    '-bufsize', '2000k',
+    '-pix_fmt', 'yuv420p',
+    '-r', '30',
+    '-g', '30',
+    '-keyint_min', '30',
+    '-sc_threshold', '0',
+    '-c:a', 'aac',
+    '-b:a', '128k',
+    '-ar', '44100',
+    '-ac', '2',
+    '-flags', '+global_header',
+    '-max_muxing_queue_size', '9999',
+    '-f', 'tee',
+    teeTarget
+  ];
+
+  console.log('[TV Broadcast LAN] Spawning local Salas/TVs encoder (fMP4 MSE + HLS)...');
+  const proc = spawn(ffmpegPath, tvArgs, { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] });
+  activeTvFfmpegProcess = proc;
+  studioState.tvServiceLive = true;
+  tvPcmAudioQueue = [];
+  tvPcmQueueBytes = 0;
+  tvFmp4InitSegment = null;
+  tvLatestFragment = null;
+  tvFragmentCount = 0;
+
+  let boxAcc = Buffer.alloc(0);
+  let ftypBox = null;
+  let pendingMoof = null;
+
+  proc.stdout.on('data', (chunk) => {
+    if (activeTvFfmpegProcess !== proc) return;
+    boxAcc = boxAcc.length ? Buffer.concat([boxAcc, chunk]) : chunk;
+
+    while (boxAcc.length >= 8) {
+      const boxSize = boxAcc.readUInt32BE(0);
+      if (boxSize < 8) {
+        boxAcc = Buffer.alloc(0);
+        break;
+      }
+      if (boxAcc.length < boxSize) break;
+
+      const boxType = boxAcc.subarray(4, 8).toString('ascii');
+      const boxBuf = Buffer.from(boxAcc.subarray(0, boxSize));
+      boxAcc = boxAcc.subarray(boxSize);
+
+      if (boxType === 'ftyp') {
+        ftypBox = boxBuf;
+      } else if (boxType === 'moov') {
+        tvFmp4Mime = extractAvcCodecFromMoov(boxBuf);
+        tvFmp4InitSegment = ftypBox ? Buffer.concat([ftypBox, boxBuf]) : boxBuf;
+        ftypBox = null;
+        console.log(`[TV Broadcast LAN] Init segment ready (${tvFmp4InitSegment.length} bytes, ${tvFmp4Mime})`);
+        broadcastTvControl({ type: 'tv_init', mime: tvFmp4Mime });
+        broadcastTvBinary(tvFmp4InitSegment);
+      } else if (boxType === 'moof') {
+        pendingMoof = boxBuf;
+      } else if (boxType === 'mdat' && pendingMoof) {
+        const frag = Buffer.concat([pendingMoof, boxBuf]);
+        pendingMoof = null;
+        tvLatestFragment = frag;
+        tvFragmentCount++;
+        broadcastTvBinary(frag);
+      }
+    }
+  });
+
+  if (currentFrameJpeg && proc.stdin && proc.stdin.writable && !proc.stdin.destroyed) {
+    try { proc.stdin.write(currentFrameJpeg); } catch (e) {}
+  }
+
+  tvFramePumpTimer = setInterval(() => {
+    if (!activeTvFfmpegProcess || activeTvFfmpegProcess !== proc || !proc.stdin || !proc.stdin.writable || proc.stdin.destroyed) return;
+    if (currentFrameJpeg) {
+      try { proc.stdin.write(currentFrameJpeg); } catch (e) {}
+    }
+  }, 33);
+
+  const tvClockStart = Date.now();
+  let tvAudioWritten = 0;
+  const tvAudioPipeInit = proc.stdio && proc.stdio[3];
+  if (tvAudioPipeInit && tvAudioPipeInit.writable && !tvAudioPipeInit.destroyed) {
+    try {
+      const seed = Buffer.alloc(Math.floor(PCM_SAMPLE_RATE * 0.04) * PCM_BYTES_PER_SAMPLE, 0);
+      tvAudioPipeInit.write(seed);
+      tvAudioWritten += seed.length;
+    } catch (e) {}
+  }
+  tvAudioPumpTimer = setInterval(() => {
+    if (!activeTvFfmpegProcess || activeTvFfmpegProcess !== proc) return;
+    const audioPipe = proc.stdio && proc.stdio[3];
+    if (!audioPipe || !audioPipe.writable || audioPipe.destroyed) return;
+    const targetBytes = Math.floor(((Date.now() - tvClockStart) / 1000) * PCM_SAMPLE_RATE) * PCM_BYTES_PER_SAMPLE + Math.floor(PCM_SAMPLE_RATE * 0.04) * PCM_BYTES_PER_SAMPLE;
+    let due = targetBytes - tvAudioWritten;
+    due = due - (due % PCM_BYTES_PER_SAMPLE);
+    if (due <= 0) return;
+    const maxStep = Math.floor(PCM_BYTES_PER_SEC * 0.2);
+    if (due > maxStep) due = maxStep - (maxStep % PCM_BYTES_PER_SAMPLE);
+    const out = dequeueTvPcmBytes(due);
+    try {
+      audioPipe.write(out);
+      tvAudioWritten += out.length;
+    } catch (e) {}
+  }, 20);
+
+  proc.stdin.on('error', () => {});
+  if (proc.stdio && proc.stdio[3]) proc.stdio[3].on('error', () => {});
+  proc.stderr.on('data', (d) => {
+    const txt = d.toString();
+    if (/error|invalid/i.test(txt) && !txt.includes('frame=')) {
+      console.warn('[TV Broadcast FFmpeg]:', txt.trim());
+    }
+  });
+  proc.on('close', (code) => {
+    console.log(`[TV Broadcast LAN] Ended with exit code ${code}`);
+    if (activeTvFfmpegProcess === proc) {
+      if (tvFramePumpTimer) { clearInterval(tvFramePumpTimer); tvFramePumpTimer = null; }
+      if (tvAudioPumpTimer) { clearInterval(tvAudioPumpTimer); tvAudioPumpTimer = null; }
+      activeTvFfmpegProcess = null;
+      studioState.tvServiceLive = false;
+      tvFmp4InitSegment = null;
+      tvLatestFragment = null;
+      broadcastTvControl({ type: 'tv_status', active: false });
+      broadcastSSE('tv_service_live', { active: false });
+      broadcastSSE('state', studioState);
+    }
+  });
+
+  broadcastTvControl({ type: 'tv_status', active: true });
+  broadcastSSE('tv_service_live', { active: true });
+  broadcastSSE('state', studioState);
+  return { success: true };
+}
+
+const tvStreamWss = new WebSocket.Server({ noServer: true });
+tvStreamWss.on('connection', (ws) => {
+  tvStreamClients.add(ws);
+  if (studioState.tvServiceLive && tvFmp4InitSegment) {
+    try {
+      ws.send(JSON.stringify({ type: 'tv_status', active: true }));
+      ws.send(JSON.stringify({ type: 'tv_init', mime: tvFmp4Mime }));
+      ws.send(tvFmp4InitSegment, { binary: true });
+      if (tvLatestFragment) {
+        ws.send(tvLatestFragment, { binary: true });
+      }
+    } catch (e) {}
+  } else {
+    try {
+      ws.send(JSON.stringify({ type: 'tv_status', active: Boolean(studioState.tvServiceLive) }));
+    } catch (e) {}
+  }
+  ws.on('close', () => tvStreamClients.delete(ws));
+  ws.on('error', () => tvStreamClients.delete(ws));
+});
+
 const liveStreamWss = new WebSocket.Server({ noServer: true });
 
 liveStreamWss.on('connection', (ws, request) => {
@@ -1264,34 +1993,90 @@ liveStreamWss.on('connection', (ws, request) => {
   }
 
   ws.on('message', (message, isBinary) => {
-    if (!isBinary) {
-      try {
-        const payload = JSON.parse(message.toString());
-        if (payload.action === 'start') {
-          if (!startedForThisSocket || !activeFfmpegProcess) {
-            startedForThisSocket = true;
-            startFfmpegStream(payload.config, ws);
-          } else if (ws.readyState === WebSocket.OPEN) {
-            // Always reply with ready so any client awaiting 'ready' after sending 'start' receives it
-            ws.send(JSON.stringify({
-              type: 'ready',
-              message: `Pipeline RTMP listo para ${activeTargetNames.join(' y ')}`,
-              destinations: activeTargetNames
-            }));
-          }
-        } else if (payload.action === 'stop') {
-          stopFfmpegStream();
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'stopped' }));
-          }
-        } else if (payload.action === 'log') {
-          console.log(`[Client WS Log] ${payload.event}:`, JSON.stringify(payload.details || {}));
-        }
-      } catch (err) {
-        console.warn('[WebSocket Stream] Parse message error:', err.message);
+    let buf = null;
+    if (Buffer.isBuffer(message)) {
+      buf = message;
+    } else if (message instanceof ArrayBuffer) {
+      buf = Buffer.from(message);
+    } else if (ArrayBuffer.isView(message)) {
+      buf = Buffer.from(message.buffer, message.byteOffset, message.byteLength);
+    }
+
+    // Direct PCM Audio chunk detection: 'PCM0' magic bytes (0x50 0x43 0x4D 0x30)
+    if (buf && buf.length > 4 && buf[0] === 0x50 && buf[1] === 0x43 && buf[2] === 0x4D && buf[3] === 0x30) {
+      enqueuePcmAudioChunk(buf.subarray(4));
+      return;
+    }
+
+    // Direct JPEG frame detection: 0xFF 0xD8 magic bytes
+    if (buf && buf.length >= 4 && buf[0] === 0xFF && buf[1] === 0xD8) {
+      writeChunkToFfmpeg(buf, 'WS');
+      return;
+    }
+
+    if (isBinary && buf) {
+      writeChunkToFfmpeg(buf, 'WS');
+      return;
+    }
+
+    if (!isBinary && message) {
+      const msgStr = typeof message === 'string' ? message : message.toString();
+      if (msgStr.startsWith('data:image/')) {
+        const comma = msgStr.indexOf(',');
+        const b64Buf = Buffer.from(msgStr.substring(comma + 1), 'base64');
+        writeChunkToFfmpeg(b64Buf, 'WS-B64');
+        return;
       }
-    } else {
-      writeChunkToFfmpeg(message, 'WS');
+    }
+
+    // Non-binary JSON control message
+    try {
+      const payload = JSON.parse(message.toString());
+      if (payload.action === 'start') {
+        if (!startedForThisSocket || !activeFfmpegProcess) {
+          startedForThisSocket = true;
+          startFfmpegStream(payload.config, ws);
+        } else if (ws.readyState === WebSocket.OPEN) {
+          // Always reply with ready so any client awaiting 'ready' after sending 'start' receives it
+          ws.send(JSON.stringify({
+            type: 'ready',
+            message: `Pipeline RTMP listo para ${activeTargetNames.join(' y ')}`,
+            destinations: activeTargetNames
+          }));
+        }
+      } else if (payload.action === 'stop') {
+        stopFfmpegStream();
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'stopped' }));
+        }
+      } else if (payload.action === 'stop_rtmp') {
+        stopFfmpegStream();
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'stopped' }));
+        }
+      } else if (payload.action === 'start_tv_feed') {
+        startTvFfmpegBroadcast();
+      } else if (payload.action === 'stop_tv_feed') {
+        stopTvFfmpegBroadcast();
+      } else if (payload.action === 'set_audio_mute') {
+        liveAudioMutedFlag = Boolean(payload.muted);
+        if (liveStreamState.destinations) {
+          liveStreamState.destinations.audioMuted = liveAudioMutedFlag;
+        }
+        if (liveAudioMutedFlag) {
+          pcmAudioQueue = [];
+          pcmQueueBytes = 0;
+          tvPcmAudioQueue = [];
+          tvPcmQueueBytes = 0;
+        }
+        console.log(`[FFmpeg Audio] Mute en vivo -> ${liveAudioMutedFlag ? 'MUTED (Silencio digital)' : 'ON (Audio activo)'}`);
+      } else if (payload.action === 'log') {
+        console.log(`[Client WS Log] ${payload.event}:`, JSON.stringify(payload.details || {}));
+      }
+    } catch (err) {
+      if (buf) {
+        writeChunkToFfmpeg(buf, 'WS');
+      }
     }
   });
 
@@ -1302,12 +2087,52 @@ liveStreamWss.on('connection', (ws, request) => {
       if (activeFfmpegProcess) {
         stopFfmpegStream(false);
       }
+      if (activeTvFfmpegProcess) {
+        stopTvFfmpegBroadcast();
+      }
     }
   });
 
   ws.on('error', (err) => {
     console.warn('[WebSocket Stream] Socket error:', err.message);
   });
+});
+
+// =========================================================================
+// OMNICAST MOBILE CAM: HIGH-SPEED ULTRA-LOW LATENCY WEBSOCKET VIDEO RELAY
+// =========================================================================
+const mobileCamWss = new WebSocket.Server({ noServer: true });
+const mobileCamReceivers = { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set(), 5: new Set() };
+
+mobileCamWss.on('connection', (ws, request) => {
+  const host = request.headers.host || 'localhost';
+  const url = new URL(request.url, `http://${host}`);
+  const role = url.searchParams.get('role') || 'receiver';
+  const camId = parseInt(url.searchParams.get('cam') || '1', 10);
+
+  if (role === 'receiver') {
+    if (!mobileCamReceivers[camId]) mobileCamReceivers[camId] = new Set();
+    mobileCamReceivers[camId].add(ws);
+    ws.on('close', () => {
+      if (mobileCamReceivers[camId]) mobileCamReceivers[camId].delete(ws);
+    });
+  } else if (role === 'sender') {
+    ws.on('message', (data, isBinary) => {
+      mobileCamLatestFrames[camId] = data;
+      if (mobileCamsState[camId]) {
+        mobileCamsState[camId].connected = true;
+        mobileCamsState[camId].lastPing = Date.now();
+      }
+      const recs = mobileCamReceivers[camId];
+      if (recs && recs.size > 0) {
+        for (const r of recs) {
+          if (r.readyState === WebSocket.OPEN) {
+            r.send(data, { binary: isBinary });
+          }
+        }
+      }
+    });
+  }
 });
 
 const handleUpgrade = (request, socket, head) => {
@@ -1317,6 +2142,14 @@ const handleUpgrade = (request, socket, head) => {
     if (parsed.pathname === '/api/live-stream-ws') {
       liveStreamWss.handleUpgrade(request, socket, head, ws => {
         liveStreamWss.emit('connection', ws, request);
+      });
+    } else if (parsed.pathname === '/api/tv/ws') {
+      tvStreamWss.handleUpgrade(request, socket, head, ws => {
+        tvStreamWss.emit('connection', ws, request);
+      });
+    } else if (parsed.pathname === '/api/cam/ws') {
+      mobileCamWss.handleUpgrade(request, socket, head, ws => {
+        mobileCamWss.emit('connection', ws, request);
       });
     } else {
       socket.destroy();

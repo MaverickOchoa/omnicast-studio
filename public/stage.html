@@ -14,10 +14,12 @@
       user-select: none;
     }
     .stage-current {
-      font-size: clamp(2.5rem, 6vw, 5.5rem);
-      line-height: 1.1;
+      font-size: clamp(1.8rem, 4.5vw, 4.5rem);
+      line-height: 1.15;
       font-weight: 900;
       letter-spacing: -0.02em;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
     .stage-next {
       font-size: clamp(1.4rem, 3vw, 2.5rem);
@@ -96,18 +98,56 @@
     </div>
   </div>
 
-  <!-- CENTER: DIAPOSITIVA ACTUAL (LETRA ENORME PARA EL PÚLPITO / MÚSICOS) -->
-  <main class="flex-1 flex flex-col justify-center px-4 my-4">
-    <span class="text-xs font-mono font-bold text-amber-400 tracking-widest uppercase mb-2 flex items-center gap-2">
-      <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-      EN PANTALLA ACTUAL:
-    </span>
-    <h1 id="stageCurrentText" class="stage-current text-white text-left">
-      ¿Quién rompe el poder del pecado y la oscuridad?
-    </h1>
-    <p id="stageCurrentSub" class="text-2xl text-slate-400 font-light mt-3">
-      Su amor es poderoso y tan fuerte
-    </p>
+  <!-- CENTER: DIAPOSITIVA ACTUAL O RETORNO HÍBRIDO DE VIDEO -->
+  <main class="flex-1 flex flex-col justify-center px-4 my-2 relative overflow-hidden">
+    <!-- Vista 1: Letras y Textos Bíblicos (Predeterminada) -->
+    <div id="stageLyricsView" class="flex-1 flex flex-col justify-center">
+      <span class="text-xs font-mono font-bold text-amber-400 tracking-widest uppercase mb-2 flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+        EN PANTALLA ACTUAL:
+      </span>
+      <h1 id="stageCurrentText" class="stage-current text-white text-left">
+        ¿Quién rompe el poder del pecado y la oscuridad?
+      </h1>
+      <p id="stageCurrentSub" class="text-2xl text-slate-400 font-light mt-3">
+        Su amor es poderoso y tan fuerte
+      </p>
+    </div>
+
+    <!-- Vista 2: Monitor Híbrido de Video (Retorno PiP + Cuenta Regresiva Gigante + Cue) -->
+    <div id="stageVideoHybridView" class="hidden flex-1 flex flex-col lg:flex-row items-center justify-between gap-6 py-2 h-full">
+      <!-- Izquierda: Retorno de Video PiP 1080p (Silenciado para no generar eco en escenario) -->
+      <div class="w-full lg:w-5/12 h-[220px] lg:h-[340px] bg-black rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl relative flex items-center justify-center">
+        <video id="stageVideoPlayer" muted playsinline preload="auto" class="w-full h-full object-contain bg-black"></video>
+        <div class="absolute top-3 left-3 px-2.5 py-1 rounded bg-black/80 border border-slate-700 text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5 shadow">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          RETORNO VIDEO (EN VIVO)
+        </div>
+      </div>
+
+      <!-- Derecha: Reloj Gigante de Cuenta Regresiva de Video + Barra de Progreso + Alerta de Entrada -->
+      <div class="w-full lg:w-7/12 flex-1 flex flex-col items-center justify-center text-center p-6 bg-slate-900/70 border-2 border-slate-800 rounded-2xl shadow-2xl">
+        <span class="text-xs md:text-sm font-mono font-black text-amber-400 uppercase tracking-widest mb-1 flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
+          TIEMPO RESTANTE DE VIDEO
+        </span>
+        
+        <!-- Reloj Gigante (Verde > 30s | Amarillo <= 30s | Rojo Titilante <= 10s) -->
+        <div id="stageVideoCountdown" class="font-mono text-7xl md:text-9xl font-black text-emerald-400 tracking-tighter leading-none my-2 transition-colors">
+          00:00
+        </div>
+
+        <!-- Barra de Progreso Visual -->
+        <div class="w-full max-w-lg h-3.5 bg-slate-800 rounded-full overflow-hidden mt-3 mb-4 border border-slate-700">
+          <div id="stageVideoProgressBar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <!-- Cue de Estado para Músicos / Predicador -->
+        <div id="stageVideoStatusCue" class="text-sm md:text-lg font-bold text-slate-300 uppercase tracking-wide">
+          REPRODUCIENDO VIDEO EN PANTALLA PRINCIPAL
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- BOTTOM: SIGUIENTE DIAPOSITIVA (VITAL PARA ANTICIPACIÓN DE ALABANZA) -->
@@ -133,6 +173,13 @@
     const clockTime = document.getElementById('clockTime');
     const serviceTimer = document.getElementById('serviceTimer');
 
+    const stageLyricsView = document.getElementById('stageLyricsView');
+    const stageVideoHybridView = document.getElementById('stageVideoHybridView');
+    const stageVideoPlayer = document.getElementById('stageVideoPlayer');
+    const stageVideoCountdown = document.getElementById('stageVideoCountdown');
+    const stageVideoProgressBar = document.getElementById('stageVideoProgressBar');
+    const stageVideoStatusCue = document.getElementById('stageVideoStatusCue');
+
     // Real-time master clock
     function updateClock() {
       const now = new Date();
@@ -150,17 +197,134 @@
       serviceTimer.textContent = `${m}:${s}`;
     }, 1000);
 
+    // Hybrid Video Countdown Engine
+    function updateStageVideoTimer() {
+      if (!stageVideoPlayer) return;
+      const cur = stageVideoPlayer.currentTime || 0;
+      const dur = (stageVideoPlayer.duration && isFinite(stageVideoPlayer.duration) && stageVideoPlayer.duration > 0) ? stageVideoPlayer.duration : 60;
+      const rem = Math.max(0, dur - cur);
+      const m = String(Math.floor(rem / 60)).padStart(2, '0');
+      const s = String(Math.floor(rem % 60)).padStart(2, '0');
+
+      if (stageVideoCountdown) {
+        stageVideoCountdown.textContent = `${m}:${s}`;
+        if (rem <= 10) {
+          stageVideoCountdown.className = 'font-mono text-7xl md:text-9xl font-black text-rose-500 animate-pulse tracking-tighter leading-none my-2';
+          if (stageVideoStatusCue) {
+            stageVideoStatusCue.textContent = '🚨 ¡PREPARARSE ENTRADA / FIN DE VIDEO!';
+            stageVideoStatusCue.className = 'text-sm md:text-lg font-extrabold text-rose-400 uppercase tracking-wide animate-pulse';
+          }
+        } else if (rem <= 30) {
+          stageVideoCountdown.className = 'font-mono text-7xl md:text-9xl font-black text-amber-400 tracking-tighter leading-none my-2';
+          if (stageVideoStatusCue) {
+            stageVideoStatusCue.textContent = '⚠️ 30 SEGUNDOS RESTANTES - ENTRADA EN BREVE';
+            stageVideoStatusCue.className = 'text-sm md:text-lg font-bold text-amber-400 uppercase tracking-wide';
+          }
+        } else {
+          stageVideoCountdown.className = 'font-mono text-7xl md:text-9xl font-black text-emerald-400 tracking-tighter leading-none my-2';
+          if (stageVideoStatusCue) {
+            stageVideoStatusCue.textContent = 'REPRODUCIENDO VIDEO EN PANTALLA PRINCIPAL';
+            stageVideoStatusCue.className = 'text-sm md:text-lg font-bold text-slate-300 uppercase tracking-wide';
+          }
+        }
+      }
+
+      if (stageVideoProgressBar && dur > 0) {
+        stageVideoProgressBar.style.width = `${Math.min(100, (cur / dur) * 100)}%`;
+        stageVideoProgressBar.className = rem <= 10 ? 'h-full bg-rose-500 transition-all duration-300' : (rem <= 30 ? 'h-full bg-amber-500 transition-all duration-300' : 'h-full bg-emerald-500 transition-all duration-300');
+      }
+    }
+
+    if (stageVideoPlayer) {
+      stageVideoPlayer.addEventListener('timeupdate', updateStageVideoTimer);
+      stageVideoPlayer.addEventListener('loadedmetadata', updateStageVideoTimer);
+      stageVideoPlayer.addEventListener('ended', () => {
+        if (stageVideoPlayer.loop) {
+          stageVideoPlayer.currentTime = 0;
+          stageVideoPlayer.play().catch(() => {});
+        }
+      });
+    }
+
+    function handleStageVideoControl(cmd) {
+      if (!cmd || !stageVideoPlayer) return;
+      if (cmd.action === 'play') {
+        if (stageVideoHybridView) stageVideoHybridView.classList.remove('hidden');
+        if (stageLyricsView) stageLyricsView.classList.add('hidden');
+        if (cmd.videoUrl && stageVideoPlayer.getAttribute('data-src') !== cmd.videoUrl) {
+          const sep = cmd.videoUrl.includes('?') ? '&' : '?';
+          stageVideoPlayer.src = `${cmd.videoUrl}${sep}screen=stage`;
+          stageVideoPlayer.setAttribute('data-src', cmd.videoUrl);
+        }
+        if (typeof cmd.time === 'number' && Math.abs(stageVideoPlayer.currentTime - cmd.time) > 0.15) {
+          stageVideoPlayer.currentTime = cmd.time;
+        }
+        stageVideoPlayer.loop = Boolean(cmd.loop);
+        stageVideoPlayer.muted = true;
+        stageVideoPlayer.play().catch(() => {});
+      } else if (cmd.action === 'pause') {
+        stageVideoPlayer.pause();
+        if (typeof cmd.time === 'number') stageVideoPlayer.currentTime = cmd.time;
+      } else if (cmd.action === 'restart') {
+        stageVideoPlayer.currentTime = 0;
+        stageVideoPlayer.play().catch(() => {});
+      } else if (cmd.action === 'seek' && typeof cmd.time === 'number') {
+        stageVideoPlayer.currentTime = cmd.time;
+      } else if (cmd.action === 'stop') {
+        stageVideoPlayer.pause();
+        stageVideoPlayer.currentTime = 0;
+        if (stageVideoHybridView) stageVideoHybridView.classList.add('hidden');
+        if (stageLyricsView) stageLyricsView.classList.remove('hidden');
+      }
+    }
+
     function updateStageDisplay(data) {
       if (!data) return;
       if (data.isClear) {
+        if (stageVideoHybridView) stageVideoHybridView.classList.add('hidden');
+        if (stageLyricsView) stageLyricsView.classList.remove('hidden');
+        if (stageVideoPlayer && !stageVideoPlayer.paused) stageVideoPlayer.pause();
         stageCurrentText.textContent = '[PANTALLA LIMPIA / PAUSA]';
         stageCurrentSub.textContent = '';
       } else if (data.isVideo) {
-        stageCurrentText.textContent = `🎬 VIDEO AL AIRE: ${data.songTitle || data.text || 'Video'}`;
-        stageCurrentSub.textContent = 'Reproducción de video a pantalla completa en Proyector y Transmisión';
+        if (stageVideoHybridView) stageVideoHybridView.classList.remove('hidden');
+        if (stageLyricsView) stageLyricsView.classList.add('hidden');
+        if (data.videoUrl && stageVideoPlayer) {
+          if (stageVideoPlayer.getAttribute('data-src') !== data.videoUrl) {
+            const sep = data.videoUrl.includes('?') ? '&' : '?';
+            stageVideoPlayer.src = `${data.videoUrl}${sep}screen=stage`;
+            stageVideoPlayer.setAttribute('data-src', data.videoUrl);
+          }
+          stageVideoPlayer.loop = Boolean(data.videoLoop);
+          stageVideoPlayer.muted = true;
+          if (data.videoAction === 'pause') {
+            stageVideoPlayer.pause();
+          } else {
+            stageVideoPlayer.play().catch(() => {});
+          }
+        }
       } else {
-        stageCurrentText.textContent = data.text || '';
+        if (stageVideoHybridView) stageVideoHybridView.classList.add('hidden');
+        if (stageLyricsView) stageLyricsView.classList.remove('hidden');
+        if (stageVideoPlayer && !stageVideoPlayer.paused) stageVideoPlayer.pause();
+        const fullTxt = data.text || '';
+        stageCurrentText.textContent = fullTxt;
         stageCurrentSub.textContent = data.subText || '';
+
+        // Auto-escalado dinámico según longitud del versículo o letra
+        if (fullTxt.length > 200) {
+          stageCurrentText.style.fontSize = 'clamp(1.2rem, 2.3vw, 2.2rem)';
+          stageCurrentText.style.lineHeight = '1.25';
+        } else if (fullTxt.length > 120) {
+          stageCurrentText.style.fontSize = 'clamp(1.5rem, 3.2vw, 3.0rem)';
+          stageCurrentText.style.lineHeight = '1.2';
+        } else if (fullTxt.length > 70) {
+          stageCurrentText.style.fontSize = 'clamp(1.9rem, 4.0vw, 3.8rem)';
+          stageCurrentText.style.lineHeight = '1.18';
+        } else {
+          stageCurrentText.style.fontSize = '';
+          stageCurrentText.style.lineHeight = '';
+        }
       }
       if (data.songTitle) stageSongTitle.textContent = data.songTitle;
       if (data.isVideo) {
@@ -203,6 +367,18 @@
     channel.onmessage = (event) => {
       if (event.data && event.data.type === 'SLIDE_UPDATE') {
         updateStageDisplay(event.data.payload);
+      } else if (event.data && event.data.type === 'VIDEO_CONTROL') {
+        handleStageVideoControl(event.data.payload);
+      } else if (event.data && event.data.type === 'VIDEO_SYNC_PULSE') {
+        if (!stageVideoPlayer || stageVideoPlayer.readyState < 1) return;
+        const elapsed = (Date.now() - (event.data.ts || Date.now())) / 1000;
+        const target = (event.data.time || 0) + elapsed;
+        if (Math.abs(stageVideoPlayer.currentTime - target) > 0.15) {
+          stageVideoPlayer.currentTime = target;
+        }
+        if (stageVideoPlayer.paused) {
+          stageVideoPlayer.play().catch(() => {});
+        }
       } else if (event.data && event.data.type === 'RUNDOWN_UPDATE') {
         updateStageRundown(event.data.payload);
       }
@@ -212,6 +388,10 @@
       if (e.key === 'omnicast_current_slide') {
         try {
           updateStageDisplay(JSON.parse(e.newValue));
+        } catch(err) {}
+      } else if (e.key === 'omnicast_video_control') {
+        try {
+          handleStageVideoControl(JSON.parse(e.newValue));
         } catch(err) {}
       } else if (e.key === 'omnicast_rundown') {
         try {
@@ -224,6 +404,13 @@
     if (stored) {
       try {
         updateStageDisplay(JSON.parse(stored));
+      } catch(err) {}
+    }
+
+    const storedVideoControl = localStorage.getItem('omnicast_video_control');
+    if (storedVideoControl) {
+      try {
+        handleStageVideoControl(JSON.parse(storedVideoControl));
       } catch(err) {}
     }
 
@@ -251,6 +438,12 @@
             } else {
               serviceTimer.className = 'font-mono text-3xl font-black text-emerald-400';
             }
+          } catch (err) {}
+        });
+
+        evtSource.addEventListener('video_control', (e) => {
+          try {
+            handleStageVideoControl(JSON.parse(e.data));
           } catch (err) {}
         });
 
@@ -282,11 +475,14 @@
               const item = state.libraryItems[state.itemIndex];
               const slide = item.slides && item.slides[state.slideIndex];
               const nextSlide = item.slides && item.slides[state.slideIndex + 1];
+              const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
               updateStageDisplay({
                 text: state.isBlackout ? '[PANTALLA EN NEGRO / ORACIÓN]' : (slide ? slide.text : ''),
                 subText: state.isBlackout ? '' : (slide ? slide.subText : ''),
                 songTitle: item.title,
-                badge: slide ? slide.badge : '',
+                badge: isVideo ? 'VIDEO' : (slide ? slide.badge : ''),
+                isVideo: isVideo,
+                videoUrl: item.videoUrl || '',
                 nextText: nextSlide ? nextSlide.text : (state.itemIndex < state.libraryItems.length - 1 ? `[Sig. Canción] ${state.libraryItems[state.itemIndex + 1].title}` : 'Fin de la lista')
               });
             }

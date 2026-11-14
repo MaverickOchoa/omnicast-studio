@@ -1,1 +1,11 @@
 node_modules/
+bin/cloudflared.exe
+public/uploads/videos/
+*.bak
+*.bak2
+*.log
+recordings/
+scratch/
+*.png
+data/public_tunnel.json
+public/tv-hls/
