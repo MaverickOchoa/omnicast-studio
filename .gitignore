@@ -1,6 +1,5 @@
 node_modules/
 bin/cloudflared.exe
-public/uploads/videos/
 *.bak
 *.bak2
 *.log
