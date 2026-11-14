@@ -1268,11 +1268,36 @@ function dequeueTvPcmBytes(bytesNeeded) {
 let standbyJpegBuffer = null;
 let currentFrameJpeg = null;
 
+function getFfmpegPath() {
+  const winPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
+  if (fs.existsSync(winPath)) return winPath;
+  const linuxPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg');
+  if (fs.existsSync(linuxPath)) return linuxPath;
+  try {
+    const check = spawnSync(process.platform === 'win32' ? 'where' : 'which', ['ffmpeg']);
+    if (check.status === 0) return 'ffmpeg';
+  } catch (e) {}
+  return 'ffmpeg';
+}
+
+function hasFfmpeg() {
+  const p = getFfmpegPath();
+  if (p === 'ffmpeg') {
+    try {
+      const res = spawnSync('ffmpeg', ['-version']);
+      return res.status === 0;
+    } catch (e) {
+      return false;
+    }
+  }
+  return fs.existsSync(p);
+}
+
 function getStandbyJpegBuffer() {
   if (standbyJpegBuffer && standbyJpegBuffer.length > 100) return standbyJpegBuffer;
   try {
-    const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
-    if (fs.existsSync(ffmpegPath)) {
+    const ffmpegPath = getFfmpegPath();
+    if (hasFfmpeg()) {
       const res = spawnSync(ffmpegPath, [
         '-f', 'lavfi',
         '-i', 'color=c=0x0d131f:s=960x540:r=1',
@@ -1326,9 +1351,10 @@ setInterval(() => {
 }, 5000);
 function detectDirectShowAudioDevice() {
   if (cachedDirectShowAudioDevice !== null) return cachedDirectShowAudioDevice;
+  if (process.platform !== 'win32') return null;
   try {
-    const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
-    if (fs.existsSync(ffmpegPath)) {
+    const ffmpegPath = getFfmpegPath();
+    if (hasFfmpeg()) {
       const res = spawnSync(ffmpegPath, ['-list_devices', 'true', '-f', 'dshow', '-i', 'dummy'], { encoding: 'utf8' });
       const output = (res.stderr || '') + (res.stdout || '');
       const audioSection = output.split('DirectShow audio devices')[1] || '';
@@ -1477,9 +1503,9 @@ function startFfmpegStream(dest, activeWs) {
   // Clean up any existing stream process without sending 'stopped' to new client
   stopFfmpegStream(false);
 
-  const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
-  if (!fs.existsSync(ffmpegPath)) {
-    const err = `Binario FFmpeg no encontrado en ${ffmpegPath}`;
+  const ffmpegPath = getFfmpegPath();
+  if (!hasFfmpeg()) {
+    const err = 'Binario FFmpeg no disponible en este servidor.';
     if (activeWs && activeWs.readyState === WebSocket.OPEN) {
       activeWs.send(JSON.stringify({ type: 'error', message: err }));
     }
@@ -1771,9 +1797,9 @@ function startTvFfmpegBroadcast() {
     return { success: true, alreadyRunning: true };
   }
 
-  const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
-  if (!fs.existsSync(ffmpegPath)) {
-    return { error: `Binario FFmpeg no encontrado en ${ffmpegPath}` };
+  const ffmpegPath = getFfmpegPath();
+  if (!hasFfmpeg()) {
+    return { error: 'Binario FFmpeg no disponible en este servidor.' };
   }
 
   stopTvFfmpegBroadcast();
