@@ -768,7 +768,10 @@ const requestHandler = (req, res) => {
       isStreaming: liveStreamState.isStreaming,
       startTime: liveStreamState.startTime,
       stats: liveStreamState.stats,
-      destinations: liveStreamState.destinations
+      destinations: liveStreamState.destinations,
+      hasFfmpeg: hasFfmpeg(),
+      ffmpegPath: getFfmpegPath(),
+      platform: process.platform
     }));
     return;
   }
