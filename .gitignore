@@ -6,5 +6,6 @@ bin/cloudflared.exe
 recordings/
 scratch/
 *.png
+!public/icons/*.png
 data/public_tunnel.json
 public/tv-hls/
