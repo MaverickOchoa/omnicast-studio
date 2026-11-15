@@ -7,5 +7,6 @@ recordings/
 scratch/
 *.png
 !public/icons/*.png
+!public/uploads/**
 data/public_tunnel.json
 public/tv-hls/

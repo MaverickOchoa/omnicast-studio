@@ -12,12 +12,14 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'database.json');
 const UPLOADS_VIDEOS_DIR = path.join(PUBLIC_DIR, 'uploads', 'videos');
+const UPLOADS_IMAGES_DIR = path.join(PUBLIC_DIR, 'uploads', 'images');
 const TV_HLS_DIR = path.join(PUBLIC_DIR, 'tv-hls');
 
 // Ensure persistent database & video upload directories exist
 try {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(UPLOADS_VIDEOS_DIR)) fs.mkdirSync(UPLOADS_VIDEOS_DIR, { recursive: true });
+  if (!fs.existsSync(UPLOADS_IMAGES_DIR)) fs.mkdirSync(UPLOADS_IMAGES_DIR, { recursive: true });
   if (!fs.existsSync(TV_HLS_DIR)) fs.mkdirSync(TV_HLS_DIR, { recursive: true });
 } catch (dirErr) {
   console.warn('Warning creating data/uploads dirs:', dirErr.message);
@@ -1110,6 +1112,44 @@ const requestHandler = (req, res) => {
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // Endpoint: Stream Upload of Binary Image File (.png, .jpg, .jpeg, .webp, .svg) for Logos & Portadas
+  if (parsedUrl === '/api/upload/image' && req.method === 'POST') {
+    try {
+      const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      const rawFilename = fullUrl.searchParams.get('filename') || 'image.png';
+      const ext = path.extname(rawFilename).toLowerCase() || '.png';
+      const baseSafe = path.basename(rawFilename, ext).replace(/[^a-zA-Z0-9_\-\.]/g, '_').slice(0, 60) || 'image';
+      const finalFilename = `${Date.now()}_${baseSafe}${ext}`;
+      const destPath = path.join(UPLOADS_IMAGES_DIR, finalFilename);
+
+      const writeStream = fs.createWriteStream(destPath);
+      req.pipe(writeStream);
+
+      writeStream.on('finish', () => {
+        const imageUrl = `/uploads/images/${finalFilename}`;
+        const payload = JSON.stringify({ success: true, url: imageUrl, filename: finalFilename });
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(payload);
+        console.log(`[OmniCast Image Upload] Saved ${finalFilename} -> ${imageUrl}`);
+      });
+
+      writeStream.on('error', (err) => {
+        const payload = JSON.stringify({ success: false, error: err.message });
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(payload);
+      });
+    } catch (err) {
+      const payload = JSON.stringify({ success: false, error: err.message });
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(payload);
     }
     return;
   }

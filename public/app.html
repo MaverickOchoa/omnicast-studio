@@ -409,11 +409,11 @@
       </div>
     </div>
 
-    <!-- 3. CONTEXT: MAPEO ARENA (LED Walls & Stage Slicing Mode) -->
+    <!-- 3. CONTEXT: MAPEO (LED Walls & Stage Slicing Mode) -->
     <div id="topContextArena" class="hidden flex items-center gap-2.5">
       <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-950/60 border border-purple-500/40 text-xs text-purple-200 font-mono">
         <i data-lucide="grid" class="w-3.5 h-3.5 text-purple-400"></i>
-        <span>ARENA: <strong>3 LEDS</strong></span>
+        <span>MAPEO: <strong>3 LEDS</strong></span>
       </div>
       <span class="text-xs font-mono text-purple-400 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20">
         <strong id="topArenaBpm">128.0 BPM</strong>
@@ -423,11 +423,11 @@
       </button>
     </div>
 
-    <!-- 4. CONTEXT: AUDIO FAIRLIGHT (Mixing Console Mode) -->
+    <!-- 4. CONTEXT: AUDIO (Mixing Console Mode) -->
     <div id="topContextAudio" class="hidden flex items-center gap-2.5 whitespace-nowrap shrink-0">
       <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-950/60 border border-rose-500/40 text-xs text-rose-200 font-mono whitespace-nowrap shrink-0">
         <i data-lucide="sliders" class="w-3.5 h-3.5 text-rose-400"></i>
-        <span>FAIRLIGHT 48kHz</span>
+        <span>AUDIO DSP 48kHz</span>
       </div>
       <span id="topAudioStatusBadge" class="text-xs font-mono text-slate-400 bg-slate-800/80 px-2 py-1 rounded-lg border border-slate-700 whitespace-nowrap shrink-0">
         SIN ENTRADA
@@ -575,7 +575,7 @@
               <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
               HDMI + Stage + Switcher Sync
             </span>
-            <span class="font-mono text-slate-500 text-[10px]">Capa 2 Wirecast</span>
+            <span class="font-mono text-slate-500 text-[10px]">Capa 2 Switcher</span>
           </div>
         </div>
 
@@ -1313,9 +1313,9 @@
             </div>
             <div>
               <span class="text-xs font-bold uppercase tracking-wider text-white">
-                Mapeo de Pantallas LED de Escenario (Arena Slicing Engine)
+                Mapeo de Pantallas LED de Escenario (Multi-Screen Engine)
               </span>
-              <span class="text-[10px] text-slate-400 block">Sincronización multi-pantalla con salida NDI / Spout hacia Resolume Arena</span>
+              <span class="text-[10px] text-slate-400 block">Sincronización multi-pantalla con salida NDI / Spout hacia Mapeo LED</span>
             </div>
           </div>
 
@@ -1406,7 +1406,7 @@
           <div class="flex items-center gap-2">
             <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
             <span class="text-xs font-bold uppercase tracking-wider text-slate-200">
-              Matriz de Disparo por Columnas (Resolume Arena Cues)
+              Matriz de Disparo por Columnas (Mapeo Cues)
             </span>
           </div>
           <span class="text-[11px] text-slate-400 hidden sm:inline">Dispara columnas maestras para sincronizar fondos, luces y letras a la vez</span>
@@ -1544,7 +1544,7 @@
           </div>
           <div>
             <div class="flex items-center gap-2">
-              <h2 class="text-sm font-bold text-white tracking-wide">Consola de Audio Fairlight Digital</h2>
+              <h2 class="text-sm font-bold text-white tracking-wide">Consola de Audio Digital</h2>
               <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-bold">
                 DSP 48kHz / 24-bit
               </span>
@@ -1598,7 +1598,7 @@
         <div class="flex items-center gap-2">
           <i data-lucide="activity" class="w-4 h-4 text-emerald-400 shrink-0"></i>
           <span>
-            <b>Motor Fairlight WebAudio 48kHz Activo:</b> Todas las barras miden señal real (0% cuando no hay entrada activa). <b>CH 1</b> (Mic USB + EQ/Comp), <b>CH 2</b> (Mic Aux), <b>CH 3</b> (Pad/Música Estéreo), <b>CH 4</b> (Videos Capa 3/4 con Auto-Ducking) → <b>Master Limiter &amp; RTMP</b>.
+            <b>Motor Audio DSP 48kHz Activo:</b> Todas las barras miden señal real (0% cuando no hay entrada activa). <b>CH 1</b> (Mic USB + EQ/Comp), <b>CH 2</b> (Mic Aux), <b>CH 3</b> (Pad/Música Estéreo), <b>CH 4</b> (Videos Capa 3/4 con Auto-Ducking) → <b>Master Limiter &amp; RTMP</b>.
           </span>
         </div>
         <span class="text-[10px] font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 shrink-0 hidden md:inline">
@@ -2373,7 +2373,7 @@ Te adoraré, te adoraré..."
                     <p class="text-xs font-bold text-white group-hover:text-sky-300 transition">Arrastra tu video .mp4 aquí</p>
                     <p class="text-[10px] text-slate-400 mt-0.5">o haz clic para examinar desde tu computadora</p>
                   </div>
-                  <span class="text-[9px] font-mono text-slate-500">Hasta 500 MB • Compatible con Wirecast Capa 3</span>
+                  <span class="text-[9px] font-mono text-slate-500">Hasta 500 MB • Compatible con Switcher Capa 3</span>
                 </div>
                 <input type="file" id="hqVideoFileInput" accept="video/mp4,video/webm,video/quicktime" onchange="handleHqVideoFileSelect(event)" class="hidden">
 
@@ -2440,14 +2440,14 @@ Te adoraré, te adoraré..."
                   Distribución Exclusiva de Red:
                 </span>
                 <p class="text-slate-400 text-[10px] leading-relaxed">
-                  Este video llegará automáticamente a las consolas Wirecast Capa 3 exclusivamente de las sedes filiales de tu red.
+                  Este video llegará automáticamente a las consolas Switcher Capa 3 exclusivamente de las sedes filiales de tu red.
                 </p>
               </div>
 
               <div class="pt-2">
                 <button onclick="publishOrgVideoCampaign()" id="btnPublishOrgVideo" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-xs transition active:scale-95 shadow flex items-center justify-center gap-2">
                   <i data-lucide="send" class="w-4 h-4"></i>
-                  <span id="btnPublishOrgVideoText">Distribuir a Wirecast de Mis Sedes</span>
+                  <span id="btnPublishOrgVideoText">Distribuir a Switcher de Mis Sedes</span>
                 </button>
               </div>
             </div>
@@ -2516,7 +2516,7 @@ Te adoraré, te adoraré..."
 
       <button onclick="switchAtemTab('wirecast')" id="tabBtnWirecast" 
               class="atem-dock-tab flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition">
-        <span>2. SWITCHER WIRECAST</span>
+        <span>2. SWITCHER</span>
       </button>
 
       <button onclick="switchAtemTab('rundown')" id="tabBtnRundown" 
@@ -2526,12 +2526,12 @@ Te adoraré, te adoraré..."
 
       <button onclick="switchAtemTab('audio')" id="tabBtnAudio" 
               class="atem-dock-tab flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition">
-        <span>4. AUDIO FAIRLIGHT</span>
+        <span>4. AUDIO</span>
       </button>
 
       <button onclick="switchAtemTab('arena')" id="tabBtnArena" 
               class="atem-dock-tab flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition">
-        <span>5. MAPEO ARENA (LEDS)</span>
+        <span>5. MAPEO</span>
       </button>
     </div>
   </footer>
@@ -2888,7 +2888,7 @@ Te adoraré, te adoraré..."
             <div class="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-2.5 border-t border-slate-800 shrink-0">
               <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
                 <i data-lucide="monitor" class="w-3.5 h-3.5 text-sky-400"></i>
-                <span>Listo para Proyección HDMI (Pantalla de Sala) y Capa 2 (Wirecast/ATEM)</span>
+                <span>Listo para Proyección HDMI (Pantalla de Sala) y Capa 2 (Switcher)</span>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                 <button type="button" onclick="addAllChapterVersesToService(false)"
@@ -3607,12 +3607,12 @@ Te adoraré, te adoraré..."
 
       <!-- Form Inputs -->
       <div class="space-y-3 text-xs">
-        <div>
+        <div id="shotGroupTitle">
           <label class="block text-[11px] font-bold text-slate-300 mb-1">Nombre / Título de la Toma</label>
           <input type="text" id="shotInputTitle" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-semibold focus:border-sky-500 focus:outline-none" placeholder="ej. Batería, Pastor David, Iniciamos en Breve" oninput="updateShotModalPreview()">
         </div>
 
-        <div>
+        <div id="shotGroupSubtitle">
           <label class="block text-[11px] font-bold text-slate-300 mb-1">Subtítulo / Rol / Origen</label>
           <input type="text" id="shotInputSubtitle" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:border-sky-500 focus:outline-none" placeholder="ej. Percusiones y Coros, En vivo 1080p" oninput="updateShotModalPreview()">
         </div>
@@ -4579,13 +4579,13 @@ Te adoraré, te adoraré..."
             </div>
           </div>
 
-          <!-- Local Full-Service Video + Fairlight Audio Broadcast Control for Salas -->
+          <!-- Local Full-Service Video + Audio Broadcast Control for Salas -->
           <div class="p-3 rounded-xl bg-slate-950/90 border border-sky-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="space-y-1">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-xs font-bold text-white flex items-center gap-1.5">
                   <i data-lucide="cast" class="w-4 h-4 text-sky-400"></i>
-                  Señal Completa del Servicio (Video Program + Audio Fairlight)
+                  Señal Completa del Servicio (Video Program + Audio DSP)
                 </span>
                 <span id="tvSalasFeedBadge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
                   SALAS: EN ESPERA
@@ -4621,7 +4621,7 @@ Te adoraré, te adoraré..."
                 </span>
                 <span class="w-2 h-2 rounded-full bg-slate-600"></span>
               </div>
-              <p class="text-[11px] text-slate-400">Señal completa del Program Switcher + audio Fairlight (o letras/videos si no hay transmisión).</p>
+              <p class="text-[11px] text-slate-400">Señal completa del Program Switcher + audio DSP (o letras/videos si no hay transmisión).</p>
             </button>
 
             <button onclick="setTvDisplayMode('ANNOUNCEMENTS')" id="tvModeBtn-ANNOUNCEMENTS" class="p-3 rounded-xl bg-slate-950 border border-slate-700 hover:border-slate-600 text-left transition flex flex-col gap-1">
@@ -4710,18 +4710,18 @@ Te adoraré, te adoraré..."
             </div>
           </div>
 
-          <!-- Output 4: Mapeo LED Resolume Arena -->
+          <!-- Output 4: Mapeo LED -->
           <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <i data-lucide="grid-3x3" class="w-4 h-4 text-purple-400"></i>
                 <h5 class="text-xs font-bold text-white">Salida 4: Pantallas LED</h5>
               </div>
-              <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold">ARENA MAP</span>
+              <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold">MAPEO LED</span>
             </div>
             <p class="text-[11px] text-slate-400">Compositor Ultra-Wide 3840x1080 y tótems laterales de escenario a 60 FPS.</p>
             <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
-              <span class="text-[10px] font-mono text-slate-500">Columna Arena</span>
+              <span class="text-[10px] font-mono text-slate-500">Columna Mapeo</span>
               <button onclick="switchView('arena'); closeDisplayMatrixModal();" class="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1">
                 Ir a Mapeo <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
               </button>
@@ -5534,7 +5534,7 @@ Te adoraré, te adoraré..."
               </div>
               <div class="mt-3">
                 <h5 class="text-xs font-bold text-white group-hover:text-sky-300 transition">🪨 Titanio (Slate Pro)</h5>
-                <p class="text-[10px] text-slate-400 mt-1 leading-snug">Gris pizarra suave (#0f172a). Estándar broadcast estilo ATEM y vMix.</p>
+                <p class="text-[10px] text-slate-400 mt-1 leading-snug">Gris pizarra suave (#0f172a). Estándar broadcast profesional.</p>
               </div>
             </button>
 
@@ -12132,21 +12132,117 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       populateShotModal(layerId, defaultNew);
     }
 
+    // Global cache for compositor images (Logos, Portadas, Overlays) to avoid GC thrashing and flickering
+    const cachedCompositorImages = {};
+    function getCachedCompositorImage(url) {
+      if (!url) return null;
+      if (!cachedCompositorImages[url]) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = url;
+        cachedCompositorImages[url] = img;
+      }
+      const img = cachedCompositorImages[url];
+      return (img && img.complete && img.naturalWidth > 0) ? img : null;
+    }
+
+    async function handleLayer1ImageUpload(inputEl, type) {
+      if (!inputEl || !inputEl.files || !inputEl.files[0]) return;
+      const file = inputEl.files[0];
+
+      // 1. Inmediata previsualización local con FileReader Data URL
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        const targetInputId = type === 'slate' ? 'shotInputSlateImageUrl' : 'shotInputLogoImageUrl';
+        const urlIn = document.getElementById(targetInputId);
+        if (urlIn) urlIn.value = dataUrl;
+        updateShotModalPreview();
+      };
+      reader.readAsDataURL(file);
+
+      // 2. Subida asíncrona al servidor para almacenamiento persistente
+      try {
+        if (typeof showToast === 'function') showToast('⏳ Guardando imagen en el servidor...', 'info');
+        const resp = await fetch(`/api/upload/image?filename=${encodeURIComponent(file.name)}`, {
+          method: 'POST',
+          body: file
+        });
+        const data = await resp.json();
+        if (data && data.success && data.url) {
+          const targetInputId = type === 'slate' ? 'shotInputSlateImageUrl' : 'shotInputLogoImageUrl';
+          const urlIn = document.getElementById(targetInputId);
+          if (urlIn) urlIn.value = data.url;
+          if (typeof showToast === 'function') showToast('✓ Imagen guardada permanentemente', 'success');
+          updateShotModalPreview();
+        }
+      } catch (err) {
+        console.warn('Error subiendo imagen a /api/upload/image:', err);
+      }
+    }
+
+    function selectLogoCorner(corner) {
+      const hiddenIn = document.getElementById('shotInputLogoCorner');
+      if (hiddenIn) hiddenIn.value = corner;
+      ['top-right', 'top-left', 'bottom-right', 'bottom-left'].forEach(c => {
+        const btn = document.getElementById(`btnLogoCorner-${c}`);
+        if (btn) {
+          if (c === corner) {
+            btn.className = 'p-1.5 rounded-lg border font-semibold flex items-center justify-center gap-1.5 transition border-sky-500 bg-sky-500/20 text-sky-300 shadow-sm';
+          } else {
+            btn.className = 'p-1.5 rounded-lg border font-semibold flex items-center justify-center gap-1.5 transition border-slate-700 bg-slate-950 text-slate-400 hover:text-white';
+          }
+        }
+      });
+      updateShotModalPreview();
+    }
+
+    function applySpeakerPreset(name, title) {
+      const nameIn = document.getElementById('shotInputSpeakerName');
+      const titleIn = document.getElementById('shotInputSpeakerTitle');
+      if (nameIn) nameIn.value = name;
+      if (titleIn) titleIn.value = title;
+      updateShotModalPreview();
+    }
+
     function populateShotModal(layerId, shot) {
       const modal = document.getElementById('shotConfigModal');
       const titleIn = document.getElementById('shotInputTitle');
       const subIn = document.getElementById('shotInputSubtitle');
+      const titleGroup = document.getElementById('shotGroupTitle');
+      const subGroup = document.getElementById('shotGroupSubtitle');
       const colSel = document.getElementById('shotSelectColor');
       const hdrTitle = document.getElementById('shotModalHeaderTitle');
       const btnDel = document.getElementById('btnDeleteCustomShot');
       const specificBox = document.getElementById('shotLayerSpecificFields');
 
-      const layerLabels = { 1: 'Capa 1 (Logos & Portadas)', 2: 'Capa 2 (Letras & Overlays)', 4: 'Capa 4 (Cámaras & Fuentes)', 5: 'Capa 5 (Audio Fairlight)' };
+      const layerLabels = { 1: 'Capa 1 (Logos & Portadas)', 2: 'Capa 2 (Letras & Overlays)', 4: 'Capa 4 (Cámaras & Fuentes)', 5: 'Capa 5 (Audio)' };
       if (hdrTitle) hdrTitle.textContent = `Configurar: ${layerLabels[layerId] || 'Capa ' + layerId} - Ranura ${shot.id}`;
 
       if (titleIn) titleIn.value = shot.title || '';
       if (subIn) subIn.value = shot.subtitle || '';
       if (colSel) colSel.value = shot.color || 'sky'; selectShotColorPill(shot.color || 'sky');
+
+      // Gestión de visibilidad de campos genéricos:
+      // En Capa 1 y Capa 2 (Orador) ocultamos Título/Subtítulo genérico para no duplicar entradas
+      if (titleGroup && subGroup) {
+        if (layerId === 1) {
+          titleGroup.classList.add('hidden');
+          subGroup.classList.add('hidden');
+        } else if (layerId === 2) {
+          const curL2Type = shot.type || 'speaker';
+          if (curL2Type === 'speaker') {
+            titleGroup.classList.add('hidden');
+            subGroup.classList.add('hidden');
+          } else {
+            titleGroup.classList.remove('hidden');
+            subGroup.classList.remove('hidden');
+          }
+        } else {
+          titleGroup.classList.remove('hidden');
+          subGroup.classList.remove('hidden');
+        }
+      }
 
       if (btnDel) {
         // Permitir borrar si es una ranura adicional (id > 4 o isNew)
@@ -12161,6 +12257,15 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       let specHtml = '';
       if (layerId === 1) {
         const curL1Type = shot.type || 'logo';
+        const curLogoCorner = shot.logoCorner || shot.corner || 'top-right';
+        const curLogoScale = shot.logoScale || shot.scale || 100;
+        const curLogoOpacity = shot.logoOpacity || shot.opacity || 85;
+        const curLogoImg = shot.logoImageUrl || shot.imageUrl || '';
+        const curSlateImg = shot.slateImageUrl || shot.imageUrl || '';
+        const curSlateTitle = shot.slateTitle || shot.title || 'INICIAMOS EN BREVE';
+        const curSlateSub = shot.slateSubtitle || shot.subtitle || 'Bienvenidos a Casa • La reunión comenzará pronto';
+        const curSlateShowText = shot.slateShowText !== false;
+
         specHtml = `
           <div class="space-y-2">
             <label class="block text-[11px] font-bold text-slate-300">Tipo de Elemento en Capa 1</label>
@@ -12176,14 +12281,77 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             </div>
             <input type="hidden" id="shotSelectLayer1Type" value="${curL1Type}">
           </div>
-          <div id="slateFieldsBox" class="${curL1Type === 'slate' ? '' : 'hidden'} space-y-2 mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+
+          <!-- PANEL LOGO CON IMAGEN Y CONTROLES -->
+          <div id="logoFieldsBox" class="${curL1Type === 'logo' ? '' : 'hidden'} space-y-2.5 mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <div>
+              <label class="block text-[10px] font-bold text-sky-400 mb-1">🖼️ Archivo de Logo (PNG Transparente / JPG)</label>
+              <input type="file" id="shotFileLogo" accept="image/*" onchange="handleLayer1ImageUpload(this, 'logo')" class="w-full text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border file:border-slate-700 file:bg-slate-800 file:text-sky-300 hover:file:bg-slate-700 cursor-pointer">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 mb-0.5">O URL de Imagen / Logo</label>
+              <input type="text" id="shotInputLogoImageUrl" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-mono" placeholder="ej. /uploads/images/logo.png o https://.../logo.png" value="${curLogoImg}" oninput="updateShotModalPreview()">
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-slate-300 mb-1">Esquina de Colocación en Pantalla</label>
+              <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                <button type="button" onclick="selectLogoCorner('top-right')" id="btnLogoCorner-top-right" class="p-1.5 rounded-lg border font-semibold flex items-center justify-center gap-1.5 transition ${curLogoCorner === 'top-right' ? 'border-sky-500 bg-sky-500/20 text-sky-300' : 'border-slate-700 bg-slate-950 text-slate-400 hover:text-white'}">
+                  <span>↗️</span> <span>Superior Derecha</span>
+                </button>
+                <button type="button" onclick="selectLogoCorner('top-left')" id="btnLogoCorner-top-left" class="p-1.5 rounded-lg border font-semibold flex items-center justify-center gap-1.5 transition ${curLogoCorner === 'top-left' ? 'border-sky-500 bg-sky-500/20 text-sky-300' : 'border-slate-700 bg-slate-950 text-slate-400 hover:text-white'}">
+                  <span>↖️</span> <span>Superior Izquierda</span>
+                </button>
+                <button type="button" onclick="selectLogoCorner('bottom-right')" id="btnLogoCorner-bottom-right" class="p-1.5 rounded-lg border font-semibold flex items-center justify-center gap-1.5 transition ${curLogoCorner === 'bottom-right' ? 'border-sky-500 bg-sky-500/20 text-sky-300' : 'border-slate-700 bg-slate-950 text-slate-400 hover:text-white'}">
+                  <span>↘️</span> <span>Inferior Derecha</span>
+                </button>
+                <button type="button" onclick="selectLogoCorner('bottom-left')" id="btnLogoCorner-bottom-left" class="p-1.5 rounded-lg border font-semibold flex items-center justify-center gap-1.5 transition ${curLogoCorner === 'bottom-left' ? 'border-sky-500 bg-sky-500/20 text-sky-300' : 'border-slate-700 bg-slate-950 text-slate-400 hover:text-white'}">
+                  <span>↙️</span> <span>Inferior Izquierda</span>
+                </button>
+              </div>
+              <input type="hidden" id="shotInputLogoCorner" value="${curLogoCorner}">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <div>
+                <div class="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-1">
+                  <span>Tamaño del Logo</span>
+                  <span id="labelLogoScale" class="text-sky-400 font-mono">${curLogoScale}%</span>
+                </div>
+                <input type="range" id="shotRangeLogoScale" min="50" max="200" step="5" value="${curLogoScale}" oninput="document.getElementById('labelLogoScale').textContent = this.value + '%'; updateShotModalPreview()" class="w-full accent-sky-500">
+              </div>
+              <div>
+                <div class="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-1">
+                  <span>Opacidad</span>
+                  <span id="labelLogoOpacity" class="text-sky-400 font-mono">${curLogoOpacity}%</span>
+                </div>
+                <input type="range" id="shotRangeLogoOpacity" min="10" max="100" step="5" value="${curLogoOpacity}" oninput="document.getElementById('labelLogoOpacity').textContent = this.value + '%'; updateShotModalPreview()" class="w-full accent-sky-500">
+              </div>
+            </div>
+            <p class="text-[9.5px] text-slate-500 italic">💡 Si no subes imagen, se usará el emblema vectorial de la iglesia.</p>
+          </div>
+
+          <!-- PANEL PORTADA CON IMAGEN 16:9 Y TEXTO -->
+          <div id="slateFieldsBox" class="${curL1Type === 'slate' ? '' : 'hidden'} space-y-2.5 mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <div>
+              <label class="block text-[10px] font-bold text-emerald-400 mb-1">🖼️ Archivo de Portada (16:9 JPG / PNG)</label>
+              <input type="file" id="shotFileSlate" accept="image/*" onchange="handleLayer1ImageUpload(this, 'slate')" class="w-full text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border file:border-slate-700 file:bg-slate-800 file:text-emerald-300 hover:file:bg-slate-700 cursor-pointer">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 mb-0.5">O URL de Imagen de Fondo</label>
+              <input type="text" id="shotInputSlateImageUrl" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-mono" placeholder="ej. /uploads/images/portada.jpg o https://.../portada.jpg" value="${curSlateImg}" oninput="updateShotModalPreview()">
+            </div>
             <div>
               <label class="block text-[10px] font-bold text-emerald-400 mb-0.5">Título en Pantalla Completa</label>
-              <input type="text" id="shotInputSlateTitle" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-semibold" value="${shot.slateTitle || shot.title || 'INICIAMOS EN BREVE'}" oninput="updateShotModalPreview()">
+              <input type="text" id="shotInputSlateTitle" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-semibold" value="${curSlateTitle}" oninput="updateShotModalPreview()">
             </div>
             <div>
               <label class="block text-[10px] font-bold text-slate-400 mb-0.5">Subtítulo en Pantalla Completa</label>
-              <input type="text" id="shotInputSlateSub" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs" value="${shot.slateSubtitle || shot.subtitle || 'Bienvenidos a Casa'}" oninput="updateShotModalPreview()">
+              <input type="text" id="shotInputSlateSub" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs" value="${curSlateSub}" oninput="updateShotModalPreview()">
+            </div>
+            <div class="flex items-center gap-2 pt-1">
+              <input type="checkbox" id="shotCheckSlateShowText" ${curSlateShowText ? 'checked' : ''} onchange="updateShotModalPreview()" class="rounded border-slate-700 bg-slate-950 text-emerald-500 focus:ring-0">
+              <label for="shotCheckSlateShowText" class="text-[10.5px] font-semibold text-slate-300 cursor-pointer">Superponer Título y Subtítulo sobre la imagen</label>
             </div>
           </div>
         `;
@@ -12220,6 +12388,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             </div>
             <input type="hidden" id="shotSelectLayer2Type" value="${curL2Type}">
           </div>
+
+          <!-- PANEL CINTILLO / ORADOR: 2 CAMPOS LIMPIOS SIN REDUNDANCIAS -->
           <div id="speakerFieldsBox" class="${curL2Type === 'speaker' ? '' : 'hidden'} space-y-2 mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
             <div>
               <label class="block text-[10px] font-bold text-amber-400 mb-0.5">Nombre del Predicador u Orador</label>
@@ -12228,6 +12398,17 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             <div>
               <label class="block text-[10px] font-bold text-slate-400 mb-0.5">Cargo / Título / Tema</label>
               <input type="text" id="shotInputSpeakerTitle" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs" value="${shot.speakerTitle || 'Pastor Principal • Iglesia Nacional'}" oninput="updateShotModalPreview()">
+            </div>
+            <div class="flex items-center gap-1.5 pt-1 overflow-x-auto pb-0.5">
+              <button type="button" onclick="applySpeakerPreset('Pr. David Mendoza', 'Pastor Principal • Iglesia Nacional')" class="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-amber-500/40 text-amber-300 text-[10px] font-bold shrink-0 transition">
+                👑 Pr. David Mendoza
+              </button>
+              <button type="button" onclick="applySpeakerPreset('Pastor Invitado', 'Mensaje de la Palabra')" class="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-medium shrink-0 transition">
+                🎙️ Pastor Invitado
+              </button>
+              <button type="button" onclick="applySpeakerPreset('Ministro de Alabanza', 'Tiempo de Adoración')" class="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-medium shrink-0 transition">
+                🎵 Ministro Alabanza
+              </button>
             </div>
           </div>
           <div id="tickerFieldsBox" class="${curL2Type === 'ticker' ? '' : 'hidden'} mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
@@ -12528,6 +12709,53 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         slate: 'text-slate-400 border-slate-500'
       };
 
+      if (cardPreview) {
+        cardPreview.className = `mt-1 w-44 h-20 bg-slate-900 border-2 ${(colMap[col] || '').split(' ')[1]} rounded-lg p-2 flex flex-col justify-between shadow-lg`;
+      }
+
+      // Contextual Preview para Capa 1 (Logos y Portadas)
+      if (currentEditingShotContext && currentEditingShotContext.layerId === 1) {
+        const l1Type = document.getElementById('shotSelectLayer1Type')?.value || 'logo';
+        if (l1Type === 'slate') {
+          const sTitle = document.getElementById('shotInputSlateTitle')?.value.trim() || 'INICIAMOS EN BREVE';
+          const sSub = document.getElementById('shotInputSlateSub')?.value.trim() || 'Portada de Espera';
+          if (cardTitle) {
+            cardTitle.textContent = sTitle;
+            cardTitle.className = `text-[9px] font-bold ${(colMap[col] || '').split(' ')[0]}`;
+          }
+          if (cardSub) cardSub.textContent = sSub;
+          if (cardBadge) cardBadge.textContent = 'PORTADA';
+        } else {
+          const corner = document.getElementById('shotInputLogoCorner')?.value || 'top-right';
+          const cornerLabels = { 'top-right': 'Sup. Der.', 'top-left': 'Sup. Izq.', 'bottom-right': 'Inf. Der.', 'bottom-left': 'Inf. Izq.' };
+          const hasImg = Boolean(document.getElementById('shotInputLogoImageUrl')?.value.trim());
+          if (cardTitle) {
+            cardTitle.textContent = 'LOGO';
+            cardTitle.className = `text-[9px] font-bold ${(colMap[col] || '').split(' ')[0]}`;
+          }
+          if (cardSub) cardSub.textContent = hasImg ? `Logo PNG (${cornerLabels[corner] || 'Sup. Der.'})` : `Marca de Agua (${cornerLabels[corner] || 'Sup. Der.'})`;
+          if (cardBadge) cardBadge.textContent = hasImg ? 'LOGO PNG' : 'LOGO BUG';
+        }
+        return;
+      }
+
+      // Contextual Preview para Capa 2 (Orador y Letras)
+      if (currentEditingShotContext && currentEditingShotContext.layerId === 2) {
+        const l2Type = document.getElementById('shotSelectLayer2Type')?.value || 'speaker';
+        if (l2Type === 'speaker') {
+          const spName = document.getElementById('shotInputSpeakerName')?.value.trim() || 'Pr. David Mendoza';
+          const spTit = document.getElementById('shotInputSpeakerTitle')?.value.trim() || 'Pastor Principal';
+          if (cardTitle) {
+            cardTitle.textContent = 'LOWER THIRD';
+            cardTitle.className = `text-[9px] font-bold ${(colMap[col] || '').split(' ')[0]}`;
+          }
+          if (cardSub) cardSub.textContent = spName;
+          if (cardBadge) cardBadge.textContent = spTit ? (spTit.length > 15 ? spTit.slice(0, 14) + '...' : spTit) : 'ORADOR';
+          return;
+        }
+      }
+
+      // Preview estándar para Capas 4 y 5
       if (cardTitle) {
         cardTitle.textContent = (titleIn && titleIn.value) ? titleIn.value : 'TITULO';
         cardTitle.className = `text-[9px] font-bold ${(colMap[col] || '').split(' ')[0]}`;
@@ -12536,23 +12764,15 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         cardSub.textContent = (subIn && subIn.value) ? subIn.value : 'Descripción';
       }
       if (cardBadge) {
-        if (currentEditingShotContext && currentEditingShotContext.layerId === 1) {
-          const l1Type = document.getElementById('shotSelectLayer1Type');
-          cardBadge.textContent = (l1Type && l1Type.value === 'slate') ? 'TELÓN PANTALLA' : 'LOGO BUG';
-        } else if (currentEditingShotContext && currentEditingShotContext.layerId === 4) {
+        if (currentEditingShotContext && currentEditingShotContext.layerId === 4) {
           const l4Type = document.getElementById('shotSelectLayer4Type');
           cardBadge.textContent = (l4Type && l4Type.value === 'video') ? '1080p Video' : 'CÁMARA';
         } else {
           cardBadge.textContent = 'CONFIGURABLE';
         }
       }
-      if (cardPreview) {
-        cardPreview.className = `mt-1 w-44 h-20 bg-slate-900 border-2 ${(colMap[col] || '').split(' ')[1]} rounded-lg p-2 flex flex-col justify-between shadow-lg`;
-      }
     }
 
-    
-    
     function selectShotColorPill(col) {
       const hiddenIn = document.getElementById('shotSelectColor');
       if (hiddenIn) hiddenIn.value = col;
@@ -12577,6 +12797,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       const btnLogo = document.getElementById('btnL1Type-logo');
       const btnSlate = document.getElementById('btnL1Type-slate');
+      const logoBox = document.getElementById('logoFieldsBox');
       const slateBox = document.getElementById('slateFieldsBox');
 
       if (btnLogo) {
@@ -12589,21 +12810,16 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           ? 'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition shadow-sm border-emerald-500 bg-emerald-500/20 text-emerald-300'
           : 'flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-bold transition shadow-sm border-slate-700 bg-slate-900 text-slate-400 hover:text-white';
       }
-      if (slateBox) {
-        slateBox.className = type === 'slate' ? 'space-y-2 mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800' : 'hidden';
+      if (logoBox) logoBox.className = type === 'logo' ? 'space-y-2.5 mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800' : 'hidden';
+      if (slateBox) slateBox.className = type === 'slate' ? 'space-y-2.5 mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800' : 'hidden';
+
+      const titleGroup = document.getElementById('shotGroupTitle');
+      const subGroup = document.getElementById('shotGroupSubtitle');
+      if (titleGroup && subGroup) {
+        titleGroup.classList.add('hidden');
+        subGroup.classList.add('hidden');
       }
 
-      const titleIn = document.getElementById('shotInputTitle');
-      const subIn = document.getElementById('shotInputSubtitle');
-      if (titleIn) {
-        if (type === 'slate') {
-          titleIn.value = 'INICIAMOS EN BREVE';
-          if (subIn) subIn.value = 'Portada de Espera';
-        } else {
-          titleIn.value = 'LOGO OFICIAL';
-          if (subIn) subIn.value = 'Blanco Esquina Sup.';
-        }
-      }
       updateShotModalPreview();
     }
 
@@ -12628,10 +12844,22 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (spBox) spBox.className = type === 'speaker' ? 'space-y-2 mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800' : 'hidden';
       if (tkBox) tkBox.className = type === 'ticker' ? 'mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800' : 'hidden';
 
+      const titleGroup = document.getElementById('shotGroupTitle');
+      const subGroup = document.getElementById('shotGroupSubtitle');
+      if (titleGroup && subGroup) {
+        if (type === 'speaker') {
+          titleGroup.classList.add('hidden');
+          subGroup.classList.add('hidden');
+        } else {
+          titleGroup.classList.remove('hidden');
+          subGroup.classList.remove('hidden');
+        }
+      }
+
       const titleIn = document.getElementById('shotInputTitle');
       const subIn = document.getElementById('shotInputSubtitle');
       const presets = {
-        speaker: { t: 'LOWER THIRD PASTOR', s: 'Pr. David Mendoza' },
+        speaker: { t: 'LOWER THIRD', s: 'Pr. David Mendoza' },
         lyrics: { t: 'SINCRONIZAR LETRAS', s: 'Proyección y Medios' },
         ticker: { t: 'TICKER OFRENDAS', s: 'Cintillo inferior' },
         banner: { t: 'BIENVENIDA', s: '¡Bienvenidos a Casa!' },
@@ -12895,26 +13123,50 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       // Layer-specific fields
       if (layerId === 1) {
-        const l1Type = document.getElementById('shotSelectLayer1Type');
-        shot.type = l1Type ? l1Type.value : 'logo';
+        const l1Type = document.getElementById('shotSelectLayer1Type')?.value || 'logo';
+        shot.type = l1Type;
         if (shot.type === 'slate') {
-          const sTitle = document.getElementById('shotInputSlateTitle');
-          const sSub = document.getElementById('shotInputSlateSub');
-          shot.slateTitle = sTitle ? sTitle.value.trim() : shot.title;
-          shot.slateSubtitle = sSub ? sSub.value.trim() : shot.subtitle;
-          shot.badge = 'TELÓN';
+          const sTitle = document.getElementById('shotInputSlateTitle')?.value.trim() || 'INICIAMOS EN BREVE';
+          const sSub = document.getElementById('shotInputSlateSub')?.value.trim() || 'Bienvenidos a Casa';
+          const sImg = document.getElementById('shotInputSlateImageUrl')?.value.trim() || '';
+          const sShowText = document.getElementById('shotCheckSlateShowText')?.checked !== false;
+          shot.slateTitle = sTitle;
+          shot.slateSubtitle = sSub;
+          shot.imageUrl = sImg;
+          shot.slateImageUrl = sImg;
+          shot.slateShowText = sShowText;
+          shot.title = sTitle;
+          shot.subtitle = sSub;
+          shot.badge = 'PORTADA';
         } else {
-          shot.badge = 'LOGO BUG';
+          const lImg = document.getElementById('shotInputLogoImageUrl')?.value.trim() || '';
+          const lCorner = document.getElementById('shotInputLogoCorner')?.value || 'top-right';
+          const lScale = parseInt(document.getElementById('shotRangeLogoScale')?.value, 10) || 100;
+          const lOpacity = parseInt(document.getElementById('shotRangeLogoOpacity')?.value, 10) || 85;
+          shot.imageUrl = lImg;
+          shot.logoImageUrl = lImg;
+          shot.corner = lCorner;
+          shot.logoCorner = lCorner;
+          shot.scale = lScale;
+          shot.logoScale = lScale;
+          shot.opacity = lOpacity;
+          shot.logoOpacity = lOpacity;
+          shot.title = 'LOGO';
+          const cornerLabels = { 'top-right': 'Sup. Derecha', 'top-left': 'Sup. Izquierda', 'bottom-right': 'Inf. Derecha', 'bottom-left': 'Inf. Izquierda' };
+          shot.subtitle = `Marca de Agua • ${cornerLabels[lCorner] || 'Sup. Derecha'}`;
+          shot.badge = lImg ? 'LOGO PNG' : 'LOGO BUG';
         }
       } else if (layerId === 2) {
-        const l2Type = document.getElementById('shotSelectLayer2Type');
-        shot.type = l2Type ? l2Type.value : 'speaker';
+        const l2Type = document.getElementById('shotSelectLayer2Type')?.value || 'speaker';
+        shot.type = l2Type;
         if (shot.type === 'speaker') {
-          const spName = document.getElementById('shotInputSpeakerName');
-          const spTit = document.getElementById('shotInputSpeakerTitle');
-          shot.speakerName = spName ? spName.value.trim() : 'Pr. David Mendoza';
-          shot.speakerTitle = spTit ? spTit.value.trim() : 'Pastor Principal';
-          shot.badge = 'PASTOR';
+          const spName = document.getElementById('shotInputSpeakerName')?.value.trim() || 'Pr. David Mendoza';
+          const spTit = document.getElementById('shotInputSpeakerTitle')?.value.trim() || 'Pastor Principal';
+          shot.speakerName = spName;
+          shot.speakerTitle = spTit;
+          shot.title = 'LOWER THIRD';
+          shot.subtitle = spName;
+          shot.badge = spTit.length > 15 ? (spTit.slice(0, 14) + '...') : (spTit || 'ORADOR');
           if (shot.id === 2) {
             lowerThirdConfig.name = shot.speakerName;
             lowerThirdConfig.title = shot.speakerTitle;
@@ -17689,18 +17941,23 @@ Pues resucitaste, Rey`
               ctx.restore();
             }
           }
-        } else if (overlayShot === 2) {
-          // Shot 2: Dynamic Lower Third with customizable speaker / guest
+        } else if (overlayShot === 2 || (typeof shotConfig !== 'undefined' && shotConfig[2] && shotConfig[2].find(s => s.id === overlayShot && s.type === 'speaker'))) {
+          // Shot 2 o Toma tipo Orador: Dynamic Lower Third with customizable speaker / guest
+          const shotObj2 = (shotConfig && shotConfig[2]) ? shotConfig[2].find(s => s.id === overlayShot) : null;
           const themeBorder = {
+            amber: '#f59e0b',
+            sky: '#38bdf8',
+            emerald: '#10b981',
+            rose: '#f43f5e',
+            purple: '#c084fc',
+            indigo: '#818cf8',
             gold: '#f59e0b',
             blue: '#38bdf8',
-            crimson: '#f43f5e',
-            emerald: '#10b981',
-            purple: '#c084fc'
-          }[lowerThirdConfig.style || 'gold'] || '#f59e0b';
+            crimson: '#f43f5e'
+          }[(shotObj2 && shotObj2.color) || lowerThirdConfig.style || 'gold'] || '#f59e0b';
 
-          const speakerName = lowerThirdConfig.name || 'Pr. David Mendoza';
-          const speakerTitle = lowerThirdConfig.title || 'Pastor Principal • Iglesia Nacional';
+          const speakerName = (shotObj2 && shotObj2.speakerName) || lowerThirdConfig.name || 'Pr. David Mendoza';
+          const speakerTitle = (shotObj2 && shotObj2.speakerTitle) || lowerThirdConfig.title || 'Pastor Principal • Iglesia Nacional';
 
           // Measure text width to adapt box size gracefully
           ctx.font = 'bold 42px Inter, sans-serif';
@@ -17786,106 +18043,175 @@ Pues resucitaste, Rey`
           // PORTADA / TELÓN DE ESPERA ELEGANTE (Cubre las cámaras al 100%, 
           // pero el AUDIO de Capa 5 sigue sonando al 100% de manera fluida)
           // ===================================================================
-          const sGrad = ctx.createLinearGradient(0, 0, w, h);
-          sGrad.addColorStop(0, '#040711');
-          sGrad.addColorStop(0.5, '#0b162b');
-          sGrad.addColorStop(1, '#05070f');
-          ctx.fillStyle = sGrad;
-          ctx.fillRect(0, 0, w, h);
+          const slateImgUrl = shotObj.slateImageUrl || shotObj.imageUrl;
+          const slateImg = getCachedCompositorImage(slateImgUrl);
 
-          // Animated luminous ambient pulse
-          ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
-          ctx.beginPath();
-          ctx.arc(960, 540, 420 + Math.sin(time * 1.2) * 30, 0, Math.PI * 2);
-          ctx.fill();
+          if (slateImg) {
+            ctx.drawImage(slateImg, 0, 0, w, h);
+          } else {
+            const sGrad = ctx.createLinearGradient(0, 0, w, h);
+            sGrad.addColorStop(0, '#040711');
+            sGrad.addColorStop(0.5, '#0b162b');
+            sGrad.addColorStop(1, '#05070f');
+            ctx.fillStyle = sGrad;
+            ctx.fillRect(0, 0, w, h);
 
-          // Subtle golden light beams
-          ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
-          ctx.beginPath();
-          ctx.moveTo(960 + Math.cos(time * 0.7) * 200, 0);
-          ctx.lineTo(250, 1080);
-          ctx.lineTo(1670, 1080);
-          ctx.closePath();
-          ctx.fill();
+            // Animated luminous ambient pulse
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
+            ctx.beginPath();
+            ctx.arc(960, 540, 420 + Math.sin(time * 1.2) * 30, 0, Math.PI * 2);
+            ctx.fill();
 
-          // Center Emblem
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-          ctx.beginPath();
-          ctx.arc(960, 360, 80, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 3;
-          ctx.stroke();
+            // Subtle golden light beams
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+            ctx.beginPath();
+            ctx.moveTo(960 + Math.cos(time * 0.7) * 200, 0);
+            ctx.lineTo(250, 1080);
+            ctx.lineTo(1670, 1080);
+            ctx.closePath();
+            ctx.fill();
 
-          ctx.fillStyle = '#38bdf8';
-          ctx.font = 'bold 50px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('⛪', 960, 378);
+            // Center Emblem
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.beginPath();
+            ctx.arc(960, 360, 80, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 3;
+            ctx.stroke();
 
-          // Church Name / Header
-          ctx.fillStyle = '#94a3b8';
-          ctx.font = 'bold 24px Inter, sans-serif';
-          ctx.fillText('COMUNIDAD CRISTIANA NACIONAL', 960, 480);
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 50px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('⛪', 960, 378);
 
-          // Large Standby Slate Title
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 64px Inter, sans-serif';
-          ctx.fillText(shotObj.slateTitle || shotObj.title || 'INICIAMOS EN BREVE', 960, 560);
+            // Church Name / Header
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 24px Inter, sans-serif';
+            ctx.fillText('COMUNIDAD CRISTIANA NACIONAL', 960, 480);
+          }
 
-          // Subtitle
-          ctx.fillStyle = '#38bdf8';
-          ctx.font = '28px Inter, sans-serif';
-          ctx.fillText(shotObj.slateSubtitle || shotObj.subtitle || 'Bienvenidos a Casa • La reunión comenzará pronto', 960, 620);
+          // Texto sobre la portada (con sombra oscura para alta legibilidad sobre fotos)
+          const showText = shotObj.slateShowText !== false;
+          if (showText) {
+            ctx.textAlign = 'center';
+            const sTitle = shotObj.slateTitle || shotObj.title || 'INICIAMOS EN BREVE';
+            const sSub = shotObj.slateSubtitle || shotObj.subtitle || 'Bienvenidos a Casa • La reunión comenzará pronto';
 
-          // Subtle live pulse pill at bottom
-          ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-          ctx.roundRect(830, 680, 260, 46, 23);
-          ctx.fill();
-          ctx.strokeStyle = '#334155';
-          ctx.lineWidth = 1;
-          ctx.stroke();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+            ctx.shadowBlur = 18;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
 
-          ctx.fillStyle = '#10b981';
-          ctx.beginPath();
-          ctx.arc(860, 703, 6, 0, Math.PI * 2);
-          ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 64px Inter, sans-serif';
+            ctx.fillText(sTitle, 960, 560);
 
-          ctx.fillStyle = '#cbd5e1';
-          ctx.font = 'bold 16px Inter, sans-serif';
-          ctx.fillText('TRANSMISIÓN EN VIVO', 975, 709);
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = '28px Inter, sans-serif';
+            ctx.fillText(sSub, 960, 620);
 
-        } else if (logoShotId === 2 || (shotObj && shotObj.color === 'amber')) {
-          // Gold Gala Logo
-          ctx.fillStyle = 'rgba(251, 191, 36, 0.35)';
-          ctx.beginPath();
-          ctx.arc(1800, 100, 50, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#fde68a';
-          ctx.font = 'bold 32px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('👑', 1800, 112);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
 
-        } else if (logoShotId === 3 || (shotObj && shotObj.type === 'logo' && shotObj.badge === 'LIVE BUG')) {
-          // Discreet watermark
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-          ctx.beginPath();
-          ctx.arc(1800, 100, 40, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-          ctx.font = 'bold 20px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('LIVE', 1800, 108);
+            // Subtle live pulse pill at bottom
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+            ctx.beginPath();
+            ctx.roundRect(830, 680, 260, 46, 23);
+            ctx.fill();
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath();
+            ctx.arc(860, 703, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = 'bold 16px Inter, sans-serif';
+            ctx.fillText('TRANSMISIÓN EN VIVO', 975, 709);
+          }
 
         } else {
-          // Official White Logo
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
-          ctx.beginPath();
-          ctx.arc(1800, 100, 50, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 32px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('⛪', 1800, 112);
+          // ===================================================================
+          // LOGO / MARCA DE AGUA (WATERMARK BUG O IMAGEN PERSONALIZADA)
+          // ===================================================================
+          const logoImgUrl = shotObj && (shotObj.logoImageUrl || shotObj.imageUrl);
+          const logoImg = getCachedCompositorImage(logoImgUrl);
+
+          if (logoImg) {
+            const corner = (shotObj && (shotObj.logoCorner || shotObj.corner)) || 'top-right';
+            const scalePct = (shotObj && (shotObj.logoScale || shotObj.scale)) || 100;
+            const opacityPct = (shotObj && (shotObj.logoOpacity || shotObj.opacity)) || 85;
+
+            ctx.globalAlpha = Math.max(0.05, Math.min(1.0, opacityPct / 100));
+
+            const baseMaxDim = 160 * (scalePct / 100);
+            const aspect = logoImg.naturalWidth / (logoImg.naturalHeight || 1);
+            let drawW, drawH;
+            if (aspect >= 1) {
+              drawW = baseMaxDim;
+              drawH = baseMaxDim / aspect;
+            } else {
+              drawH = baseMaxDim;
+              drawW = baseMaxDim * aspect;
+            }
+
+            const marginX = 60;
+            const marginY = 50;
+            let posX = 0, posY = 0;
+
+            if (corner === 'top-left') {
+              posX = marginX;
+              posY = marginY;
+            } else if (corner === 'bottom-left') {
+              posX = marginX;
+              posY = h - marginY - drawH;
+            } else if (corner === 'bottom-right') {
+              posX = w - marginX - drawW;
+              posY = h - marginY - drawH;
+            } else {
+              // top-right
+              posX = w - marginX - drawW;
+              posY = marginY;
+            }
+
+            ctx.drawImage(logoImg, posX, posY, drawW, drawH);
+
+          } else if (logoShotId === 2 || (shotObj && shotObj.color === 'amber')) {
+            // Gold Gala Logo
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.35)';
+            ctx.beginPath();
+            ctx.arc(1800, 100, 50, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fde68a';
+            ctx.font = 'bold 32px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('👑', 1800, 112);
+
+          } else if (logoShotId === 3 || (shotObj && shotObj.type === 'logo' && shotObj.badge === 'LIVE BUG')) {
+            // Discreet watermark
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.beginPath();
+            ctx.arc(1800, 100, 40, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.font = 'bold 20px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('LIVE', 1800, 108);
+
+          } else {
+            // Official White Logo
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+            ctx.beginPath();
+            ctx.arc(1800, 100, 50, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 32px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('⛪', 1800, 112);
+          }
         }
 
         ctx.restore();
@@ -20347,7 +20673,7 @@ Resucitaste en majestad`;
           console.error(err);
           showToast('❌ Error al subir archivo .mp4 al servidor', '❌');
           if (publishBtn) publishBtn.disabled = false;
-          if (publishBtnText) publishBtnText.textContent = 'Distribuir a Wirecast de Mis Sedes';
+          if (publishBtnText) publishBtnText.textContent = 'Distribuir a Switcher de Mis Sedes';
           return;
         }
       } else {
@@ -20400,7 +20726,7 @@ Resucitaste en majestad`;
       if (fileIn) fileIn.value = '';
 
       if (publishBtn) publishBtn.disabled = false;
-      if (publishBtnText) publishBtnText.textContent = 'Distribuir a Wirecast de Mis Sedes';
+      if (publishBtnText) publishBtnText.textContent = 'Distribuir a Switcher de Mis Sedes';
 
       renderHqOrgVideos();
       updateHqKpis();
@@ -20431,7 +20757,7 @@ Resucitaste en majestad`;
           <div class="h-64 flex flex-col items-center justify-center text-center text-slate-500 p-6 border border-dashed border-slate-800 rounded-xl">
             <i data-lucide="film" class="w-8 h-8 opacity-40 mb-2"></i>
             <p class="text-xs">No hay videos de campaña activos en tu red institucional.</p>
-            <p class="text-[10px] text-slate-600 mt-1">Sube un video .mp4 o enlace CDN en el panel izquierdo para enviarlo automáticamente a las consolas Wirecast de tus sedes filiales.</p>
+            <p class="text-[10px] text-slate-600 mt-1">Sube un video .mp4 o enlace CDN en el panel izquierdo para enviarlo automáticamente a las consolas Switcher de tus sedes filiales.</p>
           </div>`;
         if (window.lucide) lucide.createIcons();
         return;
@@ -20575,7 +20901,7 @@ Resucitaste en majestad`;
                   <span class="text-sky-300 font-bold">${pingMs} ms</span>
                 </div>
                 <div class="p-2 rounded-lg bg-slate-950 border border-slate-800/80">
-                  <span class="text-slate-500 block text-[9px] uppercase">Wirecast Sync</span>
+                  <span class="text-slate-500 block text-[9px] uppercase">Switcher Sync</span>
                   <span class="text-emerald-300 font-bold">Sincronizado</span>
                 </div>
               </div>
