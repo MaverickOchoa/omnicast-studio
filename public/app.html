@@ -8486,6 +8486,94 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (modal) modal.classList.add('hidden');
     }
 
+    function saveNewOrganization() {
+      const nameIn = document.getElementById('newOrgName');
+      const slugIn = document.getElementById('newOrgSlug');
+      const cityIn = document.getElementById('newOrgCity');
+      const emailIn = document.getElementById('newOrgEmail');
+      const phoneIn = document.getElementById('newOrgPhone');
+      const userIn = document.getElementById('newOrgUsername');
+      const passIn = document.getElementById('newOrgPassword');
+      const planIn = document.getElementById('newOrgPlan');
+
+      const name = (nameIn?.value || '').trim();
+      const slugRaw = (slugIn?.value || '').trim();
+      const city = (cityIn?.value || '').trim() || 'Sede Central';
+      const adminEmail = (emailIn?.value || '').trim().toLowerCase();
+      const phone = (phoneIn?.value || '').trim();
+      const usernameRaw = (userIn?.value || '').trim();
+      const password = (passIn?.value || '').trim() || 'admin';
+      const plan = planIn?.value || 'Enterprise Multi-Sede';
+
+      if (!name) {
+        showToast('⚠️ Ingresa el nombre de la organización', '⚠️');
+        if (nameIn) nameIn.focus();
+        return;
+      }
+      if (!slugRaw) {
+        showToast('⚠️ Ingresa un identificador o slug para la organización', '⚠️');
+        if (slugIn) slugIn.focus();
+        return;
+      }
+      if (!usernameRaw) {
+        showToast('⚠️ Ingresa un usuario de acceso para el administrador', '⚠️');
+        if (userIn) userIn.focus();
+        return;
+      }
+
+      // Normalizar slug (minúsculas, reemplazar espacios con guiones, solo caracteres seguros)
+      const slug = slugRaw.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '') || `org-${Date.now()}`;
+      const usernameLower = usernameRaw.toLowerCase();
+
+      if (!Array.isArray(organizations)) organizations = [];
+
+      // Validar duplicados de slug, usuario o email
+      const existing = organizations.find(o => 
+        (o.slug && o.slug.toLowerCase() === slug) || 
+        (o.username && o.username.toLowerCase() === usernameLower) ||
+        (adminEmail && o.adminEmail && o.adminEmail.toLowerCase() === adminEmail)
+      );
+
+      if (existing) {
+        showToast('⚠️ Ya existe una organización con ese identificador, usuario o correo', '⚠️');
+        return;
+      }
+
+      const newOrg = {
+        id: `org-${slug}`,
+        name,
+        slug,
+        headquarters: city,
+        adminEmail: adminEmail || `${slug}@red.org`,
+        phone: phone || '',
+        username: usernameRaw,
+        password,
+        plan,
+        createdAt: new Date().toISOString().split('T')[0]
+      };
+
+      organizations.push(newOrg);
+      saveDatabaseToServer();
+      populateChurchOrgSelect();
+      renderHqOrgsList();
+      renderHqChurchesList();
+      updateHqKpis();
+      closeNewOrgModal();
+
+      // Resetear campos del formulario
+      const form = document.querySelector('#newOrgModal form');
+      if (form) form.reset();
+      if (nameIn) nameIn.value = '';
+      if (slugIn) slugIn.value = '';
+      if (cityIn) cityIn.value = '';
+      if (emailIn) emailIn.value = '';
+      if (phoneIn) phoneIn.value = '';
+      if (userIn) userIn.value = '';
+      if (passIn) passIn.value = '';
+
+      showToast(`🏢 Organización "${name}" registrada exitosamente`, '✓');
+    }
+
     function openNewChurchModal() {
       const isOrg = currentAccount && currentAccount.isOrgAdmin;
       const modalTitle = document.getElementById('newChurchModalTitle');
@@ -11706,6 +11794,17 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
               libraryItems.splice(0, libraryItems.length, ...d.libraryItems);
               if (Array.isArray(d.layer3Videos)) {
                 layer3Videos = d.layer3Videos;
+              }
+              if (Array.isArray(d.organizations)) {
+                organizations.splice(0, organizations.length, ...d.organizations);
+                populateChurchOrgSelect();
+                renderHqOrgsList();
+                updateHqKpis();
+              }
+              if (Array.isArray(d.churches)) {
+                churches.splice(0, churches.length, ...d.churches);
+                renderHqChurchesList();
+                updateHqKpis();
               }
               renderSongsList();
               renderSlidesGrid();
