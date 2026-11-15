@@ -2,6 +2,7 @@ const CACHE_NAME = 'omnicast-pwa-v1';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
+  '/app.html',
   '/projector.html',
   '/stage.html',
   '/tv.html',

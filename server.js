@@ -1118,6 +1118,10 @@ const requestHandler = (req, res) => {
   let reqPath = decodeURIComponent(parsedUrl);
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/index.html';
+  } else if (reqPath === '/app' || reqPath === '/studio') {
+    reqPath = '/app.html';
+  } else if (reqPath === '/login') {
+    reqPath = '/app.html';
   }
 
   const filePath = path.join(PUBLIC_DIR, reqPath);
