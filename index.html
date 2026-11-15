@@ -4,7 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OmniCast Studio | Suite Multi-Tenant de Presentación, Switcher & Mapeo</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+  <!-- PWA Manifest & App Icons -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OmniCast Studio">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="/js/qrcode.min.js"></script>
@@ -446,6 +454,13 @@
       </button>
 
       
+
+      <!-- PWA Install Button -->
+      <button id="pwaInstallBtn" onclick="triggerPwaInstall()" title="Instalar OmniCast Studio como aplicación de escritorio nativa" 
+              class="hidden flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-blue-400/40 transition active:scale-95 shadow-md shadow-blue-500/20 group shrink-0 whitespace-nowrap animate-pulse">
+        <i data-lucide="download" class="w-3.5 h-3.5 text-white shrink-0"></i>
+        <span class="whitespace-nowrap">Instalar App</span>
+      </button>
 
       <button onclick="openCampusSettingsModal()" title="Ajustes de Sede, Temas y Preferencias Locales" 
               class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-700/80 transition active:scale-95 shadow group shrink-0 whitespace-nowrap">
@@ -21338,6 +21353,54 @@ Resucitaste en majestad`;
     renderRundownUI();
     broadcastRundownState();
     initSessionAuth();
+
+    // =========================================================================
+    // 🚀 OFFICIAL PWA SERVICE WORKER & DESKTOP/MOBILE INSTALL ENGINE
+    // =========================================================================
+    let deferredPwaPrompt = null;
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+          console.log('[PWA] Service Worker registered in scope:', reg.scope);
+        }).catch((err) => {
+          console.warn('[PWA] Service Worker registration note:', err);
+        });
+      });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPwaPrompt = e;
+      const btnInstall = document.getElementById('pwaInstallBtn');
+      if (btnInstall) btnInstall.classList.remove('hidden');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredPwaPrompt = null;
+      const btnInstall = document.getElementById('pwaInstallBtn');
+      if (btnInstall) btnInstall.classList.add('hidden');
+      if (typeof showToast === 'function') {
+        showToast('🎉 OmniCast Studio instalado como aplicación nativa', '🎉');
+      }
+    });
+
+    function triggerPwaInstall() {
+      if (deferredPwaPrompt) {
+        deferredPwaPrompt.prompt();
+        deferredPwaPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('[PWA] User accepted installation prompt');
+          }
+          deferredPwaPrompt = null;
+          const btnInstall = document.getElementById('pwaInstallBtn');
+          if (btnInstall) btnInstall.classList.add('hidden');
+        });
+      } else {
+        if (typeof showToast === 'function') {
+          showToast('💡 Usa el menú del navegador (3 puntos) > "Instalar aplicación"', '💡');
+        }
+      }
+    }
   </script>
 </body>
 </html>

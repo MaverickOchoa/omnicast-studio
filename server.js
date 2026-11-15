@@ -35,6 +35,7 @@ const MIME_TYPES = {
   '.js': 'text/javascript',
   '.css': 'text/css',
   '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -1166,7 +1167,7 @@ const requestHandler = (req, res) => {
     }
 
     const isMedia = /\.(mp4|webm|mov|mkv|mp3|wav|ogg)$/i.test(ext);
-    res.writeHead(200, {
+    const headers = {
       'Content-Type': contentType,
       'Content-Length': stats.size,
       'Accept-Ranges': 'bytes',
@@ -1174,8 +1175,12 @@ const requestHandler = (req, res) => {
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, HEAD',
       'Access-Control-Allow-Headers': 'Content-Type, Range',
       'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges',
-      'Cache-Control': 'no-store'
-    });
+      'Cache-Control': reqPath === '/sw.js' ? 'no-cache, no-store, must-revalidate' : 'no-store'
+    };
+    if (reqPath === '/sw.js') {
+      headers['Service-Worker-Allowed'] = '/';
+    }
+    res.writeHead(200, headers);
     if (req.method === 'HEAD') {
       res.end();
       return;

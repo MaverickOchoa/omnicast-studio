@@ -1,0 +1,69 @@
+{
+  "name": "OmniCast Studio",
+  "short_name": "OmniCast",
+  "description": "Suite de Switcher, Presentación & Transmisión Multi-Pantalla para Iglesias y Eventos",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "categories": ["production", "utilities", "video"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Proyector / Audiencia",
+      "short_name": "Proyector",
+      "url": "/projector.html",
+      "description": "Salida Full HD para Proyector y Pantallas Principales",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Stage Display (Músicos)",
+      "short_name": "Stage",
+      "url": "/stage.html",
+      "description": "Monitor de Escenario con Letras y Reloj de Servicio",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "TV Lobby / Transmisión LAN",
+      "short_name": "TV Lobby",
+      "url": "/tv.html",
+      "description": "Transmisión HD en vivo para TVs de Salones y Recepción",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Control Remoto Móvil",
+      "short_name": "Remoto",
+      "url": "/remote.html",
+      "description": "Controlador móvil inalámbrico para el Pastor y Operadores",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

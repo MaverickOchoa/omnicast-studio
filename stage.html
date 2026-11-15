@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OmniCast - Monitor de Escenario / Retorno (Stage Display)</title>
+  <!-- PWA Manifest & Display Mode -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -490,6 +497,35 @@
         });
       }, 600);
     });
+
+    // =========================================================================
+    // 🎤 PURE FULLSCREEN STAGE ENGINE (Double-Click or 'F' Key)
+    // =========================================================================
+    function toggleStageFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      }
+    }
+    document.addEventListener('dblclick', (e) => {
+      if (['INPUT', 'BUTTON', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      toggleStageFullscreen();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'f' || e.key === 'F') {
+        if (!['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+          toggleStageFullscreen();
+        }
+      }
+    });
+
+    // Service Worker for musicians' iPads/Tablets
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
   </script>
 </body>
 </html>
