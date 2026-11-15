@@ -172,6 +172,7 @@ let studioState = {
   tvAlert: '',
   tvServiceLive: false,
   lastServiceRecap: null,
+  layer1: null,
   libraryItems: persistentDb.libraryItems.length > 0 ? persistentDb.libraryItems : []
 };
 
@@ -429,6 +430,25 @@ const requestHandler = (req, res) => {
         }
 
         broadcastSSE('state', studioState);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
+  // API 4.2: Capa 1 State Sync (Logos & Portadas for network projectors & stage screens)
+  if (parsedUrl === '/api/layer1' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        studioState.layer1 = payload;
+        broadcastSSE('layer1_update', payload);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {

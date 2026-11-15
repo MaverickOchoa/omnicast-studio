@@ -6142,6 +6142,10 @@ Te adoraré, te adoraré..."
         }
       }
 
+      if (layerId === 1) {
+        if (typeof syncLayer1ToProjector === 'function') syncLayer1ToProjector();
+      }
+
       updateLayerPowerUI(layerId);
       if (typeof updateWirecastRackUI === 'function') {
         updateWirecastRackUI();
@@ -12135,14 +12139,25 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     // Global cache for compositor images (Logos, Portadas, Overlays) to avoid GC thrashing and flickering
     const cachedCompositorImages = {};
     function getCachedCompositorImage(url) {
-      if (!url) return null;
-      if (!cachedCompositorImages[url]) {
+      if (!url || typeof url !== 'string') return null;
+      const trimmed = url.trim();
+      if (!trimmed) return null;
+      if (!cachedCompositorImages[trimmed]) {
         const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = url;
-        cachedCompositorImages[url] = img;
+        // CORS: Solo asignar anonymous si es una URL HTTP/HTTPS externa para no bloquear data:, blob: o archivos locales
+        if ((trimmed.startsWith('http://') || trimmed.startsWith('https://')) && !trimmed.includes(window.location.host)) {
+          img.crossOrigin = 'anonymous';
+        }
+        img.onload = () => {
+          if (typeof renderCompositor === 'function') renderCompositor(true);
+        };
+        img.onerror = (e) => {
+          console.warn('[OmniCast Compositor] No se pudo cargar imagen:', trimmed, e);
+        };
+        img.src = trimmed;
+        cachedCompositorImages[trimmed] = img;
       }
-      const img = cachedCompositorImages[url];
+      const img = cachedCompositorImages[trimmed];
       return (img && img.complete && img.naturalWidth > 0) ? img : null;
     }
 
@@ -12150,18 +12165,20 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (!inputEl || !inputEl.files || !inputEl.files[0]) return;
       const file = inputEl.files[0];
 
-      // 1. Inmediata previsualización local con FileReader Data URL
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const dataUrl = e.target.result;
-        const targetInputId = type === 'slate' ? 'shotInputSlateImageUrl' : 'shotInputLogoImageUrl';
-        const urlIn = document.getElementById(targetInputId);
-        if (urlIn) urlIn.value = dataUrl;
-        updateShotModalPreview();
-      };
-      reader.readAsDataURL(file);
+      // 1. Inmediata previsualización local con blob URL (cero impacto de memoria y sin límite de 5MB de localStorage)
+      const blobUrl = URL.createObjectURL(file);
+      const targetInputId = type === 'slate' ? 'shotInputSlateImageUrl' : 'shotInputLogoImageUrl';
+      const urlIn = document.getElementById(targetInputId);
+      if (urlIn) urlIn.value = blobUrl;
 
-      // 2. Subida asíncrona al servidor para almacenamiento persistente
+      // Pre-cargar en cache para que el compositor lo dibuje al instante
+      getCachedCompositorImage(blobUrl);
+
+      // Actualizar previsualización en el modal y miniatura
+      updateShotModalPreview();
+      if (typeof renderCompositor === 'function') renderCompositor(true);
+
+      // 2. Subida asíncrona al servidor para almacenamiento persistente (/uploads/images/...)
       try {
         if (typeof showToast === 'function') showToast('⏳ Guardando imagen en el servidor...', 'info');
         const resp = await fetch(`/api/upload/image?filename=${encodeURIComponent(file.name)}`, {
@@ -12170,15 +12187,107 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         });
         const data = await resp.json();
         if (data && data.success && data.url) {
-          const targetInputId = type === 'slate' ? 'shotInputSlateImageUrl' : 'shotInputLogoImageUrl';
-          const urlIn = document.getElementById(targetInputId);
-          if (urlIn) urlIn.value = data.url;
-          if (typeof showToast === 'function') showToast('✓ Imagen guardada permanentemente', 'success');
+          const currentUrlIn = document.getElementById(targetInputId);
+          if (currentUrlIn) currentUrlIn.value = data.url;
+
+          if (currentEditingShotContext && currentEditingShotContext.shot) {
+            if (type === 'slate') {
+              currentEditingShotContext.shot.slateImageUrl = data.url;
+              currentEditingShotContext.shot.imageUrl = data.url;
+            } else {
+              currentEditingShotContext.shot.logoImageUrl = data.url;
+              currentEditingShotContext.shot.imageUrl = data.url;
+            }
+          }
+
+          getCachedCompositorImage(data.url);
+          if (typeof showToast === 'function') showToast('✓ Imagen guardada permanentemente en el servidor', 'success');
           updateShotModalPreview();
+          if (typeof renderCompositor === 'function') renderCompositor(true);
         }
       } catch (err) {
         console.warn('Error subiendo imagen a /api/upload/image:', err);
       }
+    }
+
+    function clearLayer1Image(type) {
+      const targetInputId = type === 'slate' ? 'shotInputSlateImageUrl' : 'shotInputLogoImageUrl';
+      const fileInputId = type === 'slate' ? 'shotFileSlate' : 'shotFileLogo';
+      const urlIn = document.getElementById(targetInputId);
+      const fileIn = document.getElementById(fileInputId);
+      if (urlIn) urlIn.value = '';
+      if (fileIn) fileIn.value = '';
+
+      if (currentEditingShotContext && currentEditingShotContext.shot) {
+        if (type === 'slate') {
+          currentEditingShotContext.shot.slateImageUrl = '';
+          currentEditingShotContext.shot.imageUrl = '';
+        } else {
+          currentEditingShotContext.shot.logoImageUrl = '';
+          currentEditingShotContext.shot.imageUrl = '';
+        }
+      }
+      updateShotModalPreview();
+      if (typeof renderCompositor === 'function') renderCompositor(true);
+    }
+
+    function setLayer1SlateMode(mode) {
+      const isText = (mode === 'with_text');
+      const chk = document.getElementById('shotCheckSlateShowText');
+      if (chk) chk.checked = isText;
+
+      const btnImg = document.getElementById('btnSlateMode-image');
+      const btnTxt = document.getElementById('btnSlateMode-text');
+      const textBox = document.getElementById('slateTextInputsContainer');
+
+      if (btnImg && btnTxt) {
+        if (isText) {
+          btnTxt.className = 'p-2 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 border-emerald-500 bg-emerald-500/20 text-emerald-300 shadow-sm';
+          btnImg.className = 'p-2 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 border-slate-700 bg-slate-950 text-slate-400 hover:text-white';
+          if (textBox) textBox.classList.remove('hidden');
+        } else {
+          btnImg.className = 'p-2 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 border-emerald-500 bg-emerald-500/20 text-emerald-300 shadow-sm';
+          btnTxt.className = 'p-2 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 border-slate-700 bg-slate-950 text-slate-400 hover:text-white';
+          if (textBox) textBox.classList.add('hidden');
+        }
+      }
+      updateShotModalPreview();
+    }
+
+    function syncLayer1ToProjector() {
+      const isL1On = Boolean(layerPower[1]);
+      const activeProgShotId = (wirecastState && wirecastState.program) ? wirecastState.program[1] : 1;
+      const shotObj = (shotConfig && shotConfig[1]) ? shotConfig[1].find(s => s.id === activeProgShotId) : null;
+
+      const payload = {
+        type: 'LAYER1_UPDATE',
+        enabled: isL1On,
+        itemType: (shotObj && shotObj.type) || 'logo',
+        logoImageUrl: (shotObj && (shotObj.logoImageUrl || shotObj.imageUrl)) || '',
+        logoCorner: (shotObj && (shotObj.logoCorner || shotObj.corner)) || 'top-right',
+        logoScale: (shotObj && (shotObj.logoScale || shotObj.scale)) || 100,
+        logoOpacity: (shotObj && (shotObj.logoOpacity || shotObj.opacity)) || 85,
+        slateImageUrl: (shotObj && (shotObj.slateImageUrl || shotObj.imageUrl)) || '',
+        slateTitle: (shotObj && shotObj.slateTitle !== undefined) ? shotObj.slateTitle : (shotObj?.title || ''),
+        slateSubtitle: (shotObj && shotObj.slateSubtitle !== undefined) ? shotObj.slateSubtitle : (shotObj?.subtitle || ''),
+        slateShowText: (shotObj && typeof shotObj.slateShowText === 'boolean') ? shotObj.slateShowText : false
+      };
+
+      try {
+        if (typeof liveChannel !== 'undefined' && liveChannel.postMessage) {
+          liveChannel.postMessage(payload);
+        }
+      } catch (e) {}
+
+      try {
+        localStorage.setItem('omnicast_layer1_state', JSON.stringify(payload));
+      } catch (e) {}
+
+      fetch('/api/layer1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
     }
 
     function selectLogoCorner(corner) {
@@ -12262,9 +12371,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         const curLogoOpacity = shot.logoOpacity || shot.opacity || 85;
         const curLogoImg = shot.logoImageUrl || shot.imageUrl || '';
         const curSlateImg = shot.slateImageUrl || shot.imageUrl || '';
-        const curSlateTitle = shot.slateTitle || shot.title || 'INICIAMOS EN BREVE';
-        const curSlateSub = shot.slateSubtitle || shot.subtitle || 'Bienvenidos a Casa • La reunión comenzará pronto';
-        const curSlateShowText = shot.slateShowText !== false;
+        const curSlateTitle = shot.slateTitle !== undefined ? shot.slateTitle : (shot.title || '');
+        const curSlateSub = shot.slateSubtitle !== undefined ? shot.slateSubtitle : (shot.subtitle || '');
+        const curSlateShowText = typeof shot.slateShowText === 'boolean' ? shot.slateShowText : (curSlateImg ? false : true);
 
         specHtml = `
           <div class="space-y-2">
@@ -12291,6 +12400,22 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             <div>
               <label class="block text-[10px] font-bold text-slate-400 mb-0.5">O URL de Imagen / Logo</label>
               <input type="text" id="shotInputLogoImageUrl" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-mono" placeholder="ej. /uploads/images/logo.png o https://.../logo.png" value="${curLogoImg}" oninput="updateShotModalPreview()">
+            </div>
+
+            <!-- Miniatura de Imagen de Logo en Modal -->
+            <div id="logoPreviewContainer" class="${curLogoImg ? '' : 'hidden'} p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-12 h-12 rounded bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:6px_6px] bg-slate-900 border border-slate-700 flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                  <img id="logoThumbPreviewImg" src="${curLogoImg}" class="max-w-full max-h-full object-contain" alt="Logo">
+                </div>
+                <div class="truncate">
+                  <div class="text-[11px] font-bold text-sky-300 truncate">✓ Logo cargado</div>
+                  <div class="text-[9.5px] text-slate-400">Listo para proyectar y transmitir</div>
+                </div>
+              </div>
+              <button type="button" onclick="clearLayer1Image('logo')" class="px-2.5 py-1 rounded bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-300 text-[10px] font-bold shrink-0 transition">
+                🗑️ Quitar
+              </button>
             </div>
 
             <div>
@@ -12328,10 +12453,10 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
                 <input type="range" id="shotRangeLogoOpacity" min="10" max="100" step="5" value="${curLogoOpacity}" oninput="document.getElementById('labelLogoOpacity').textContent = this.value + '%'; updateShotModalPreview()" class="w-full accent-sky-500">
               </div>
             </div>
-            <p class="text-[9.5px] text-slate-500 italic">💡 Si no subes imagen, se usará el emblema vectorial de la iglesia.</p>
+            <p class="text-[9.5px] text-slate-500 italic">💡 Si subes tu imagen se proyectará en la esquina elegida; si la quitas, se usará el emblema de la iglesia.</p>
           </div>
 
-          <!-- PANEL PORTADA CON IMAGEN 16:9 Y TEXTO -->
+          <!-- PANEL PORTADA CON IMAGEN 16:9 Y OPCIÓN DE FLYER LIMPIO -->
           <div id="slateFieldsBox" class="${curL1Type === 'slate' ? '' : 'hidden'} space-y-2.5 mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
             <div>
               <label class="block text-[10px] font-bold text-emerald-400 mb-1">🖼️ Archivo de Portada (16:9 JPG / PNG)</label>
@@ -12341,17 +12466,48 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
               <label class="block text-[10px] font-bold text-slate-400 mb-0.5">O URL de Imagen de Fondo</label>
               <input type="text" id="shotInputSlateImageUrl" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-mono" placeholder="ej. /uploads/images/portada.jpg o https://.../portada.jpg" value="${curSlateImg}" oninput="updateShotModalPreview()">
             </div>
-            <div>
-              <label class="block text-[10px] font-bold text-emerald-400 mb-0.5">Título en Pantalla Completa</label>
-              <input type="text" id="shotInputSlateTitle" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-semibold" value="${curSlateTitle}" oninput="updateShotModalPreview()">
+
+            <!-- Miniatura de Imagen de Portada en Modal -->
+            <div id="slatePreviewContainer" class="${curSlateImg ? '' : 'hidden'} p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-16 h-9 rounded bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                  <img id="slateThumbPreviewImg" src="${curSlateImg}" class="w-full h-full object-cover" alt="Portada">
+                </div>
+                <div class="truncate">
+                  <div class="text-[11px] font-bold text-emerald-300 truncate">✓ Flyer 16:9 cargado</div>
+                  <div class="text-[9.5px] text-slate-400">Listo para proyección y telón</div>
+                </div>
+              </div>
+              <button type="button" onclick="clearLayer1Image('slate')" class="px-2.5 py-1 rounded bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-300 text-[10px] font-bold shrink-0 transition">
+                🗑️ Quitar
+              </button>
             </div>
+
+            <!-- Selector de Modo: Solo Flyer Limpio vs Con Títulos -->
             <div>
-              <label class="block text-[10px] font-bold text-slate-400 mb-0.5">Subtítulo en Pantalla Completa</label>
-              <input type="text" id="shotInputSlateSub" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs" value="${curSlateSub}" oninput="updateShotModalPreview()">
+              <label class="block text-[10px] font-bold text-slate-300 mb-1">Modo de Visualización de Portada</label>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" id="btnSlateMode-image" onclick="setLayer1SlateMode('image_only')"
+                        class="p-2 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${!curSlateShowText ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 shadow-sm' : 'border-slate-700 bg-slate-950 text-slate-400 hover:text-white'}">
+                  <span>🖼️</span> <span>Solo Flyer Limpio (Sin Letras)</span>
+                </button>
+                <button type="button" id="btnSlateMode-text" onclick="setLayer1SlateMode('with_text')"
+                        class="p-2 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${curSlateShowText ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300 shadow-sm' : 'border-slate-700 bg-slate-950 text-slate-400 hover:text-white'}">
+                  <span>✍️</span> <span>Con Títulos Superpuestos</span>
+                </button>
+              </div>
+              <input type="checkbox" id="shotCheckSlateShowText" ${curSlateShowText ? 'checked' : ''} class="hidden">
             </div>
-            <div class="flex items-center gap-2 pt-1">
-              <input type="checkbox" id="shotCheckSlateShowText" ${curSlateShowText ? 'checked' : ''} onchange="updateShotModalPreview()" class="rounded border-slate-700 bg-slate-950 text-emerald-500 focus:ring-0">
-              <label for="shotCheckSlateShowText" class="text-[10.5px] font-semibold text-slate-300 cursor-pointer">Superponer Título y Subtítulo sobre la imagen</label>
+
+            <div id="slateTextInputsContainer" class="${curSlateShowText ? '' : 'hidden'} space-y-2 pt-1 border-t border-slate-800">
+              <div>
+                <label class="block text-[10px] font-bold text-emerald-400 mb-0.5">Título en Pantalla Completa (Opcional)</label>
+                <input type="text" id="shotInputSlateTitle" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-semibold" placeholder="Dejar vacío si no deseas texto" value="${curSlateTitle}" oninput="updateShotModalPreview()">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-400 mb-0.5">Subtítulo en Pantalla Completa (Opcional)</label>
+                <input type="text" id="shotInputSlateSub" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs" placeholder="Dejar vacío si no deseas subtítulo" value="${curSlateSub}" oninput="updateShotModalPreview()">
+              </div>
             </div>
           </div>
         `;
@@ -12716,19 +12872,49 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       // Contextual Preview para Capa 1 (Logos y Portadas)
       if (currentEditingShotContext && currentEditingShotContext.layerId === 1) {
         const l1Type = document.getElementById('shotSelectLayer1Type')?.value || 'logo';
+
+        // Actualizar thumbnails en el modal
+        const curLogoImg = document.getElementById('shotInputLogoImageUrl')?.value.trim();
+        const logoBox = document.getElementById('logoPreviewContainer');
+        const logoImgEl = document.getElementById('logoThumbPreviewImg');
+        if (logoBox && logoImgEl) {
+          if (curLogoImg) {
+            logoImgEl.src = curLogoImg;
+            logoBox.classList.remove('hidden');
+          } else {
+            logoBox.classList.add('hidden');
+          }
+        }
+
+        const curSlateImg = document.getElementById('shotInputSlateImageUrl')?.value.trim();
+        const slateBox = document.getElementById('slatePreviewContainer');
+        const slateImgEl = document.getElementById('slateThumbPreviewImg');
+        if (slateBox && slateImgEl) {
+          if (curSlateImg) {
+            slateImgEl.src = curSlateImg;
+            slateBox.classList.remove('hidden');
+          } else {
+            slateBox.classList.add('hidden');
+          }
+        }
+
         if (l1Type === 'slate') {
-          const sTitle = document.getElementById('shotInputSlateTitle')?.value.trim() || 'INICIAMOS EN BREVE';
-          const sSub = document.getElementById('shotInputSlateSub')?.value.trim() || 'Portada de Espera';
+          const sTitle = document.getElementById('shotInputSlateTitle')?.value.trim() || '';
+          const sSub = document.getElementById('shotInputSlateSub')?.value.trim() || '';
+          const sImg = curSlateImg || '';
+          const showText = document.getElementById('shotCheckSlateShowText')?.checked === true;
           if (cardTitle) {
-            cardTitle.textContent = sTitle;
+            cardTitle.textContent = showText ? (sTitle || 'PORTADA') : (sImg ? 'FLYER LIMPIO' : 'PORTADA');
             cardTitle.className = `text-[9px] font-bold ${(colMap[col] || '').split(' ')[0]}`;
           }
-          if (cardSub) cardSub.textContent = sSub;
-          if (cardBadge) cardBadge.textContent = 'PORTADA';
+          if (cardSub) {
+            cardSub.textContent = showText ? (sSub || 'Con Títulos') : (sImg ? '16:9 Sin Texto' : 'Telón de Espera');
+          }
+          if (cardBadge) cardBadge.textContent = sImg ? 'FLYER 16:9' : 'PORTADA';
         } else {
           const corner = document.getElementById('shotInputLogoCorner')?.value || 'top-right';
           const cornerLabels = { 'top-right': 'Sup. Der.', 'top-left': 'Sup. Izq.', 'bottom-right': 'Inf. Der.', 'bottom-left': 'Inf. Izq.' };
-          const hasImg = Boolean(document.getElementById('shotInputLogoImageUrl')?.value.trim());
+          const hasImg = Boolean(curLogoImg);
           if (cardTitle) {
             cardTitle.textContent = 'LOGO';
             cardTitle.className = `text-[9px] font-bold ${(colMap[col] || '').split(' ')[0]}`;
@@ -13126,18 +13312,18 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         const l1Type = document.getElementById('shotSelectLayer1Type')?.value || 'logo';
         shot.type = l1Type;
         if (shot.type === 'slate') {
-          const sTitle = document.getElementById('shotInputSlateTitle')?.value.trim() || 'INICIAMOS EN BREVE';
-          const sSub = document.getElementById('shotInputSlateSub')?.value.trim() || 'Bienvenidos a Casa';
+          const sTitle = document.getElementById('shotInputSlateTitle')?.value.trim() || '';
+          const sSub = document.getElementById('shotInputSlateSub')?.value.trim() || '';
           const sImg = document.getElementById('shotInputSlateImageUrl')?.value.trim() || '';
-          const sShowText = document.getElementById('shotCheckSlateShowText')?.checked !== false;
+          const sShowText = document.getElementById('shotCheckSlateShowText')?.checked === true;
           shot.slateTitle = sTitle;
           shot.slateSubtitle = sSub;
           shot.imageUrl = sImg;
           shot.slateImageUrl = sImg;
           shot.slateShowText = sShowText;
-          shot.title = sTitle;
-          shot.subtitle = sSub;
-          shot.badge = 'PORTADA';
+          shot.title = sTitle || (sImg ? 'FLYER 16:9' : 'PORTADA');
+          shot.subtitle = sSub || (sShowText ? 'Portada con Título' : (sImg ? 'Flyer Limpio Sin Texto' : 'Telón de Espera'));
+          shot.badge = sImg ? 'FLYER 16:9' : 'PORTADA';
         } else {
           const lImg = document.getElementById('shotInputLogoImageUrl')?.value.trim() || '';
           const lCorner = document.getElementById('shotInputLogoCorner')?.value || 'top-right';
@@ -13153,9 +13339,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           shot.logoOpacity = lOpacity;
           shot.title = 'LOGO';
           const cornerLabels = { 'top-right': 'Sup. Derecha', 'top-left': 'Sup. Izquierda', 'bottom-right': 'Inf. Derecha', 'bottom-left': 'Inf. Izquierda' };
-          shot.subtitle = `Marca de Agua • ${cornerLabels[lCorner] || 'Sup. Derecha'}`;
+          shot.subtitle = lImg ? `Logo PNG • ${cornerLabels[lCorner] || 'Sup. Derecha'}` : `Marca de Agua • ${cornerLabels[lCorner] || 'Sup. Derecha'}`;
           shot.badge = lImg ? 'LOGO PNG' : 'LOGO BUG';
         }
+        if (typeof syncLayer1ToProjector === 'function') syncLayer1ToProjector();
+        if (typeof renderCompositor === 'function') renderCompositor(true);
       } else if (layerId === 2) {
         const l2Type = document.getElementById('shotSelectLayer2Type')?.value || 'speaker';
         shot.type = l2Type;
@@ -16799,10 +16987,14 @@ Pues resucitaste, Rey`
           layerPower[layer] = true;
           updateLayerPowerUI(layer);
         }
+        if (layer === 1) {
+          if (typeof syncLayer1ToProjector === 'function') syncLayer1ToProjector();
+        }
         if (layer === 2 && shotId === 2) {
           lowerThirdConfig.activeSince = Date.now();
         }
         updateWirecastRackUI();
+        if (typeof renderCompositor === 'function') renderCompositor(true);
         return;
       }
 
@@ -17064,6 +17256,9 @@ Pues resucitaste, Rey`
 
       // Sincronizar Tally de Cámaras Celulares
       setTimeout(syncMobileCamTally, 50);
+
+      // Sincronizar Capa 1 con el proyector de audiencia
+      if (typeof syncLayer1ToProjector === 'function') syncLayer1ToProjector();
 
       // Actualizar racks y bordes (Verde en Preview, Rojo en Program)
       updateWirecastRackUI();
@@ -18044,7 +18239,7 @@ Pues resucitaste, Rey`
           // pero el AUDIO de Capa 5 sigue sonando al 100% de manera fluida)
           // ===================================================================
           const slateImgUrl = shotObj.slateImageUrl || shotObj.imageUrl;
-          const slateImg = getCachedCompositorImage(slateImgUrl);
+          const slateImg = slateImgUrl ? getCachedCompositorImage(slateImgUrl) : null;
 
           if (slateImg) {
             ctx.drawImage(slateImg, 0, 0, w, h);
@@ -18071,66 +18266,83 @@ Pues resucitaste, Rey`
             ctx.closePath();
             ctx.fill();
 
-            // Center Emblem
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-            ctx.beginPath();
-            ctx.arc(960, 360, 80, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 3;
-            ctx.stroke();
+            // Emblema solo si el usuario no tiene imagen Y eligió mostrar títulos
+            if (shotObj.slateShowText === true) {
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+              ctx.beginPath();
+              ctx.arc(960, 360, 80, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = '#38bdf8';
+              ctx.lineWidth = 3;
+              ctx.stroke();
 
-            ctx.fillStyle = '#38bdf8';
-            ctx.font = 'bold 50px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('⛪', 960, 378);
+              ctx.fillStyle = '#38bdf8';
+              ctx.font = 'bold 50px Inter, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('⛪', 960, 378);
 
-            // Church Name / Header
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = 'bold 24px Inter, sans-serif';
-            ctx.fillText('COMUNIDAD CRISTIANA NACIONAL', 960, 480);
+              // Church Name / Header
+              ctx.fillStyle = '#94a3b8';
+              ctx.font = 'bold 24px Inter, sans-serif';
+              ctx.fillText('COMUNIDAD CRISTIANA NACIONAL', 960, 480);
+            }
           }
 
-          // Texto sobre la portada (con sombra oscura para alta legibilidad sobre fotos)
-          const showText = shotObj.slateShowText !== false;
+          // Texto sobre la portada: SOLO si slateShowText === true
+          // Si el usuario subió un flyer limpio, slateShowText es false y NO se pinta ninguna letra ni botón
+          const showText = shotObj.slateShowText === true;
           if (showText) {
             ctx.textAlign = 'center';
-            const sTitle = shotObj.slateTitle || shotObj.title || 'INICIAMOS EN BREVE';
-            const sSub = shotObj.slateSubtitle || shotObj.subtitle || 'Bienvenidos a Casa • La reunión comenzará pronto';
+            const sTitle = shotObj.slateTitle !== undefined ? shotObj.slateTitle : (shotObj.title || '');
+            const sSub = shotObj.slateSubtitle !== undefined ? shotObj.slateSubtitle : (shotObj.subtitle || '');
 
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-            ctx.shadowBlur = 18;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 4;
+            if (sTitle) {
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+              ctx.shadowBlur = 18;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 4;
 
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 64px Inter, sans-serif';
-            ctx.fillText(sTitle, 960, 560);
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 64px Inter, sans-serif';
+              ctx.fillText(sTitle, 960, 560);
 
-            ctx.fillStyle = '#38bdf8';
-            ctx.font = '28px Inter, sans-serif';
-            ctx.fillText(sSub, 960, 620);
+              ctx.shadowColor = 'transparent';
+              ctx.shadowBlur = 0;
+            }
 
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
+            if (sSub) {
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+              ctx.shadowBlur = 14;
+              ctx.shadowOffsetX = 0;
+              ctx.shadowOffsetY = 3;
 
-            // Subtle live pulse pill at bottom
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-            ctx.beginPath();
-            ctx.roundRect(830, 680, 260, 46, 23);
-            ctx.fill();
-            ctx.strokeStyle = '#334155';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+              ctx.fillStyle = '#38bdf8';
+              ctx.font = '28px Inter, sans-serif';
+              ctx.fillText(sSub, 960, 620);
 
-            ctx.fillStyle = '#10b981';
-            ctx.beginPath();
-            ctx.arc(860, 703, 6, 0, Math.PI * 2);
-            ctx.fill();
+              ctx.shadowColor = 'transparent';
+              ctx.shadowBlur = 0;
+            }
 
-            ctx.fillStyle = '#cbd5e1';
-            ctx.font = 'bold 16px Inter, sans-serif';
-            ctx.fillText('TRANSMISIÓN EN VIVO', 975, 709);
+            if (sTitle || sSub) {
+              // Subtle live pulse pill at bottom
+              ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+              ctx.beginPath();
+              ctx.roundRect(830, 680, 260, 46, 23);
+              ctx.fill();
+              ctx.strokeStyle = '#334155';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+
+              ctx.fillStyle = '#10b981';
+              ctx.beginPath();
+              ctx.arc(860, 703, 6, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.fillStyle = '#cbd5e1';
+              ctx.font = 'bold 16px Inter, sans-serif';
+              ctx.fillText('TRANSMISIÓN EN VIVO', 975, 709);
+            }
           }
 
         } else {
@@ -18138,7 +18350,8 @@ Pues resucitaste, Rey`
           // LOGO / MARCA DE AGUA (WATERMARK BUG O IMAGEN PERSONALIZADA)
           // ===================================================================
           const logoImgUrl = shotObj && (shotObj.logoImageUrl || shotObj.imageUrl);
-          const logoImg = getCachedCompositorImage(logoImgUrl);
+          const hasCustomLogo = Boolean(logoImgUrl && typeof logoImgUrl === 'string' && logoImgUrl.trim() !== '');
+          const logoImg = hasCustomLogo ? getCachedCompositorImage(logoImgUrl) : null;
 
           if (logoImg) {
             const corner = (shotObj && (shotObj.logoCorner || shotObj.corner)) || 'top-right';
@@ -18179,38 +18392,41 @@ Pues resucitaste, Rey`
 
             ctx.drawImage(logoImg, posX, posY, drawW, drawH);
 
-          } else if (logoShotId === 2 || (shotObj && shotObj.color === 'amber')) {
-            // Gold Gala Logo
-            ctx.fillStyle = 'rgba(251, 191, 36, 0.35)';
-            ctx.beginPath();
-            ctx.arc(1800, 100, 50, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#fde68a';
-            ctx.font = 'bold 32px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('👑', 1800, 112);
+          } else if (!hasCustomLogo) {
+            // Draw vector watermark ONLY if user did not provide a custom logo image
+            if (logoShotId === 2 || (shotObj && shotObj.color === 'amber')) {
+              // Gold Gala Logo
+              ctx.fillStyle = 'rgba(251, 191, 36, 0.35)';
+              ctx.beginPath();
+              ctx.arc(1800, 100, 50, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#fde68a';
+              ctx.font = 'bold 32px Inter, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('👑', 1800, 112);
 
-          } else if (logoShotId === 3 || (shotObj && shotObj.type === 'logo' && shotObj.badge === 'LIVE BUG')) {
-            // Discreet watermark
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.beginPath();
-            ctx.arc(1800, 100, 40, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.font = 'bold 20px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('LIVE', 1800, 108);
+            } else if (logoShotId === 3 || (shotObj && shotObj.type === 'logo' && shotObj.badge === 'LIVE BUG')) {
+              // Discreet watermark
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+              ctx.beginPath();
+              ctx.arc(1800, 100, 40, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+              ctx.font = 'bold 20px Inter, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('LIVE', 1800, 108);
 
-          } else {
-            // Official White Logo
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
-            ctx.beginPath();
-            ctx.arc(1800, 100, 50, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 32px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('⛪', 1800, 112);
+            } else {
+              // Official White Logo
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+              ctx.beginPath();
+              ctx.arc(1800, 100, 50, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 32px Inter, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('⛪', 1800, 112);
+            }
           }
         }
 
@@ -21673,6 +21889,7 @@ Resucitaste en majestad`;
     broadcastSlide(false, false);
     window.addEventListener('load', () => {
       initStudioRemoteEvents();
+      setTimeout(syncLayer1ToProjector, 500);
     });
     const resumeRealAudioCtxOnGesture = () => {
       if (typeof audioContext !== 'undefined' && audioContext && audioContext.state === 'suspended') {

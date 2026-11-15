@@ -57,6 +57,26 @@
   <!-- Ambient Dark Overlay for Readability with Adjustable Dimmer & Blur -->
   <div id="ambientOverlay" class="absolute inset-0 bg-black/40 backdrop-blur-[0px] z-10 transition-all duration-500"></div>
 
+  <!-- Capa 1: Portada / Telón de Espera Full-Screen (z-35) -->
+  <div id="projectorSlateLayer" class="absolute inset-0 w-full h-full z-35 flex items-center justify-center bg-black transition-opacity duration-500 opacity-0 pointer-events-none hidden">
+    <img id="projectorSlateImg" class="absolute inset-0 w-full h-full object-cover hidden" alt="Portada">
+    <div id="projectorSlateTextContainer" class="relative z-10 text-center px-8 max-w-5xl flex flex-col items-center hidden">
+      <h1 id="projectorSlateTitle" class="text-white font-black text-6xl md:text-8xl tracking-wide drop-shadow-2xl"></h1>
+      <p id="projectorSlateSubtitle" class="mt-4 text-sky-300 font-semibold text-2xl md:text-3xl drop-shadow-lg"></p>
+      <div id="projectorSlatePill" class="mt-8 px-6 py-2 rounded-full bg-slate-900/80 border border-slate-700/80 text-emerald-400 font-bold text-lg flex items-center gap-3 shadow-2xl">
+        <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>TRANSMISIÓN EN VIVO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capa 1: Logo Bug / Marca de Agua (z-40) -->
+  <div id="projectorLogoLayer" class="absolute inset-0 w-full h-full z-40 pointer-events-none hidden">
+    <div id="projectorLogoBox" class="absolute top-8 right-8 transition-all duration-300">
+      <img id="projectorLogoImg" class="max-w-[220px] max-h-[140px] object-contain drop-shadow-2xl" alt="Logo">
+    </div>
+  </div>
+
   <!-- Main Lyric / Scripture Wrapper (Center vs Lower Third Layout) -->
   <div id="lyricsWrapper" class="absolute inset-0 z-20 flex items-center justify-center p-6 md:p-12 transition-all duration-500">
     <div id="lyricsBox" class="w-full max-w-5xl text-center flex flex-col items-center justify-center transition-all duration-500">
@@ -616,11 +636,126 @@
       }
     }
 
+    // =========================================================================
+    // 📺 CAPA 1 OVERLAY: PORTADA / SLATE & LOGO BUG
+    // =========================================================================
+    const projectorSlateLayer = document.getElementById('projectorSlateLayer');
+    const projectorSlateImg = document.getElementById('projectorSlateImg');
+    const projectorSlateTextContainer = document.getElementById('projectorSlateTextContainer');
+    const projectorSlateTitle = document.getElementById('projectorSlateTitle');
+    const projectorSlateSubtitle = document.getElementById('projectorSlateSubtitle');
+    const projectorLogoLayer = document.getElementById('projectorLogoLayer');
+    const projectorLogoBox = document.getElementById('projectorLogoBox');
+    const projectorLogoImg = document.getElementById('projectorLogoImg');
+
+    function updateProjectorLayer1(data) {
+      if (!data) return;
+      const isEnabled = Boolean(data.enabled);
+      const itemType = data.itemType || 'logo';
+
+      // 1. Portada / Telón de Espera
+      if (isEnabled && itemType === 'slate') {
+        if (projectorSlateLayer) {
+          projectorSlateLayer.classList.remove('hidden');
+          // Smooth fade in
+          requestAnimationFrame(() => {
+            projectorSlateLayer.classList.remove('opacity-0');
+            projectorSlateLayer.classList.add('opacity-100');
+          });
+
+          if (projectorSlateImg) {
+            if (data.slateImageUrl) {
+              projectorSlateImg.src = data.slateImageUrl;
+              projectorSlateImg.classList.remove('hidden');
+            } else {
+              projectorSlateImg.src = '';
+              projectorSlateImg.classList.add('hidden');
+            }
+          }
+
+          const showText = data.slateShowText === true;
+          if (projectorSlateTextContainer) {
+            if (showText && (data.slateTitle || data.slateSubtitle)) {
+              projectorSlateTextContainer.classList.remove('hidden');
+              if (projectorSlateTitle) {
+                projectorSlateTitle.textContent = data.slateTitle || '';
+                projectorSlateTitle.classList.toggle('hidden', !data.slateTitle);
+              }
+              if (projectorSlateSubtitle) {
+                projectorSlateSubtitle.textContent = data.slateSubtitle || '';
+                projectorSlateSubtitle.classList.toggle('hidden', !data.slateSubtitle);
+              }
+            } else {
+              projectorSlateTextContainer.classList.add('hidden');
+            }
+          }
+        }
+      } else {
+        if (projectorSlateLayer) {
+          projectorSlateLayer.classList.remove('opacity-100');
+          projectorSlateLayer.classList.add('opacity-0');
+          setTimeout(() => {
+            if (projectorSlateLayer && projectorSlateLayer.classList.contains('opacity-0')) {
+              projectorSlateLayer.classList.add('hidden');
+            }
+          }, 500);
+        }
+      }
+
+      // 2. Logo Bug / Marca de Agua
+      if (isEnabled && itemType === 'logo' && data.logoImageUrl) {
+        if (projectorLogoLayer && projectorLogoBox && projectorLogoImg) {
+          projectorLogoLayer.classList.remove('hidden');
+          projectorLogoImg.src = data.logoImageUrl;
+
+          const corner = data.logoCorner || 'top-right';
+          const scale = (data.logoScale || 100) / 100;
+          const opacity = Math.max(0.05, Math.min(1.0, (data.logoOpacity || 85) / 100));
+
+          projectorLogoImg.style.opacity = opacity;
+          projectorLogoImg.style.transform = `scale(${scale})`;
+          projectorLogoImg.style.transformOrigin = corner.replace('-', ' ');
+
+          // Position according to corner
+          projectorLogoBox.className = 'absolute transition-all duration-300';
+          if (corner === 'top-left') {
+            projectorLogoBox.style.top = '40px';
+            projectorLogoBox.style.left = '50px';
+            projectorLogoBox.style.bottom = 'auto';
+            projectorLogoBox.style.right = 'auto';
+          } else if (corner === 'bottom-left') {
+            projectorLogoBox.style.bottom = '40px';
+            projectorLogoBox.style.left = '50px';
+            projectorLogoBox.style.top = 'auto';
+            projectorLogoBox.style.right = 'auto';
+          } else if (corner === 'bottom-right') {
+            projectorLogoBox.style.bottom = '40px';
+            projectorLogoBox.style.right = '50px';
+            projectorLogoBox.style.top = 'auto';
+            projectorLogoBox.style.left = 'auto';
+          } else {
+            // top-right
+            projectorLogoBox.style.top = '40px';
+            projectorLogoBox.style.right = '50px';
+            projectorLogoBox.style.bottom = 'auto';
+            projectorLogoBox.style.left = 'auto';
+          }
+        }
+      } else {
+        if (projectorLogoLayer) {
+          projectorLogoLayer.classList.add('hidden');
+          if (projectorLogoImg) projectorLogoImg.src = '';
+        }
+      }
+    }
+
     channel.onmessage = (event) => {
       if (event.data && event.data.type === 'SLIDE_UPDATE') {
         updateDisplay(event.data.payload);
       } else if (event.data && event.data.type === 'VIDEO_CONTROL') {
         handleVideoControl(event.data.payload);
+      } else if (event.data && event.data.type === 'LAYER1_UPDATE') {
+        updateProjectorLayer1(event.data);
       } else if (event.data && event.data.type === 'VIDEO_SYNC_PULSE') {
         if (!mediaProjectorVideo || mediaProjectorVideo.readyState < 1) return;
         const elapsed = (Date.now() - (event.data.ts || Date.now())) / 1000;
@@ -642,6 +777,10 @@
       } else if (e.key === 'omnicast_video_control') {
         try {
           handleVideoControl(JSON.parse(e.newValue));
+        } catch(err) {}
+      } else if (e.key === 'omnicast_layer1_state') {
+        try {
+          updateProjectorLayer1(JSON.parse(e.newValue));
         } catch(err) {}
       }
     });
@@ -679,6 +818,13 @@
       } catch(err) {}
     }
 
+    try {
+      const storedL1 = localStorage.getItem('omnicast_layer1_state');
+      if (storedL1) {
+        updateProjectorLayer1(JSON.parse(storedL1));
+      }
+    } catch (e) {}
+
     // Connect to Server-Sent Events after window load to prevent infinite browser tab spinner
     document.addEventListener('click', () => {
       if (desiredVideoPlaying && mediaProjectorVideo && mediaProjectorVideo.paused) {
@@ -704,9 +850,17 @@
             updateDisplay(JSON.parse(e.data));
           } catch (err) {}
         });
+        evtSource.addEventListener('layer1_update', (e) => {
+          try {
+            updateProjectorLayer1(JSON.parse(e.data));
+          } catch (err) {}
+        });
         evtSource.addEventListener('state', (e) => {
           try {
             const state = JSON.parse(e.data);
+            if (state.layer1) {
+              updateProjectorLayer1(state.layer1);
+            }
             if (Array.isArray(state.libraryItems)) {
               prewarmProjectorVideo(state.libraryItems);
             }
