@@ -1153,7 +1153,8 @@ const requestHandler = (req, res) => {
       const author = (fullUrl.searchParams.get('author') || 'Video Proyección HD').trim();
       const scope = (fullUrl.searchParams.get('scope') || '📍 SEDE LOCAL').trim();
       const durationSec = parseFloat(fullUrl.searchParams.get('duration') || '120') || 120;
-      const targetOrgId = fullUrl.searchParams.get('targetOrgId') || null;
+      const targetOrgId = fullUrl.searchParams.get('targetOrgId') || fullUrl.searchParams.get('orgId') || req.headers['x-org-id'] || null;
+      const targetChurchId = fullUrl.searchParams.get('targetChurchId') || fullUrl.searchParams.get('churchId') || req.headers['x-church-id'] || null;
       const expiresAt = fullUrl.searchParams.get('expiresAt') || null;
       const priority = fullUrl.searchParams.get('priority') || 'alta';
       const campaignType = fullUrl.searchParams.get('campaignType') || 'campaña';
@@ -1192,6 +1193,7 @@ const requestHandler = (req, res) => {
           author: `${author} (${durationFormatted} • ${sizeMb} MB)`,
           scope: scope,
           targetOrgId: targetOrgId,
+          targetChurchId: targetChurchId,
           expiresAt: expiresAt,
           priority: priority,
           campaignType: campaignType,
@@ -1213,7 +1215,9 @@ const requestHandler = (req, res) => {
           videoUrl: videoUrl,
           duration: Math.round(durationSec),
           durationFormatted: durationFormatted,
-          sizeMb: sizeMb
+          sizeMb: sizeMb,
+          targetOrgId: targetOrgId,
+          targetChurchId: targetChurchId
         });
         studioState.libraryItems = persistentDb.libraryItems;
         savePersistentDatabase();

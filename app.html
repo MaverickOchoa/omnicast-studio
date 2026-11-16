@@ -1011,7 +1011,7 @@
                     <i data-lucide="edit-3" class="w-3 h-3"></i>
                   </button>
                 </div>
-                <p id="ltCardName" class="text-[9px] text-slate-200 font-semibold truncate leading-tight">Pr. David Mendoza</p>
+                <p id="ltCardName" class="text-[9px] text-slate-200 font-semibold truncate leading-tight">Nombre del Orador</p>
               </div>
               <div id="shot-2-3" onclick="handleShotClick(2, 3)" ondblclick="handleShotDblClick(2, 3)" 
                    class="wirecast-shot w-28 h-14 bg-slate-950 rounded-lg border-2 p-1.5 shrink-0 cursor-pointer flex flex-col justify-between group hover:border-sky-500">
@@ -5661,6 +5661,12 @@ Te adoraré, te adoraré..."
         if (currentAccount.isChurch && (currentAccount.id || currentAccount.username)) {
           return currentAccount.id || currentAccount.username;
         }
+        if (currentAccount.isOrgAdmin && currentAccount.orgId) {
+          return currentAccount.orgId;
+        }
+        if (currentAccount.isOrganization && currentAccount.orgId) {
+          return currentAccount.orgId;
+        }
         if (currentAccount.tenantKey && currentAccount.tenantKey !== 'hq') {
           return currentAccount.tenantKey;
         }
@@ -6165,7 +6171,7 @@ Te adoraré, te adoraré..."
           videoPlayback.program.currentTime = 0;
           videoPlayback.program.isPlaying = true;
           const progShot = wirecastState.program[3] || 1;
-          const customVid = progShot >= 3 ? layer3Videos[progShot - 3] : null;
+          const customVid = typeof getLayer3VideoForShot === 'function' ? getLayer3VideoForShot(progShot) : (progShot >= 3 ? layer3Videos[progShot - 3] : null);
           const l3Vid = document.getElementById('layer3ProgramVideo');
           if (customVid && customVid.videoUrl) {
             if (l3Vid) {
@@ -8157,6 +8163,17 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       refreshBroadcastChannels();
       initStudioRemoteEvents(true);
       updateMatrixTvDisplay();
+
+      // Recarga aislada de tomas, servicio activo, videos y catálogo para la institución activa
+      if (typeof loadShotsForActiveTenant === 'function') loadShotsForActiveTenant();
+      if (typeof loadServiceItems === 'function') loadServiceItems();
+      if (typeof renderAllRackLayers === 'function') renderAllRackLayers();
+      if (typeof renderLayer3VideoShots === 'function') renderLayer3VideoShots();
+      if (typeof renderSongsList === 'function') renderSongsList();
+      if (typeof renderSlidesGrid === 'function') renderSlidesGrid();
+      if (typeof renderMediaCatalogModal === 'function') renderMediaCatalogModal();
+      if (typeof syncLayer1ToProjector === 'function') syncLayer1ToProjector();
+
       broadcastSlide();
       if (window.lucide) lucide.createIcons();
     }
@@ -8167,6 +8184,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       } catch (e) {}
 
       activeImpersonatedChurch = null;
+      currentAccount = null;
       const banner = document.getElementById('impersonationBanner');
       if (banner) banner.classList.add('hidden');
 
@@ -8182,6 +8200,14 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       refreshBroadcastChannels();
       initStudioRemoteEvents(true);
       updateMatrixTvDisplay();
+
+      if (typeof loadShotsForActiveTenant === 'function') loadShotsForActiveTenant();
+      if (typeof loadServiceItems === 'function') loadServiceItems();
+      if (typeof renderAllRackLayers === 'function') renderAllRackLayers();
+      if (typeof renderLayer3VideoShots === 'function') renderLayer3VideoShots();
+      if (typeof renderSongsList === 'function') renderSongsList();
+      if (typeof renderSlidesGrid === 'function') renderSlidesGrid();
+      if (typeof renderMediaCatalogModal === 'function') renderMediaCatalogModal();
 
       switchAtemTab('letras');
       showLoginScreen();
@@ -9659,31 +9685,54 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     let serviceItemIds = [];
     let catalogModalActiveFilter = 'all';
 
+    function getTenantServiceStorageKey() {
+      const church = getActiveChurchId();
+      return `omnicast_service_items_${church}`;
+    }
+
+    let serviceItemsLoadedForTenant = null;
+
     function saveServiceItems() {
       try {
-        localStorage.setItem('omnicast_service_item_ids', JSON.stringify(serviceItemIds));
+        localStorage.setItem(getTenantServiceStorageKey(), JSON.stringify(serviceItemIds));
+        if (getActiveChurchId() === 'default') {
+          localStorage.setItem('omnicast_service_item_ids', JSON.stringify(serviceItemIds));
+        }
       } catch (e) {}
     }
 
     function loadServiceItems() {
+      const tenantKey = getActiveChurchId();
+      serviceItemsLoadedForTenant = tenantKey;
       try {
-        const raw = localStorage.getItem('omnicast_service_item_ids');
+        const raw = localStorage.getItem(getTenantServiceStorageKey());
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             serviceItemIds = parsed;
             return;
           }
         }
       } catch (e) {}
-      // Por defecto en servicio inicial: primera canción, primer versículo y video local si existe
-      serviceItemIds = ['song-1', 'verse-1'];
-      if (layer3Videos.length > 0 && !serviceItemIds.includes(layer3Videos[0].id)) {
-        serviceItemIds.push(layer3Videos[0].id);
-      } else {
-        const anyVid = libraryItems.find(i => (i.isVideo || i.category === 'medios') && i.videoUrl);
-        if (anyVid && !serviceItemIds.includes(anyVid.id)) serviceItemIds.push(anyVid.id);
+
+      // Fallback sólo para la sede por defecto histórica / alianza
+      if (tenantKey === 'default' || tenantKey === 'alianza' || tenantKey === 'org-alianza') {
+        try {
+          const legacyRaw = localStorage.getItem('omnicast_service_item_ids');
+          if (legacyRaw) {
+            const parsed = JSON.parse(legacyRaw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              serviceItemIds = parsed;
+              return;
+            }
+          }
+        } catch (e) {}
+        serviceItemIds = ['song-1', 'verse-1'];
+        return;
       }
+
+      // Para cualquier nueva institución o sucursal: Servicio de Hoy inicia completamente LIMPIO
+      serviceItemIds = [];
     }
 
     function addToService(id, andProject = false) {
@@ -10418,6 +10467,34 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (window.lucide) lucide.createIcons();
     }
 
+    // =========================================================================
+    // REGLA DE AISLAMIENTO MULTI-INQUILINO ESTRICTO PARA MEDIOS Y BIBLIOTECAS
+    // =========================================================================
+    function isItemVisibleForCurrentTenant(item) {
+      if (!item) return false;
+      if (typeof currentAccount === 'undefined' || !currentAccount || currentAccount.isSuperAdmin) return true;
+      if (item.isSystemGlobal) return true;
+      if (item.category === 'biblia') return true;
+
+      const userOrgId = currentAccount.orgId;
+      const userChurchId = currentAccount.churchId || (currentAccount.isChurch ? currentAccount.id : null);
+
+      if (currentAccount.isOrgAdmin) {
+        // En panel de organización: sólo elementos de esta red institucional
+        return Boolean(userOrgId && item.targetOrgId === userOrgId);
+      }
+
+      // En iglesia filial o sede local: elementos locales propios O institucionales de su red
+      if (item.targetChurchId && item.targetChurchId === userChurchId) {
+        return true;
+      }
+      if (userOrgId && item.targetOrgId && item.targetOrgId === userOrgId) {
+        return true;
+      }
+
+      return false;
+    }
+
     function renderCatalogSongs() {
       const grid = document.getElementById('catalogSongsGrid');
       const badge = document.getElementById('catalogSongsCountBadge');
@@ -10430,19 +10507,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const songs = libraryItems.filter(item => {
         if (item.category === 'medios' || Boolean(item.isVideo) || item.category === 'biblia') return false;
 
-        // Multi-tenant isolation for songs
-        if (currentAccount && !currentAccount.isSuperAdmin) {
-          if (currentAccount.isOrgAdmin) {
-            if (item.targetOrgId && item.targetOrgId !== currentAccount.orgId) return false;
-            if (item.targetChurchId) return false;
-          } else {
-            // Church session (filial or independent)
-            if (item.targetChurchId && item.targetChurchId !== currentAccount.id) return false;
-            if (item.targetOrgId) {
-              if (!currentAccount.orgId || currentAccount.orgId !== item.targetOrgId) return false;
-            }
-          }
-        }
+        // Aislamiento multi-inquilino estricto (cero fuga de cantos de otras instituciones)
+        if (!isItemVisibleForCurrentTenant(item)) return false;
 
         if (!q) return true;
         const matchTitle = item.title && item.title.toLowerCase().includes(q);
@@ -10547,20 +10613,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         }
 
         // Multi-tenant isolation for videos
-        if (currentAccount && !currentAccount.isSuperAdmin) {
-          if (currentAccount.isOrgAdmin) {
-            if (item.targetOrgId && item.targetOrgId !== currentAccount.orgId) return false;
-            if (item.targetChurchId) return false;
-          } else {
-            // Church session (filial or independent)
-            if (item.targetChurchId && item.targetChurchId !== currentAccount.id) return false;
-            if (item.targetOrgId) {
-              if (!currentAccount.orgId || currentAccount.orgId !== item.targetOrgId) return false;
-            }
-          }
-        }
+        if (!isItemVisibleForCurrentTenant(item)) return false;
 
-        const isMaster = Boolean(item.scope && item.scope.includes('NACIONAL'));
+        const isMaster = Boolean(item.scope && (item.scope.includes('NACIONAL') || item.scope.includes('OFICIAL') || item.scope.includes('RED') || item.scope.includes('👑') || item.scope.includes('🏢')));
         if (catVidFilter === 'master' && !isMaster) return false;
         if (catVidFilter === 'local' && isMaster) return false;
         if (q) {
@@ -11115,7 +11170,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (!container) return;
       container.innerHTML = '';
 
-      if (serviceItemIds.length === 0) {
+      if (serviceItemsLoadedForTenant !== getActiveChurchId()) {
         loadServiceItems();
       }
 
@@ -11216,8 +11271,45 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     var activeVideoLoopEnabled = false;
 
     function renderSlidesGrid() {
-      const item = libraryItems[currentItemIndex];
-      if (!item) return;
+      let item = libraryItems[currentItemIndex];
+      if (!item || !isItemVisibleForCurrentTenant(item)) {
+        // Buscar el primer elemento visible en el servicio o biblioteca
+        const visibleInService = serviceItemIds.map(id => libraryItems.find(it => it.id === id)).find(it => it && isItemVisibleForCurrentTenant(it));
+        if (visibleInService) {
+          currentItemIndex = libraryItems.indexOf(visibleInService);
+          item = visibleInService;
+        } else {
+          const anyVisible = libraryItems.find(it => isItemVisibleForCurrentTenant(it));
+          if (anyVisible) {
+            currentItemIndex = libraryItems.indexOf(anyVisible);
+            item = anyVisible;
+          } else {
+            currentItemIndex = -1;
+            const activeTitleEl = document.getElementById('activeSongTitle');
+            if (activeTitleEl) activeTitleEl.textContent = 'Espacio de Proyección Limpio';
+            const activeAuthorEl = document.getElementById('activeSongAuthor');
+            if (activeAuthorEl) activeAuthorEl.textContent = 'Sin elementos residuales • Listo para operar';
+            const slidesGrid = document.getElementById('slidesGrid');
+            if (slidesGrid) {
+              slidesGrid.innerHTML = `
+                <div class="col-span-full py-16 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
+                  <div class="p-3 rounded-full bg-slate-800/80 border border-slate-700/80 text-sky-400">
+                    <i data-lucide="sparkles" class="w-8 h-8 opacity-60"></i>
+                  </div>
+                  <p class="text-sm font-bold text-slate-300">Espacio de Proyección Limpio</p>
+                  <p class="text-xs text-slate-500 max-w-sm">Esta institución o sede está lista y sin archivos residuales. Agrega canciones del catálogo, pasajes bíblicos o sube tus propios videos.</p>
+                  <button onclick="openMediaCatalogModal()" class="mt-2 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-1.5 shadow transition">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Abrir Catálogo / Agregar Elementos</span>
+                  </button>
+                </div>
+              `;
+              if (window.lucide) lucide.createIcons();
+            }
+            return;
+          }
+        }
+      }
       const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
       const isBible = item.category === 'biblia' || item.scope === 'SAGRADAS ESCRITURAS' || (item.author && item.author.toLowerCase().includes('valera'));
 
@@ -12159,8 +12251,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     // LIVE LOWER THIRDS GENERATOR (ORADORES, INVITADOS Y PASTORES)
     // -------------------------------------------------------------------------
     const lowerThirdConfig = {
-      name: 'Pr. David Mendoza',
-      title: 'Pastor Principal • Iglesia Nacional',
+      name: 'Nombre del Orador',
+      title: 'Pastor / Conferencista',
       style: 'gold',
       autoDismiss: true,
       dismissDuration: 8,
@@ -12191,23 +12283,23 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         { id: 1, title: 'LOGO OFICIAL', subtitle: 'Blanco Esquina Sup.', type: 'logo', badge: '⛪ LOGO', color: 'sky' },
         { id: 2, title: 'LOGO ORO', subtitle: 'Dorado Especial', type: 'logo', badge: '👑 GALA', color: 'amber' },
         { id: 3, title: 'WATERMARK', subtitle: 'Discreto Anti-copia', type: 'logo', badge: 'LIVE BUG', color: 'purple' },
-        { id: 4, title: 'INICIAMOS EN BREVE', subtitle: 'Portada de Espera', type: 'slate', slateTitle: 'INICIAMOS EN BREVE', slateSubtitle: 'Bienvenidos a Casa • Comenzamos en unos momentos', badge: 'TELÓN', color: 'emerald' },
-        { id: 5, title: 'DESPEDIDA', subtitle: 'Portada de Cierre', type: 'slate', slateTitle: 'GRACIAS POR ACOMPAÑARNOS', slateSubtitle: 'Dios te bendiga • Nos vemos el próximo domingo', badge: 'TELÓN', color: 'indigo' }
+        { id: 4, title: 'INICIAMOS EN BREVE', subtitle: 'Portada de Espera', type: 'slate', slateTitle: 'INICIAMOS EN BREVE', slateSubtitle: 'Bienvenidos • Comenzamos en unos momentos', badge: 'TELÓN', color: 'emerald' },
+        { id: 5, title: 'DESPEDIDA', subtitle: 'Portada de Cierre', type: 'slate', slateTitle: 'GRACIAS POR ACOMPAÑARNOS', slateSubtitle: 'Bendiciones • Hasta la próxima reunión', badge: 'TELÓN', color: 'indigo' }
       ],
       2: [
         { id: 1, title: 'SINCRONIZAR LETRAS', subtitle: 'Proyección y Medios', type: 'lyrics', badge: 'CANTO', color: 'amber' },
-        { id: 2, title: 'LOWER THIRD PASTOR', subtitle: 'Pr. David Mendoza', type: 'speaker', speakerName: 'Pr. David Mendoza', speakerTitle: 'Pastor Principal • Iglesia Nacional', badge: 'PASTOR', color: 'amber' },
-        { id: 3, title: 'TICKER OFRENDAS', subtitle: 'Cintillo inferior', type: 'ticker', tickerText: '💰 DIEZMOS Y OFRENDAS • BANCO NACIONAL • CUENTA CLABE: 0123 4567 8901 2345 • DIOS BENDICE AL DADOR ALEGRE', badge: 'TICKER', color: 'emerald' },
-        { id: 4, title: 'BIENVENIDA', subtitle: '¡Bienvenidos a Casa!', type: 'banner', bannerTitle: '¡Bienvenidos a Casa!', bannerSubtitle: 'Reunión Dominical de Celebración', badge: 'BANNER', color: 'purple' },
-        { id: 5, title: 'REDES SOCIALES', subtitle: '@iglesianacional', type: 'social', socialHandle: '@iglesianacional • YouTube & Facebook Live', badge: 'REDES', color: 'sky' },
-        { id: 6, title: 'QR DONACIONES', subtitle: 'Código de ofrendas', type: 'qr', qrLabel: 'Escanea para Ofrendar', badge: 'QR', color: 'rose' }
+        { id: 2, title: 'LOWER THIRD ORADOR', subtitle: 'Nombre del Orador', type: 'speaker', speakerName: 'Nombre del Orador', speakerTitle: 'Pastor / Conferencista', badge: 'ORADOR', color: 'amber' },
+        { id: 3, title: 'TICKER INFORMATIVO', subtitle: 'Cintillo inferior', type: 'ticker', tickerText: 'BIENVENIDOS • TRANSMISIÓN EN VIVO • COMPARTE ESTA REUNIÓN', badge: 'TICKER', color: 'emerald' },
+        { id: 4, title: 'BIENVENIDA', subtitle: '¡Bienvenidos!', type: 'banner', bannerTitle: '¡Bienvenidos!', bannerSubtitle: 'Reunión de Celebración', badge: 'BANNER', color: 'purple' },
+        { id: 5, title: 'REDES SOCIALES', subtitle: 'Redes Sociales', type: 'social', socialHandle: 'Síguenos en Redes Sociales • En Vivo', badge: 'REDES', color: 'sky' },
+        { id: 6, title: 'QR ENLACE', subtitle: 'Código QR', type: 'qr', qrLabel: 'Escanea el código QR', badge: 'QR', color: 'rose' }
       ],
       4: [
         { id: 1, title: 'CAM 1', subtitle: 'Púlpito Principal', type: 'camera', channel: 1, badge: 'HDMI Ingest 1', color: 'red' },
         { id: 2, title: 'CAM 2', subtitle: 'Altar Abierto', type: 'camera', channel: 2, badge: 'HDMI Ingest 2', color: 'emerald' },
         { id: 3, title: 'CAM 3', subtitle: 'Músicos / Alabanza', type: 'camera', channel: 3, badge: 'USB Cam', color: 'slate' },
         { id: 4, title: 'CAM 4', subtitle: 'Cámara Lateral / Pasillo', type: 'camera', channel: 4, badge: 'HDMI Ingest 4', color: 'purple' },
-        { id: 5, title: 'AUX 1 (VIDEO)', subtitle: 'Campaña Nacional CDN', type: 'video', videoUrl: '', duration: 225, badge: '1080p Video', color: 'amber' },
+        { id: 5, title: 'AUX 1 (VIDEO)', subtitle: 'Video HD', type: 'video', videoUrl: '', duration: 180, badge: '1080p Video', color: 'amber' },
         { id: 6, title: 'AUX 2 (MULTI)', subtitle: 'Cámara Extra / Screen', type: 'camera', channel: 5, badge: 'Multi-in', color: 'sky' }
       ],
       5: [
@@ -12218,36 +12310,69 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     };
 
     let shotConfig = null;
-    try {
-      const savedShots = localStorage.getItem('omnicast_custom_shots_v3');
-      if (savedShots) {
-        shotConfig = JSON.parse(savedShots);
-      }
-    } catch (e) {
-      console.warn('Error reading omnicast_custom_shots_v3:', e);
+
+    function getTenantShotsStorageKey() {
+      const church = getActiveChurchId();
+      return `omnicast_shots_${church}`;
     }
-    if (!shotConfig) {
-      shotConfig = JSON.parse(JSON.stringify(DEFAULT_SHOTS));
-    }
-    // Asegurar que ninguna toma de cámara quede en modo PiP accidental sin borrar configuraciones de celular o video
-    if (shotConfig && shotConfig[4]) {
-      shotConfig[4].forEach(s => {
-        const keepChannel = (s.channel === 'mobile' || s.channel === 'screen' || (typeof s.channel === 'string' && s.channel.startsWith('dev_')));
-        if (s.id >= 1 && s.id <= 4 && s.type !== 'video') {
-          if (!keepChannel) s.channel = s.id;
-          if (s.type === 'pip') s.type = 'camera';
+
+    function loadShotsForActiveTenant() {
+      const church = getActiveChurchId();
+      const storageKey = getTenantShotsStorageKey();
+      let loaded = null;
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          loaded = JSON.parse(saved);
         }
-      });
-      try { localStorage.setItem('omnicast_custom_shots_v3', JSON.stringify(shotConfig)); } catch (e) {}
+      } catch (e) {
+        console.warn(`Error reading ${storageKey}:`, e);
+      }
+
+      // Fallback sólo para la sesión 'default' o 'alianza' legacy
+      if (!loaded && (church === 'default' || church === 'alianza' || church === 'org-alianza')) {
+        try {
+          const legacy = localStorage.getItem('omnicast_custom_shots_v3');
+          if (legacy) {
+            loaded = JSON.parse(legacy);
+          }
+        } catch (e) {}
+      }
+
+      if (!loaded) {
+        // Nueva institución o sucursal: plantilla completamente limpia y neutral
+        loaded = JSON.parse(JSON.stringify(DEFAULT_SHOTS));
+      }
+
+      // Asegurar que ninguna toma de cámara quede en modo PiP accidental sin borrar configuraciones de celular o video
+      if (loaded && loaded[4]) {
+        loaded[4].forEach(s => {
+          const keepChannel = (s.channel === 'mobile' || s.channel === 'screen' || (typeof s.channel === 'string' && s.channel.startsWith('dev_')));
+          if (s.id >= 1 && s.id <= 4 && s.type !== 'video') {
+            if (!keepChannel) s.channel = s.id;
+            if (s.type === 'pip') s.type = 'camera';
+          }
+        });
+      }
+
+      shotConfig = loaded;
+      syncShotNamesFromConfig();
     }
 
     function saveShotsToStorage() {
+      if (!shotConfig) return;
+      const storageKey = getTenantShotsStorageKey();
       try {
-        localStorage.setItem('omnicast_custom_shots_v3', JSON.stringify(shotConfig));
+        localStorage.setItem(storageKey, JSON.stringify(shotConfig));
+        if (getActiveChurchId() === 'default') {
+          localStorage.setItem('omnicast_custom_shots_v3', JSON.stringify(shotConfig));
+        }
       } catch (e) {
-        console.warn('Error saving omnicast_custom_shots_v3:', e);
+        console.warn(`Error saving ${storageKey}:`, e);
       }
     }
+
+    loadShotsForActiveTenant();
 
     function syncShotNamesFromConfig() {
       [1, 2, 4, 5].forEach(layerId => {
@@ -12763,11 +12888,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           <div id="speakerFieldsBox" class="${curL2Type === 'speaker' ? '' : 'hidden'} space-y-2 mt-2 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
             <div>
               <label class="block text-[10px] font-bold text-amber-400 mb-0.5">Nombre del Predicador u Orador</label>
-              <input type="text" id="shotInputSpeakerName" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-semibold" value="${shot.speakerName || 'Pr. David Mendoza'}" oninput="updateShotModalPreview()">
+              <input type="text" id="shotInputSpeakerName" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-semibold" value="${shot.speakerName || 'Nombre del Orador'}" oninput="updateShotModalPreview()">
             </div>
             <div>
               <label class="block text-[10px] font-bold text-slate-400 mb-0.5">Cargo / Título / Tema</label>
-              <input type="text" id="shotInputSpeakerTitle" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs" value="${shot.speakerTitle || 'Pastor Principal • Iglesia Nacional'}" oninput="updateShotModalPreview()">
+              <input type="text" id="shotInputSpeakerTitle" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs" value="${shot.speakerTitle || 'Pastor / Conferencista'}" oninput="updateShotModalPreview()">
             </div>
             <div class="flex items-center gap-1.5 pt-1 overflow-x-auto pb-0.5">
               <button type="button" onclick="applySpeakerPreset('Pr. David Mendoza', 'Pastor Principal • Iglesia Nacional')" class="px-2 py-1 rounded bg-slate-950 hover:bg-slate-800 border border-amber-500/40 text-amber-300 text-[10px] font-bold shrink-0 transition">
@@ -13143,8 +13268,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (currentEditingShotContext && currentEditingShotContext.layerId === 2) {
         const l2Type = document.getElementById('shotSelectLayer2Type')?.value || 'speaker';
         if (l2Type === 'speaker') {
-          const spName = document.getElementById('shotInputSpeakerName')?.value.trim() || 'Pr. David Mendoza';
-          const spTit = document.getElementById('shotInputSpeakerTitle')?.value.trim() || 'Pastor Principal';
+          const spName = document.getElementById('shotInputSpeakerName')?.value.trim() || 'Nombre del Orador';
+          const spTit = document.getElementById('shotInputSpeakerTitle')?.value.trim() || 'Pastor / Conferencista';
           if (cardTitle) {
             cardTitle.textContent = 'LOWER THIRD';
             cardTitle.className = `text-[9px] font-bold ${(colMap[col] || '').split(' ')[0]}`;
@@ -13562,8 +13687,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         const l2Type = document.getElementById('shotSelectLayer2Type')?.value || 'speaker';
         shot.type = l2Type;
         if (shot.type === 'speaker') {
-          const spName = document.getElementById('shotInputSpeakerName')?.value.trim() || 'Pr. David Mendoza';
-          const spTit = document.getElementById('shotInputSpeakerTitle')?.value.trim() || 'Pastor Principal';
+          const spName = document.getElementById('shotInputSpeakerName')?.value.trim() || 'Nombre del Orador';
+          const spTit = document.getElementById('shotInputSpeakerTitle')?.value.trim() || 'Pastor / Conferencista';
           shot.speakerName = spName;
           shot.speakerTitle = spTit;
           shot.title = 'LOWER THIRD';
@@ -14131,6 +14256,8 @@ Pues resucitaste, Rey`
       const scopeBadge = category === 'biblia' ? 'BIBLIA' : (scopeVal === 'GLOBAL' ? '👑 OFICIAL NACIONAL' : '📍 SEDE LOCAL');
 
       let targetIndex = 0;
+      const currentOrgId = (typeof currentAccount !== 'undefined' && currentAccount && currentAccount.orgId) ? currentAccount.orgId : null;
+      const currentChurchId = (typeof currentAccount !== 'undefined' && currentAccount && !currentAccount.isOrgAdmin && !currentAccount.isSuperAdmin) ? (currentAccount.churchId || currentAccount.id) : null;
 
       if (editingSongIndex !== null && libraryItems[editingSongIndex]) {
         libraryItems[editingSongIndex].title = title;
@@ -14138,6 +14265,12 @@ Pues resucitaste, Rey`
         libraryItems[editingSongIndex].category = category;
         libraryItems[editingSongIndex].scope = scopeBadge;
         libraryItems[editingSongIndex].slides = slides;
+        if (!libraryItems[editingSongIndex].targetOrgId && currentOrgId) {
+          libraryItems[editingSongIndex].targetOrgId = currentOrgId;
+        }
+        if (!libraryItems[editingSongIndex].targetChurchId && scopeVal === 'LOCAL' && currentChurchId) {
+          libraryItems[editingSongIndex].targetChurchId = currentChurchId;
+        }
         targetIndex = editingSongIndex;
       } else {
         const newSong = {
@@ -14146,6 +14279,8 @@ Pues resucitaste, Rey`
           title: title,
           author: author,
           scope: scopeBadge,
+          targetOrgId: currentOrgId,
+          targetChurchId: (scopeVal === 'LOCAL' ? currentChurchId : null),
           slides: slides
         };
         libraryItems.unshift(newSong);
@@ -14247,7 +14382,9 @@ Pues resucitaste, Rey`
                 scope: item.scope || '📍 SEDE LOCAL',
                 videoUrl: item.videoUrl,
                 duration: item.duration || 120,
-                durationFormatted: item.durationFormatted || formatTime(item.duration || 120)
+                durationFormatted: item.durationFormatted || formatTime(item.duration || 120),
+                targetOrgId: item.targetOrgId || null,
+                targetChurchId: item.targetChurchId || null
               });
             }
           }
@@ -14295,44 +14432,70 @@ Pues resucitaste, Rey`
       }
     }
 
+    function getVisibleLayer3Videos() {
+      if (typeof currentAccount === 'undefined' || !currentAccount || currentAccount.isSuperAdmin) {
+        return Array.isArray(layer3Videos) ? layer3Videos : [];
+      }
+      const userOrgId = currentAccount.orgId;
+      const userChurchId = currentAccount.churchId || (currentAccount.isChurch ? currentAccount.id : null);
+
+      return (layer3Videos || []).filter(v => {
+        if (v.isSystemGlobal) return true;
+        if (currentAccount.isOrgAdmin) {
+          return Boolean(userOrgId && v.targetOrgId === userOrgId);
+        }
+        if (v.targetChurchId && v.targetChurchId === userChurchId) return true;
+        if (userOrgId && v.targetOrgId && v.targetOrgId === userOrgId) return true;
+        return false;
+      });
+    }
+
+    function getLayer3VideoForShot(shotId) {
+      const visible = getVisibleLayer3Videos();
+      if (shotId >= 1 && shotId <= visible.length) {
+        return visible[shotId - 1];
+      }
+      if (shotId >= 3 && (shotId - 3) < visible.length) {
+        return visible[shotId - 3];
+      }
+      return null;
+    }
+
     function renderLayer3VideoShots() {
       const rack = document.getElementById('rack-layer-3');
       if (!rack) return;
 
-      // Reset shotNames[3]
-      shotNames[3] = {
-        1: 'Video Nacional CDN (Campaña 2026)',
-        2: 'Video Local (Retiro Jóvenes GDL)'
-      };
+      shotNames[3] = {};
+      const visible = getVisibleLayer3Videos();
+      let html = '';
 
-      let html = `
-        <div id="shot-3-1" onclick="handleShotClick(3, 1)" ondblclick="handleShotDblClick(3, 1)" 
-             class="wirecast-shot w-44 h-20 bg-slate-950 rounded-lg border-2 p-2 shrink-0 cursor-pointer flex flex-col justify-between group hover:border-sky-500">
-          <span class="text-[9px] font-bold text-amber-400">👑 NACIONAL (CDN)</span>
-          <p class="text-[10px] text-slate-200 font-semibold line-clamp-1">Campaña Anual 2026</p>
-          <span class="text-[8px] font-mono text-slate-500">03:45 • Cloud CDN 1080p</span>
-        </div>
-        <div id="shot-3-2" onclick="handleShotClick(3, 2)" ondblclick="handleShotDblClick(3, 2)" 
-             class="wirecast-shot w-44 h-20 bg-slate-950 rounded-lg border-2 p-2 shrink-0 cursor-pointer flex flex-col justify-between group hover:border-sky-500">
-          <span class="text-[9px] font-bold text-sky-400">📍 LOCAL</span>
-          <p class="text-[10px] text-slate-300 font-semibold line-clamp-1">Retiro Jóvenes GDL</p>
-          <span class="text-[8px] font-mono text-slate-500">01:30 • MP4 1080p</span>
-        </div>
-      `;
-
-      layer3Videos.forEach((vid, idx) => {
-        const shotNum = idx + 3;
-        shotNames[3][shotNum] = `🎬 ${vid.title}`;
-        const safeTitle = (vid.title || 'Video').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (visible.length === 0) {
         html += `
-          <div id="shot-3-${shotNum}" onclick="handleShotClick(3, ${shotNum})" ondblclick="handleShotDblClick(3, ${shotNum})" 
-               class="wirecast-shot w-44 h-20 bg-slate-950 rounded-lg border-2 p-2 shrink-0 cursor-pointer flex flex-col justify-between group hover:border-rose-500 relative overflow-hidden">
-            <span class="text-[9px] font-bold text-rose-400 z-10">🎬 VIDEO MP4 #${shotNum}</span>
-            <p class="text-[10px] text-white font-bold line-clamp-1 z-10">${safeTitle}</p>
-            <span class="text-[8px] font-mono text-emerald-400 z-10">${vid.durationFormatted || 'HD'} • Subido</span>
+          <div class="h-20 flex items-center px-4 rounded-lg bg-slate-950/60 border border-slate-800 text-slate-500 text-xs gap-2 shrink-0">
+            <i data-lucide="video-off" class="w-4 h-4 text-slate-600"></i>
+            <span>Sin videos en el rack de esta sede</span>
           </div>
         `;
-      });
+      } else {
+        visible.forEach((vid, idx) => {
+          const shotNum = idx + 1;
+          shotNames[3][shotNum] = `🎬 ${vid.title}`;
+          const safeTitle = (vid.title || 'Video').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const isMaster = Boolean(vid.scope && (vid.scope.includes('OFICIAL') || vid.scope.includes('NACIONAL') || vid.scope.includes('RED') || vid.scope.includes('👑') || vid.scope.includes('🏢')));
+          const badgeText = isMaster ? '👑 OFICIAL RED' : '🎬 VIDEO MP4';
+          const badgeColor = isMaster ? 'text-amber-400' : 'text-rose-400';
+          const borderColor = isMaster ? 'hover:border-amber-500' : 'hover:border-rose-500';
+
+          html += `
+            <div id="shot-3-${shotNum}" onclick="handleShotClick(3, ${shotNum})" ondblclick="handleShotDblClick(3, ${shotNum})" 
+                 class="wirecast-shot w-44 h-20 bg-slate-950 rounded-lg border-2 p-2 shrink-0 cursor-pointer flex flex-col justify-between group ${borderColor} relative overflow-hidden">
+              <span class="text-[9px] font-bold ${badgeColor} z-10">${badgeText} #${shotNum}</span>
+              <p class="text-[10px] text-white font-bold line-clamp-1 z-10">${safeTitle}</p>
+              <span class="text-[8px] font-mono text-emerald-400 z-10">${vid.durationFormatted || 'HD'} • Listo</span>
+            </div>
+          `;
+        });
+      }
 
       html += `
         <button onclick="openUploadVideoModal()" class="w-40 h-20 bg-slate-900/60 hover:bg-rose-950/40 rounded-lg border-2 border-dashed border-slate-700 hover:border-rose-500/60 p-2 shrink-0 cursor-pointer flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-rose-300 transition">
@@ -14441,6 +14604,9 @@ Pues resucitaste, Rey`
         return;
       }
 
+      const currentOrgId = (typeof currentAccount !== 'undefined' && currentAccount && currentAccount.orgId) ? currentAccount.orgId : null;
+      const currentChurchId = (typeof currentAccount !== 'undefined' && currentAccount && !currentAccount.isOrgAdmin && !currentAccount.isSuperAdmin) ? (currentAccount.churchId || currentAccount.id) : null;
+
       // Case 1: Direct URL without local file upload
       if (!selectedUploadVideoFile && directUrl) {
         const newVideoItem = {
@@ -14453,6 +14619,8 @@ Pues resucitaste, Rey`
           title: title,
           author: 'Video Enlace Directo HD',
           scope: scope,
+          targetOrgId: currentOrgId,
+          targetChurchId: (scope === '📍 SEDE LOCAL' ? currentChurchId : null),
           slides: [
             {
               text: title,
@@ -14468,7 +14636,9 @@ Pues resucitaste, Rey`
           scope: scope,
           videoUrl: directUrl,
           duration: 180,
-          durationFormatted: '03:00'
+          durationFormatted: '03:00',
+          targetOrgId: currentOrgId,
+          targetChurchId: (scope === '📍 SEDE LOCAL' ? currentChurchId : null)
         });
         saveDatabaseToServer();
         renderSongsList();
@@ -14502,11 +14672,15 @@ Pues resucitaste, Rey`
         title: title,
         author: 'Video Local HD',
         scope: scope,
-        duration: String(selectedUploadVideoDuration || 120)
+        duration: String(selectedUploadVideoDuration || 120),
+        targetOrgId: currentOrgId || '',
+        targetChurchId: (scope === '📍 SEDE LOCAL' ? (currentChurchId || '') : '')
       });
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `/api/upload/video?${params.toString()}`, true);
+      if (currentOrgId) xhr.setRequestHeader('X-Org-Id', currentOrgId);
+      if (currentChurchId) xhr.setRequestHeader('X-Church-Id', currentChurchId);
 
       xhr.upload.onprogress = (evt) => {
         if (evt.lengthComputable) {
@@ -17219,7 +17393,7 @@ Pues resucitaste, Rey`
         videoPlayback.preview.currentTime = 0;
         videoPlayback.preview.isPlaying = false;
         const prevVid = document.getElementById('previewMediaVideo');
-        const customVid = shotId >= 3 ? layer3Videos[shotId - 3] : null;
+        const customVid = getLayer3VideoForShot(shotId);
         if (prevVid && customVid && customVid.videoUrl) {
           if (prevVid.getAttribute('data-src') !== customVid.videoUrl) {
             prevVid.src = customVid.videoUrl;
@@ -17270,7 +17444,7 @@ Pues resucitaste, Rey`
         if (letrasVid && !letrasVid.paused) letrasVid.pause();
 
         const l3ProgVid = document.getElementById('layer3ProgramVideo');
-        const customVid = shotId >= 3 ? layer3Videos[shotId - 3] : null;
+        const customVid = getLayer3VideoForShot(shotId);
         if (customVid && customVid.videoUrl) {
           if (l3ProgVid) {
             playMediaVideoElement(l3ProgVid, customVid.videoUrl, {
@@ -17337,7 +17511,7 @@ Pues resucitaste, Rey`
     function togglePreviewVideoPlay() {
       videoPlayback.preview.isPlaying = !videoPlayback.preview.isPlaying;
       const prevShot = wirecastState.preview[3];
-      const customVid = prevShot >= 3 ? layer3Videos[prevShot - 3] : null;
+      const customVid = getLayer3VideoForShot(prevShot);
       const prevVid = document.getElementById('previewMediaVideo');
       if (prevVid && customVid && customVid.videoUrl) {
         if (prevVid.getAttribute('data-src') !== customVid.videoUrl) {
@@ -17439,7 +17613,7 @@ Pues resucitaste, Rey`
         videoPlayback.program.currentTime = 0;
         videoPlayback.program.isPlaying = true;
         const progShot = wirecastState.program[3];
-        const customVid = progShot >= 3 ? layer3Videos[progShot - 3] : null;
+        const customVid = getLayer3VideoForShot(progShot);
         const l3ProgVid = document.getElementById('layer3ProgramVideo');
         if (l3ProgVid && customVid && customVid.videoUrl) {
           playMediaVideoElement(l3ProgVid, customVid.videoUrl, {
@@ -17456,7 +17630,7 @@ Pues resucitaste, Rey`
 
       // Sincronizar Capa 3 para el nuevo Preview (pausado, listo para inspeccionar)
       const prevShot = wirecastState.preview[3];
-      const prevCustomVid = prevShot >= 3 ? layer3Videos[prevShot - 3] : null;
+      const prevCustomVid = getLayer3VideoForShot(prevShot);
       const prevVid = document.getElementById('previewMediaVideo');
       if (prevVid && prevCustomVid && prevCustomVid.videoUrl) {
         if (prevVid.getAttribute('data-src') !== prevCustomVid.videoUrl) {
@@ -17928,7 +18102,7 @@ Pues resucitaste, Rey`
       const hasLayer3Rack = Boolean(document.getElementById('rackLayer3'));
       if (hasLayer3Rack && layerPower[3] && state[3]) {
         const pb = isProgram ? videoPlayback.program : videoPlayback.preview;
-        const customVid = state[3] >= 3 ? layer3Videos[state[3] - 3] : null;
+        const customVid = getLayer3VideoForShot(state[3]);
         const vidEl = document.getElementById(isProgram ? 'layer3ProgramVideo' : 'previewMediaVideo');
 
         if (customVid && customVid.videoUrl && vidEl) {
@@ -18365,8 +18539,8 @@ Pues resucitaste, Rey`
             crimson: '#f43f5e'
           }[(shotObj2 && shotObj2.color) || lowerThirdConfig.style || 'gold'] || '#f59e0b';
 
-          const speakerName = (shotObj2 && shotObj2.speakerName) || lowerThirdConfig.name || 'Pr. David Mendoza';
-          const speakerTitle = (shotObj2 && shotObj2.speakerTitle) || lowerThirdConfig.title || 'Pastor Principal • Iglesia Nacional';
+          const speakerName = (shotObj2 && shotObj2.speakerName) || lowerThirdConfig.name || 'Nombre del Orador';
+          const speakerTitle = (shotObj2 && shotObj2.speakerTitle) || lowerThirdConfig.title || 'Pastor / Conferencista';
 
           // Measure text width to adapt box size gracefully
           ctx.font = 'bold 42px Inter, sans-serif';

@@ -112,7 +112,8 @@
           "subText": "Juan 3:21 (Reina-Valera 1909)",
           "badge": "JUAN 3:21"
         }
-      ]
+      ],
+      "isSystemGlobal": true
     },
     {
       "id": "bible-chapter-1794483812700",
@@ -226,7 +227,8 @@
           "subText": "Juan 3:21 (Reina-Valera 1960)",
           "badge": "JUAN 3:21"
         }
-      ]
+      ],
+      "isSystemGlobal": true
     },
     {
       "id": "media-1793012844447",
@@ -240,7 +242,7 @@
       "title": "Tour Nueva Plataforma IMEC",
       "author": "Video Local HD (02:00 • 102.9 MB)",
       "scope": "📍 SEDE LOCAL",
-      "targetOrgId": null,
+      "targetOrgId": "org-imec",
       "expiresAt": null,
       "priority": "alta",
       "campaignType": "campaña",
@@ -388,7 +390,8 @@
           "subText": "Juan 3:21 (Reina-Valera 1909)",
           "badge": "JUAN 3:21"
         }
-      ]
+      ],
+      "isSystemGlobal": true
     },
     {
       "id": "bible-chapter-1792854800699",
@@ -502,7 +505,8 @@
           "subText": "Juan 3:21 (Reina-Valera 1960)",
           "badge": "JUAN 3:21"
         }
-      ]
+      ],
+      "isSystemGlobal": true
     },
     {
       "id": "bible-1792849275753",
@@ -516,7 +520,8 @@
           "subText": "LAMENTACIONES 1:2 (Reina-Valera 1909)",
           "badge": "LAMENTACIONES 1:2"
         }
-      ]
+      ],
+      "isSystemGlobal": true
     },
     {
       "id": "bible-1792849252995",
@@ -530,7 +535,8 @@
           "subText": "LAMENTACIONES 1:1 (Reina-Valera 1909)",
           "badge": "LAMENTACIONES 1:1"
         }
-      ]
+      ],
+      "isSystemGlobal": true
     },
     {
       "id": "media-1792843165686",
@@ -550,7 +556,8 @@
           "subText": "Video HD (00:06) • Listo para Proyectar y Transmitir",
           "badge": "🎬 VIDEO HD"
         }
-      ]
+      ],
+      "targetOrgId": "org-alianza"
     },
     {
       "id": "song-1",
@@ -586,7 +593,8 @@
           "subText": "Digno es el Rey que la muerte venció",
           "badge": "PUENTE"
         }
-      ]
+      ],
+      "targetOrgId": "org-alianza"
     },
     {
       "id": "song-2",
@@ -617,7 +625,8 @@
           "subText": "Mi Dios, así eres Tú",
           "badge": "CORO"
         }
-      ]
+      ],
+      "targetOrgId": "org-alianza"
     },
     {
       "id": "song-3",
@@ -648,7 +657,8 @@
           "subText": "Cantaré de la bondad de Dios",
           "badge": "CORO"
         }
-      ]
+      ],
+      "targetOrgId": "org-alianza"
     },
     {
       "id": "song-4",
@@ -679,7 +689,8 @@
           "subText": "La tumba vacía está",
           "badge": "PUENTE"
         }
-      ]
+      ],
+      "targetOrgId": "org-alianza"
     },
     {
       "id": "verse-1",
@@ -693,7 +704,8 @@
           "subText": "Filipenses 4:13 (RVR1960)",
           "badge": "TEXTO BÍBLICO"
         }
-      ]
+      ],
+      "isSystemGlobal": true
     },
     {
       "id": "verse-2",
@@ -712,7 +724,8 @@
           "subText": "Confortará mi alma; me guiará por sendas de justicia por amor de su nombre.",
           "badge": "SALMO 23:2-3"
         }
-      ]
+      ],
+      "isSystemGlobal": true
     },
     {
       "id": "media-1",
@@ -728,7 +741,8 @@
           "subText": "Reproduciendo desde CDN Central Nacional • 03:45 4K",
           "badge": "VIDEO CDN"
         }
-      ]
+      ],
+      "targetOrgId": "org-alianza"
     },
     {
       "id": "media-2",
@@ -744,7 +758,8 @@
           "subText": "Inscripciones abiertas en iglesianacional.org • 03:00 HD",
           "badge": "VIDEO COMUNICADO"
         }
-      ]
+      ],
+      "targetOrgId": "org-alianza"
     },
     {
       "id": "vid-org-1792856878226",
@@ -768,7 +783,8 @@
       "videoUrl": "/uploads/videos/1792843165679_hebron_logo.mp4",
       "duration": 6,
       "durationFormatted": "00:06",
-      "sizeMb": "1.3"
+      "sizeMb": "1.3",
+      "targetOrgId": "org-alianza"
     },
     {
       "id": "vid-org-1792856878226",
@@ -776,7 +792,8 @@
       "scope": "🏢 Alianza Cristiana Nacional",
       "videoUrl": "https://drive.google.com/file/d/1xZ2vQMqrBpH-1XpTzuRvq9uEwPlVOe-p/view?usp=drive_link",
       "duration": 180,
-      "durationFormatted": "03:00"
+      "durationFormatted": "03:00",
+      "targetOrgId": "org-alianza"
     },
     {
       "id": "vid-org-1792857770477",
@@ -784,7 +801,8 @@
       "scope": "👑 OFICIAL RED (Alianza Cristiana)",
       "videoUrl": "/uploads/videos/1792857708345_Count_down_hebron.mp4",
       "duration": 60,
-      "durationFormatted": "01:00"
+      "durationFormatted": "01:00",
+      "targetOrgId": "org-alianza"
     },
     {
       "id": "media-1793012844447",
@@ -793,7 +811,8 @@
       "videoUrl": "/uploads/videos/1793012843212_Tour_Nueva_Plataforma_IMEC.mp4",
       "duration": 120,
       "durationFormatted": "02:00",
-      "sizeMb": "102.9"
+      "sizeMb": "102.9",
+      "targetOrgId": "org-imec"
     }
   ],
   "organizations": [
