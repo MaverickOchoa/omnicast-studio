@@ -675,8 +675,10 @@
     }
 
     // 7. Live Lyrics & Media Video Synchronization from BroadcastChannel & Server
-    const liveChannel = new BroadcastChannel('omnicast_live_channel');
-    const tvChannel = new BroadcastChannel('omnicast_tv_channel');
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeChurch = urlParams.get('church') || '';
+    const liveChannel = new BroadcastChannel(activeChurch ? `omnicast_live_${activeChurch}` : 'omnicast_live_channel');
+    const tvChannel = new BroadcastChannel(activeChurch ? `omnicast_tv_${activeChurch}` : 'omnicast_tv_channel');
     const mediaTvVideo = document.getElementById('mediaTvVideo');
 
     let lastTvVideoTs = 0;
@@ -918,7 +920,8 @@
 
     // Server-Sent Events for Full Network Synchronicity across Smart TVs
     function connectSSE() {
-      const sse = new EventSource('/api/events');
+      const sseUrl = activeChurch ? `/api/events?church=${encodeURIComponent(activeChurch)}` : '/api/events';
+      const sse = new EventSource(sseUrl);
       sse.addEventListener('video_control', (e) => {
         try {
           handleTvVideoControl(JSON.parse(e.data));

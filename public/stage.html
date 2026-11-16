@@ -171,7 +171,10 @@
   </footer>
 
   <script>
-    const channel = new BroadcastChannel('omnicast_live_channel');
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeChurch = urlParams.get('church') || '';
+    const channelName = activeChurch ? `omnicast_live_${activeChurch}` : 'omnicast_live_channel';
+    const channel = new BroadcastChannel(channelName);
     const stageSongTitle = document.getElementById('stageSongTitle');
     const stageBadge = document.getElementById('stageBadge');
     const stageCurrentText = document.getElementById('stageCurrentText');
@@ -431,7 +434,8 @@
     // Connect to Server-Sent Events after window load to prevent infinite browser tab spinner
     window.addEventListener('load', () => {
       setTimeout(() => {
-        const evtSource = new EventSource('/api/events');
+        const sseUrl = activeChurch ? `/api/events?church=${encodeURIComponent(activeChurch)}` : '/api/events';
+        const evtSource = new EventSource(sseUrl);
         evtSource.addEventListener('timer', (e) => {
           try {
             const data = JSON.parse(e.data);

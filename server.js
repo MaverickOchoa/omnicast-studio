@@ -159,33 +159,75 @@ function savePersistentDatabase() {
 
 loadPersistentDatabase();
 
-// Global Studio State for Real-Time Multi-Device Sync (WiFi Remote, Stage, Studio)
-let studioState = {
-  itemIndex: 0,
-  slideIndex: 0,
-  isBlackout: false,
-  timerSeconds: 2100, // 35 min default
-  timerRunning: false,
-  stageMessage: '',
-  theme: 'purple',
-  tvMode: 'LOBBY', // 'LOBBY' | 'SERVICE' | 'ANNOUNCEMENTS'
-  tvAlert: '',
-  tvServiceLive: false,
-  lastServiceRecap: null,
-  layer1: null,
-  libraryItems: persistentDb.libraryItems.length > 0 ? persistentDb.libraryItems : []
-};
+// Global Studio State per Church / Branch (Multi-Sede Signal & Room Isolation)
+const churchStates = new Map();
 
-// Mobile Cameras & WebRTC State (OmniCast Mobile Cam)
-let mobileCamsState = {
-  1: { connected: false, name: 'Cámara 1 (Púlpito)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
-  2: { connected: false, name: 'Cámara 2 (Altar)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
-  3: { connected: false, name: 'Cámara 3 (Músicos)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
-  4: { connected: false, name: 'Cámara 4 (Móvil)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
-  5: { connected: false, name: 'Cámara 5 (Auxiliar)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 }
-};
+function createDefaultStudioState(churchId = 'default') {
+  return {
+    churchId,
+    itemIndex: 0,
+    slideIndex: 0,
+    isBlackout: false,
+    timerSeconds: 2100, // 35 min default
+    timerRunning: false,
+    stageMessage: '',
+    theme: 'purple',
+    tvMode: 'LOBBY', // 'LOBBY' | 'SERVICE' | 'ANNOUNCEMENTS'
+    tvAlert: '',
+    tvServiceLive: false,
+    lastServiceRecap: null,
+    layer1: null,
+    currentSlidePayload: null,
+    libraryItems: persistentDb.libraryItems.length > 0 ? JSON.parse(JSON.stringify(persistentDb.libraryItems)) : []
+  };
+}
 
-const mobileCamLatestFrames = { 1: null, 2: null, 3: null, 4: null, 5: null };
+let studioState = createDefaultStudioState('default');
+churchStates.set('default', studioState);
+
+function getChurchState(churchId) {
+  const cid = (churchId && String(churchId).trim()) ? String(churchId).trim() : 'default';
+  if (!churchStates.has(cid)) {
+    churchStates.set(cid, createDefaultStudioState(cid));
+  }
+  return churchStates.get(cid);
+}
+
+// Mobile Cameras & WebRTC State per Church
+const churchCamStates = new Map();
+
+function createDefaultCamState() {
+  return {
+    mobileCamsState: {
+      1: { connected: false, name: 'Cámara 1 (Púlpito)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
+      2: { connected: false, name: 'Cámara 2 (Altar)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
+      3: { connected: false, name: 'Cámara 3 (Músicos)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
+      4: { connected: false, name: 'Cámara 4 (Móvil)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 },
+      5: { connected: false, name: 'Cámara 5 (Auxiliar)', battery: null, fps: 30, res: '1080p', tally: 'IDLE', lastPing: 0 }
+    },
+    currentTallyState: { programCam: 0, previewCam: 0 },
+    camSignalsForStudio: [],
+    camSignalsForPhones: { 1: [], 2: [], 3: [], 4: [], 5: [] },
+    mobileCamLatestFrames: { 1: null, 2: null, 3: null, 4: null, 5: null }
+  };
+}
+
+let defaultCamState = createDefaultCamState();
+churchCamStates.set('default', defaultCamState);
+
+function getChurchCamState(churchId) {
+  const cid = (churchId && String(churchId).trim()) ? String(churchId).trim() : 'default';
+  if (!churchCamStates.has(cid)) {
+    churchCamStates.set(cid, createDefaultCamState());
+  }
+  return churchCamStates.get(cid);
+}
+
+let mobileCamsState = defaultCamState.mobileCamsState;
+let currentTallyState = defaultCamState.currentTallyState;
+const camSignalsForStudio = defaultCamState.camSignalsForStudio;
+const camSignalsForPhones = defaultCamState.camSignalsForPhones;
+const mobileCamLatestFrames = defaultCamState.mobileCamLatestFrames;
 
 // Master RTMP / RTMPS Live Streaming State (Facebook Live & YouTube Live Multi-Destination)
 let liveStreamState = {
@@ -225,42 +267,67 @@ let tvLatestFragment = null;
 let tvFmp4Mime = 'video/mp4; codecs="avc1.42E01F, mp4a.40.2"';
 let tvFragmentCount = 0;
 const tvStreamClients = new Set();
-let currentTallyState = { programCam: 0, previewCam: 0 };
-const camSignalsForStudio = []; // Signals from phones for studio
-const camSignalsForPhones = { 1: [], 2: [], 3: [], 4: [] }; // Signals from studio for phones
 
-// Connected SSE clients (phones, iPads, stage monitors, studio)
-const sseClients = new Set();
+// Connected SSE clients segmented by church (churchId -> Set of res)
+const sseClientsByChurch = new Map();
 
-function broadcastSSE(event, data) {
+function getChurchClients(churchId) {
+  const cid = (churchId && String(churchId).trim()) ? String(churchId).trim() : 'default';
+  if (!sseClientsByChurch.has(cid)) {
+    sseClientsByChurch.set(cid, new Set());
+  }
+  return sseClientsByChurch.get(cid);
+}
+
+function broadcastSSE(event, data, targetChurchId = null) {
   const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  for (const client of sseClients) {
-    try {
-      client.write(payload);
-    } catch (e) {
-      sseClients.delete(client);
+  if (targetChurchId && targetChurchId !== '*') {
+    const clients = sseClientsByChurch.get(targetChurchId);
+    if (clients) {
+      for (const client of clients) {
+        try {
+          client.write(payload);
+        } catch (e) {
+          clients.delete(client);
+        }
+      }
+    }
+  } else {
+    // Broadcast to all churches
+    for (const [, clients] of sseClientsByChurch.entries()) {
+      for (const client of clients) {
+        try {
+          client.write(payload);
+        } catch (e) {
+          clients.delete(client);
+        }
+      }
     }
   }
 }
 
-// Background timer ticker
+// Background timer ticker per church
 setInterval(() => {
-  if (studioState.timerRunning && studioState.timerSeconds > 0) {
-    studioState.timerSeconds--;
-    broadcastSSE('timer', { seconds: studioState.timerSeconds, running: true });
-  } else if (studioState.timerRunning && studioState.timerSeconds === 0) {
-    studioState.timerRunning = false;
-    broadcastSSE('timer', { seconds: 0, running: false });
+  for (const [cid, st] of churchStates.entries()) {
+    if (st.timerRunning && st.timerSeconds > 0) {
+      st.timerSeconds--;
+      broadcastSSE('timer', { seconds: st.timerSeconds, running: true }, cid);
+    } else if (st.timerRunning && st.timerSeconds === 0) {
+      st.timerRunning = false;
+      broadcastSSE('timer', { seconds: 0, running: false }, cid);
+    }
   }
 }, 1000);
 
 // SSE Keepalive Heartbeat: prevents Cloudflare tunnels, NAT routers, and Chrome from dropping idle connections
 setInterval(() => {
-  for (const client of sseClients) {
-    try {
-      client.write(': keepalive\n\n');
-    } catch (e) {
-      sseClients.delete(client);
+  for (const [, clients] of sseClientsByChurch.entries()) {
+    for (const client of clients) {
+      try {
+        client.write(': keepalive\n\n');
+      } catch (e) {
+        clients.delete(client);
+      }
     }
   }
 }, 10000);
@@ -379,30 +446,50 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  // API 2: Server-Sent Events (Live WiFi Push to phones/iPads/Studio)
+  // API 2: Server-Sent Events (Live WiFi Push to phones/iPads/Studio per church)
   if (parsedUrl === '/api/events') {
+    const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const churchId = fullUrl.searchParams.get('church') || 'default';
+    const clients = getChurchClients(churchId);
+
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
       'X-Accel-Buffering': 'no'
     });
-    while (sseClients.size >= 50) { const oldest = sseClients.values().next().value; if (!oldest) break; sseClients.delete(oldest); try { oldest.end(); } catch (e) {} }
-    sseClients.add(res);
-    // Send immediate current state
-    res.write(`event: state\ndata: ${JSON.stringify(studioState)}\n\n`);
-    res.write(`event: cam_tally\ndata: ${JSON.stringify(currentTallyState)}\n\n`);
+    while (clients.size >= 50) {
+      const oldest = clients.values().next().value;
+      if (!oldest) break;
+      clients.delete(oldest);
+      try { oldest.end(); } catch (e) {}
+    }
+    clients.add(res);
+
+    // Send immediate current state for this church
+    const st = getChurchState(churchId);
+    const camSt = getChurchCamState(churchId);
+    res.write(`event: state\ndata: ${JSON.stringify(st)}\n\n`);
+    res.write(`event: cam_tally\ndata: ${JSON.stringify(camSt.currentTallyState)}\n\n`);
+    if (st.layer1) {
+      res.write(`event: layer1_update\ndata: ${JSON.stringify(st.layer1)}\n\n`);
+    }
+    if (st.currentSlidePayload) {
+      res.write(`event: slide_payload\ndata: ${JSON.stringify(st.currentSlidePayload)}\n\n`);
+    }
 
     req.on('close', () => {
-      sseClients.delete(res);
+      clients.delete(res);
     });
     return;
   }
 
   // API 3: Get Current State
   if (parsedUrl === '/api/state' && req.method === 'GET') {
+    const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const churchId = fullUrl.searchParams.get('church') || 'default';
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(studioState));
+    res.end(JSON.stringify(getChurchState(churchId)));
     return;
   }
 
@@ -413,23 +500,26 @@ const requestHandler = (req, res) => {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body);
-        if (typeof payload.itemIndex === 'number') studioState.itemIndex = payload.itemIndex;
-        if (typeof payload.slideIndex === 'number') studioState.slideIndex = payload.slideIndex;
-        if (typeof payload.isBlackout === 'boolean') studioState.isBlackout = payload.isBlackout;
-        if (typeof payload.theme === 'string') studioState.theme = payload.theme;
+        const churchId = payload.churchId || 'default';
+        const st = getChurchState(churchId);
+
+        if (typeof payload.itemIndex === 'number') st.itemIndex = payload.itemIndex;
+        if (typeof payload.slideIndex === 'number') st.slideIndex = payload.slideIndex;
+        if (typeof payload.isBlackout === 'boolean') st.isBlackout = payload.isBlackout;
+        if (typeof payload.theme === 'string') st.theme = payload.theme;
         if (Array.isArray(payload.libraryItems)) {
-          studioState.libraryItems = payload.libraryItems;
+          st.libraryItems = payload.libraryItems;
           if (payload.persistDb) {
             persistentDb.libraryItems = payload.libraryItems;
             savePersistentDatabase();
           }
         }
         if (payload.currentSlidePayload) {
-          studioState.currentSlidePayload = payload.currentSlidePayload;
-          broadcastSSE('slide_payload', payload.currentSlidePayload);
+          st.currentSlidePayload = payload.currentSlidePayload;
+          broadcastSSE('slide_payload', payload.currentSlidePayload, churchId);
         }
 
-        broadcastSSE('state', studioState);
+        broadcastSSE('state', st, churchId);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
@@ -447,8 +537,10 @@ const requestHandler = (req, res) => {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body || '{}');
-        studioState.layer1 = payload;
-        broadcastSSE('layer1_update', payload);
+        const churchId = payload.churchId || 'default';
+        const st = getChurchState(churchId);
+        st.layer1 = payload;
+        broadcastSSE('layer1_update', payload, churchId);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
@@ -467,15 +559,17 @@ const requestHandler = (req, res) => {
       try {
         const cmd = JSON.parse(body);
         if (cmd) {
-          if (studioState.currentSlidePayload) {
-            studioState.currentSlidePayload.videoAction = cmd.action;
-            if (typeof cmd.time === 'number') studioState.currentSlidePayload.currentTime = cmd.time;
-            if (typeof cmd.loop === 'boolean') studioState.currentSlidePayload.videoLoop = cmd.loop;
-            if (typeof cmd.muted === 'boolean') studioState.currentSlidePayload.videoMuted = cmd.muted;
-            if (cmd.videoUrl) studioState.currentSlidePayload.videoUrl = cmd.videoUrl;
+          const churchId = cmd.churchId || 'default';
+          const st = getChurchState(churchId);
+          if (st.currentSlidePayload) {
+            st.currentSlidePayload.videoAction = cmd.action;
+            if (typeof cmd.time === 'number') st.currentSlidePayload.currentTime = cmd.time;
+            if (typeof cmd.loop === 'boolean') st.currentSlidePayload.videoLoop = cmd.loop;
+            if (typeof cmd.muted === 'boolean') st.currentSlidePayload.videoMuted = cmd.muted;
+            if (cmd.videoUrl) st.currentSlidePayload.videoUrl = cmd.videoUrl;
           }
-          broadcastSSE('video_control', cmd);
-          broadcastSSE('state', studioState);
+          broadcastSSE('video_control', cmd, churchId);
+          broadcastSSE('state', st, churchId);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
@@ -494,52 +588,55 @@ const requestHandler = (req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
+        const churchId = data.churchId || 'default';
+        const st = getChurchState(churchId);
         const action = data.action;
 
         if (action === 'next_slide') {
-          studioState.isBlackout = false;
-          const currentItem = studioState.libraryItems[studioState.itemIndex];
+          st.isBlackout = false;
+          const currentItem = st.libraryItems[st.itemIndex];
           if (currentItem && currentItem.slides) {
-            if (studioState.slideIndex < currentItem.slides.length - 1) {
-              studioState.slideIndex++;
-            } else if (studioState.itemIndex < studioState.libraryItems.length - 1) {
-              studioState.itemIndex++;
-              studioState.slideIndex = 0;
+            if (st.slideIndex < currentItem.slides.length - 1) {
+              st.slideIndex++;
+            } else if (st.itemIndex < st.libraryItems.length - 1) {
+              st.itemIndex++;
+              st.slideIndex = 0;
             }
           }
         } else if (action === 'prev_slide') {
-          studioState.isBlackout = false;
-          if (studioState.slideIndex > 0) {
-            studioState.slideIndex--;
-          } else if (studioState.itemIndex > 0) {
-            studioState.itemIndex--;
-            const prevItem = studioState.libraryItems[studioState.itemIndex];
-            studioState.slideIndex = (prevItem && prevItem.slides) ? prevItem.slides.length - 1 : 0;
+          st.isBlackout = false;
+          if (st.slideIndex > 0) {
+            st.slideIndex--;
+          } else if (st.itemIndex > 0) {
+            st.itemIndex--;
+            const prevItem = st.libraryItems[st.itemIndex];
+            st.slideIndex = (prevItem && prevItem.slides) ? prevItem.slides.length - 1 : 0;
           }
         } else if (action === 'set_slide') {
-          studioState.isBlackout = false;
-          if (typeof data.itemIndex === 'number') studioState.itemIndex = data.itemIndex;
-          if (typeof data.slideIndex === 'number') studioState.slideIndex = data.slideIndex;
+          st.isBlackout = false;
+          if (typeof data.itemIndex === 'number') st.itemIndex = data.itemIndex;
+          if (typeof data.slideIndex === 'number') st.slideIndex = data.slideIndex;
         } else if (action === 'blackout') {
-          studioState.isBlackout = (typeof data.isBlackout === 'boolean') ? data.isBlackout : !studioState.isBlackout;
+          st.isBlackout = (typeof data.isBlackout === 'boolean') ? data.isBlackout : !st.isBlackout;
         } else if (action === 'timer_start') {
-          studioState.timerRunning = true;
+          st.timerRunning = true;
         } else if (action === 'timer_pause') {
-          studioState.timerRunning = false;
+          st.timerRunning = false;
         } else if (action === 'timer_reset') {
-          studioState.timerSeconds = typeof data.seconds === 'number' ? data.seconds : 2100;
-          studioState.timerRunning = false;
+          st.timerSeconds = typeof data.seconds === 'number' ? data.seconds : 2100;
+          st.timerRunning = false;
         } else if (action === 'timer_adjust') {
           const delta = typeof data.delta === 'number' ? data.delta : 0;
-          studioState.timerSeconds = Math.max(0, studioState.timerSeconds + delta);
+          st.timerSeconds = Math.max(0, st.timerSeconds + delta);
         } else if (action === 'stage_message') {
-          studioState.stageMessage = data.message || '';
+          st.stageMessage = data.message || '';
         } else if (action === 'set_tv_mode') {
-          studioState.tvMode = data.mode || 'LOBBY';
+          st.tvMode = data.mode || 'LOBBY';
         } else if (action === 'set_tv_alert') {
-          studioState.tvAlert = data.alert || '';
+          st.tvAlert = data.alert || '';
         } else if (action === 'set_tv_service_live') {
           const nextActive = Boolean(data.active);
+          st.tvServiceLive = nextActive;
           if (nextActive) {
             startTvFfmpegBroadcast();
           } else {
@@ -547,9 +644,9 @@ const requestHandler = (req, res) => {
           }
         }
 
-        broadcastSSE('state', studioState);
+        broadcastSSE('state', st, churchId);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, state: studioState }));
+        res.end(JSON.stringify({ success: true, state: st }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: e.message }));
@@ -569,6 +666,8 @@ const requestHandler = (req, res) => {
     req.on('end', () => {
       try {
         const sig = JSON.parse(body);
+        const churchId = sig.churchId || 'default';
+        const camSt = getChurchCamState(churchId);
         const camId = parseInt(sig.camId || 1, 10);
 
         // De-mDNS any .local candidates so mobile devices can connect on local WiFi
@@ -584,12 +683,12 @@ const requestHandler = (req, res) => {
         }
 
         if (sig.from === 'phone') {
-          camSignalsForStudio.push(sig);
-          broadcastSSE('cam_signal', sig);
+          camSt.camSignalsForStudio.push(sig);
+          broadcastSSE('cam_signal', sig, churchId);
         } else if (sig.from === 'studio') {
-          if (!camSignalsForPhones[camId]) camSignalsForPhones[camId] = [];
-          camSignalsForPhones[camId].push(sig);
-          broadcastSSE('cam_signal', sig);
+          if (!camSt.camSignalsForPhones[camId]) camSt.camSignalsForPhones[camId] = [];
+          camSt.camSignalsForPhones[camId].push(sig);
+          broadcastSSE('cam_signal', sig, churchId);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
@@ -604,18 +703,21 @@ const requestHandler = (req, res) => {
   // Endpoint: Direct HTTPS POST Frame Ingest (zero-fail video stream from phone)
   if (parsedUrl === '/api/cam/frame' && req.method === 'POST') {
     const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const churchId = fullUrl.searchParams.get('church') || 'default';
+    const camSt = getChurchCamState(churchId);
     const camId = parseInt(fullUrl.searchParams.get('cam') || '1', 10);
     const chunks = [];
     req.on('data', chunk => chunks.push(chunk));
     req.on('end', () => {
       const buffer = Buffer.concat(chunks);
       if (buffer.length > 0) {
-        mobileCamLatestFrames[camId] = buffer;
-        if (mobileCamsState[camId]) {
-          mobileCamsState[camId].connected = true;
-          mobileCamsState[camId].lastPing = Date.now();
+        camSt.mobileCamLatestFrames[camId] = buffer;
+        if (camSt.mobileCamsState[camId]) {
+          camSt.mobileCamsState[camId].connected = true;
+          camSt.mobileCamsState[camId].lastPing = Date.now();
         }
-        const recs = mobileCamReceivers[camId];
+        const recKey = `${churchId}_${camId}`;
+        const recs = mobileCamReceiversMap.get(recKey);
         if (recs && recs.size > 0) {
           for (const r of recs) {
             if (r.readyState === WebSocket.OPEN) {
@@ -633,8 +735,10 @@ const requestHandler = (req, res) => {
   // Endpoint: Fetch Latest Frame (polling fallback for studio canvas)
   if (parsedUrl === '/api/cam/frame' && req.method === 'GET') {
     const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const churchId = fullUrl.searchParams.get('church') || 'default';
+    const camSt = getChurchCamState(churchId);
     const camId = parseInt(fullUrl.searchParams.get('cam') || '1', 10);
-    const buf = mobileCamLatestFrames[camId];
+    const buf = camSt.mobileCamLatestFrames[camId];
     if (buf && buf.length > 0) {
       res.writeHead(200, {
         'Content-Type': 'image/jpeg',
@@ -652,24 +756,26 @@ const requestHandler = (req, res) => {
   // Endpoint: Poll WebRTC Signals & Tally Status
   if (parsedUrl === '/api/cam/poll' && req.method === 'GET') {
     const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const churchId = fullUrl.searchParams.get('church') || 'default';
+    const camSt = getChurchCamState(churchId);
     const camId = parseInt(fullUrl.searchParams.get('id') || '1', 10);
     const from = fullUrl.searchParams.get('from') || 'phone';
 
     let signals = [];
     if (from === 'phone') {
       // Phone is asking for signals from studio
-      signals = camSignalsForPhones[camId] || [];
-      camSignalsForPhones[camId] = [];
+      signals = camSt.camSignalsForPhones[camId] || [];
+      camSt.camSignalsForPhones[camId] = [];
     } else {
       // Studio is asking for signals from phones
-      signals = camSignalsForStudio.splice(0, camSignalsForStudio.length);
+      signals = camSt.camSignalsForStudio.splice(0, camSt.camSignalsForStudio.length);
     }
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       signals,
-      tally: currentTallyState,
-      cams: mobileCamsState
+      tally: camSt.currentTallyState,
+      cams: camSt.mobileCamsState
     }));
     return;
   }
@@ -681,15 +787,17 @@ const requestHandler = (req, res) => {
     req.on('end', () => {
       try {
         const status = JSON.parse(body);
+        const churchId = status.churchId || 'default';
+        const camSt = getChurchCamState(churchId);
         const camId = parseInt(status.camId || 1, 10);
-        if (mobileCamsState[camId]) {
-          mobileCamsState[camId].connected = true;
-          mobileCamsState[camId].lastPing = Date.now();
-          if (status.battery !== undefined) mobileCamsState[camId].battery = status.battery;
-          if (status.facingMode) mobileCamsState[camId].facingMode = status.facingMode;
-          if (status.userAgent) mobileCamsState[camId].userAgent = status.userAgent;
+        if (camSt.mobileCamsState[camId]) {
+          camSt.mobileCamsState[camId].connected = true;
+          camSt.mobileCamsState[camId].lastPing = Date.now();
+          if (status.battery !== undefined) camSt.mobileCamsState[camId].battery = status.battery;
+          if (status.facingMode) camSt.mobileCamsState[camId].facingMode = status.facingMode;
+          if (status.userAgent) camSt.mobileCamsState[camId].userAgent = status.userAgent;
         }
-        broadcastSSE('cam_status', { camId, status: mobileCamsState[camId] });
+        broadcastSSE('cam_status', { camId, status: camSt.mobileCamsState[camId] }, churchId);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
@@ -707,12 +815,14 @@ const requestHandler = (req, res) => {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body || '{}');
+        const churchId = payload.churchId || 'default';
+        const camSt = getChurchCamState(churchId);
         const targetCams = (payload.camId === 'all' || !payload.camId) ? [1, 2, 3, 4] : [parseInt(payload.camId, 10)];
         targetCams.forEach(id => {
-          if (!camSignalsForPhones[id]) camSignalsForPhones[id] = [];
-          camSignalsForPhones[id].push({ type: 'renegotiate', camId: id });
+          if (!camSt.camSignalsForPhones[id]) camSt.camSignalsForPhones[id] = [];
+          camSt.camSignalsForPhones[id].push({ type: 'renegotiate', camId: id });
         });
-        broadcastSSE('cam_renegotiate', payload);
+        broadcastSSE('cam_renegotiate', payload, churchId);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
@@ -730,11 +840,13 @@ const requestHandler = (req, res) => {
     req.on('end', () => {
       try {
         const tally = JSON.parse(body);
-        currentTallyState.programCam = parseInt(tally.programCam || 0, 10);
-        currentTallyState.previewCam = parseInt(tally.previewCam || 0, 10);
-        broadcastSSE('cam_tally', currentTallyState);
+        const churchId = tally.churchId || 'default';
+        const camSt = getChurchCamState(churchId);
+        camSt.currentTallyState.programCam = parseInt(tally.programCam || 0, 10);
+        camSt.currentTallyState.previewCam = parseInt(tally.previewCam || 0, 10);
+        broadcastSSE('cam_tally', camSt.currentTallyState, churchId);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, tally: currentTallyState }));
+        res.end(JSON.stringify({ success: true, tally: camSt.currentTallyState }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: e.message }));
@@ -2200,28 +2312,32 @@ liveStreamWss.on('connection', (ws, request) => {
 // OMNICAST MOBILE CAM: HIGH-SPEED ULTRA-LOW LATENCY WEBSOCKET VIDEO RELAY
 // =========================================================================
 const mobileCamWss = new WebSocket.Server({ noServer: true });
-const mobileCamReceivers = { 1: new Set(), 2: new Set(), 3: new Set(), 4: new Set(), 5: new Set() };
+const mobileCamReceiversMap = new Map(); // key: `${churchId}_${camId}` -> Set of ws
 
 mobileCamWss.on('connection', (ws, request) => {
   const host = request.headers.host || 'localhost';
   const url = new URL(request.url, `http://${host}`);
   const role = url.searchParams.get('role') || 'receiver';
+  const churchId = url.searchParams.get('church') || 'default';
   const camId = parseInt(url.searchParams.get('cam') || '1', 10);
+  const camKey = `${churchId}_${camId}`;
+  const camSt = getChurchCamState(churchId);
 
   if (role === 'receiver') {
-    if (!mobileCamReceivers[camId]) mobileCamReceivers[camId] = new Set();
-    mobileCamReceivers[camId].add(ws);
+    if (!mobileCamReceiversMap.has(camKey)) mobileCamReceiversMap.set(camKey, new Set());
+    mobileCamReceiversMap.get(camKey).add(ws);
     ws.on('close', () => {
-      if (mobileCamReceivers[camId]) mobileCamReceivers[camId].delete(ws);
+      const set = mobileCamReceiversMap.get(camKey);
+      if (set) set.delete(ws);
     });
   } else if (role === 'sender') {
     ws.on('message', (data, isBinary) => {
-      mobileCamLatestFrames[camId] = data;
-      if (mobileCamsState[camId]) {
-        mobileCamsState[camId].connected = true;
-        mobileCamsState[camId].lastPing = Date.now();
+      camSt.mobileCamLatestFrames[camId] = data;
+      if (camSt.mobileCamsState[camId]) {
+        camSt.mobileCamsState[camId].connected = true;
+        camSt.mobileCamsState[camId].lastPing = Date.now();
       }
-      const recs = mobileCamReceivers[camId];
+      const recs = mobileCamReceiversMap.get(camKey);
       if (recs && recs.size > 0) {
         for (const r of recs) {
           if (r.readyState === WebSocket.OPEN) {

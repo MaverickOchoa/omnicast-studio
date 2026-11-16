@@ -385,14 +385,18 @@
     // -------------------------------------------------------------------------
     // REAL-TIME SYNCHRONIZATION VIA SSE (SERVER-SENT EVENTS) & BROADCASTCHANNEL
     // -------------------------------------------------------------------------
-    const localBroadcast = new BroadcastChannel('omnicast_live_channel');
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeChurch = urlParams.get('church') || '';
+    const channelName = activeChurch ? `omnicast_live_${activeChurch}` : 'omnicast_live_channel';
+    const localBroadcast = new BroadcastChannel(channelName);
 
     function connectSSE() {
       const connPill = document.getElementById('connPill');
       const connDot = document.getElementById('connDot');
       const connText = document.getElementById('connText');
 
-      const evtSource = new EventSource('/api/events');
+      const sseUrl = activeChurch ? `/api/events?church=${encodeURIComponent(activeChurch)}` : '/api/events';
+      const evtSource = new EventSource(sseUrl);
 
       evtSource.addEventListener('state', (e) => {
         try {
@@ -442,7 +446,7 @@
     async function sendAction(action, data = {}) {
       triggerHaptic();
       try {
-        const payload = Object.assign({ action }, data);
+        const payload = Object.assign({ action, churchId: activeChurch || 'default' }, data);
         await fetch('/api/action', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

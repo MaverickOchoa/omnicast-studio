@@ -150,6 +150,7 @@
   <script>
     // URL Parameters
     const urlParams = new URLSearchParams(window.location.search);
+    const activeChurch = urlParams.get('church') || '';
     let currentCamId = parseInt(urlParams.get('id') || urlParams.get('cam') || '1', 10);
     if (![1, 2, 3, 4].includes(currentCamId)) currentCamId = 1;
 
@@ -359,7 +360,7 @@
         try { camWebSocket.close(); } catch(e) {}
       }
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${proto}//${window.location.host}/api/cam/ws?role=sender&cam=${currentCamId}`;
+      const wsUrl = `${proto}//${window.location.host}/api/cam/ws?role=sender&cam=${currentCamId}&church=${encodeURIComponent(activeChurch)}`;
       camWebSocket = new WebSocket(wsUrl);
       camWebSocket.binaryType = 'arraybuffer';
       
@@ -425,7 +426,7 @@
                 }).catch(() => { isSendingFrame = false; });
               } else {
                 // Dual Direct HTTPS POST relay (works 100% on Android Chrome with accepted SSL)
-                fetch(`/api/cam/frame?cam=${currentCamId}`, {
+                fetch(`/api/cam/frame?cam=${currentCamId}&church=${encodeURIComponent(activeChurch)}`, {
                   method: 'POST',
                   body: blob,
                   headers: { 'Content-Type': 'image/jpeg' }
@@ -512,7 +513,7 @@
         await fetch('/api/cam/signal', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(msg)
+          body: JSON.stringify(Object.assign({}, msg, { churchId: activeChurch || 'default' }))
         });
       } catch (e) {
         console.warn('Signaling send error:', e);
@@ -524,6 +525,7 @@
       try {
         const payload = {
           camId: currentCamId,
+          churchId: activeChurch || 'default',
           userAgent: navigator.userAgent,
           facingMode: currentFacingMode,
           ...extra
@@ -542,7 +544,8 @@
         try { sseEventSource.close(); } catch(e) {}
       }
 
-      sseEventSource = new EventSource('/api/events');
+      const sseUrl = activeChurch ? `/api/events?church=${encodeURIComponent(activeChurch)}` : '/api/events';
+      sseEventSource = new EventSource(sseUrl);
       
       sseEventSource.addEventListener('cam_signal', async (e) => {
         try {
@@ -573,7 +576,7 @@
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(async () => {
         try {
-          const res = await fetch(`/api/cam/poll?id=${currentCamId}&from=phone`);
+          const res = await fetch(`/api/cam/poll?id=${currentCamId}&from=phone&church=${encodeURIComponent(activeChurch)}`);
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data.signals)) {

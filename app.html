@@ -4560,19 +4560,19 @@ Te adoraré, te adoraré..."
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
-              <a href="/tv.html?room=Cuneros&mode=service" target="_blank" title="Abrir vista fija en vivo para Cuneros (Audio + Video Program)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold transition flex items-center gap-1.5">
+              <a id="matrixHeaderLinkCuneros" href="/tv.html?room=Cuneros&mode=service" target="_blank" title="Abrir vista fija en vivo para Cuneros (Audio + Video Program)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold transition flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                 <span>👶 Cuneros</span>
               </a>
-              <a href="/tv.html?room=Lobby&mode=lobby" target="_blank" title="Abrir vista fija para Lobby (Reloj + Cuenta Regresiva + Diezmos)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-[11px] font-bold transition flex items-center gap-1.5">
+              <a id="matrixHeaderLinkLobby" href="/tv.html?room=Lobby&mode=lobby" target="_blank" title="Abrir vista fija para Lobby (Reloj + Cuenta Regresiva + Diezmos)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-[11px] font-bold transition flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                 <span>☕ Lobby</span>
               </a>
-              <a href="/tv.html?room=Cartelera&mode=announcements" target="_blank" title="Abrir vista fija para Cartelera (Rotación de Anuncios y Eventos)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 text-[11px] font-bold transition flex items-center gap-1.5">
+              <a id="matrixHeaderLinkCartelera" href="/tv.html?room=Cartelera&mode=announcements" target="_blank" title="Abrir vista fija para Cartelera (Rotación de Anuncios y Eventos)" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 text-[11px] font-bold transition flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
                 <span>📢 Cartelera</span>
               </a>
-              <a href="/tv.html?room=General" target="_blank" title="Abrir pantalla dinámica general que sigue en vivo los cambios del estudio" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95">
+              <a id="matrixHeaderLinkGeneral" href="/tv.html?room=General" target="_blank" title="Abrir pantalla dinámica general que sigue en vivo los cambios del estudio" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95">
                 <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                 <span>🔀 Pantalla Dinámica</span>
               </a>
@@ -4685,8 +4685,8 @@ Te adoraré, te adoraré..."
             </div>
             <p class="text-[11px] text-slate-400">Letras de alabanza gigantes, Biblia y fondos animados en el auditorio principal.</p>
             <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
-              <span class="text-[10px] font-mono text-slate-500">/projector.html</span>
-              <a href="/projector.html" target="_blank" class="text-xs text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1">
+              <span id="matrixLinkProjectorPath" class="text-[10px] font-mono text-slate-500">/projector.html</span>
+              <a id="matrixLinkProjector" href="/projector.html" target="_blank" class="text-xs text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1">
                 Abrir <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
               </a>
             </div>
@@ -4703,8 +4703,8 @@ Te adoraré, te adoraré..."
             </div>
             <p class="text-[11px] text-slate-400">Monitor de músicos y predicador con reloj, cronómetro y alertas privadas.</p>
             <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
-              <span class="text-[10px] font-mono text-slate-500">/stage.html</span>
-              <a href="/stage.html" target="_blank" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1">
+              <span id="matrixLinkStagePath" class="text-[10px] font-mono text-slate-500">/stage.html</span>
+              <a id="matrixLinkStage" href="/stage.html" target="_blank" class="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1">
                 Abrir <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
               </a>
             </div>
@@ -5642,12 +5642,71 @@ Te adoraré, te adoraré..."
       };
     }
 
-    const liveChannel = new BroadcastChannel('omnicast_live_channel');
-    liveChannel.onmessage = (event) => {
-      if (event.data && event.data.type === 'RUNDOWN_GO_NEXT') {
-        if (typeof goNextRundownItem === 'function') goNextRundownItem();
+    function getActiveChurchId() {
+      // 1. URL search param override (?church=...)
+      try {
+        const urlParam = new URLSearchParams(window.location.search).get('church');
+        if (urlParam && urlParam.trim()) return urlParam.trim();
+      } catch (e) {}
+
+      // 2. Impersonated church
+      if (typeof activeImpersonatedChurch !== 'undefined' && activeImpersonatedChurch) {
+        if (activeImpersonatedChurch.id) return activeImpersonatedChurch.id;
+        if (activeImpersonatedChurch.username) return activeImpersonatedChurch.username;
       }
-    };
+
+      // 3. Current active account
+      if (typeof currentAccount !== 'undefined' && currentAccount) {
+        if (currentAccount.churchId) return currentAccount.churchId;
+        if (currentAccount.isChurch && (currentAccount.id || currentAccount.username)) {
+          return currentAccount.id || currentAccount.username;
+        }
+        if (currentAccount.tenantKey && currentAccount.tenantKey !== 'hq') {
+          return currentAccount.tenantKey;
+        }
+        if (currentAccount.username && !currentAccount.isSuperAdmin) {
+          return currentAccount.username;
+        }
+      }
+
+      // 4. Fallback to currentTenantKey or localStorage
+      if (typeof currentTenantKey !== 'undefined' && currentTenantKey && currentTenantKey !== 'hq') {
+        return currentTenantKey;
+      }
+
+      try {
+        const saved = localStorage.getItem('omnicast_active_church');
+        if (saved && saved.trim()) return saved.trim();
+      } catch (e) {}
+
+      return 'default';
+    }
+
+    function getBroadcastChannelName(prefix) {
+      const c = getActiveChurchId();
+      return (c && c !== 'default') ? `omnicast_${prefix}_${c}` : `omnicast_${prefix}_channel`;
+    }
+
+    let liveChannel = new BroadcastChannel(getBroadcastChannelName('live'));
+    let tvChannel = new BroadcastChannel(getBroadcastChannelName('tv'));
+
+    function attachLiveChannelHandlers(ch) {
+      if (!ch) return;
+      ch.onmessage = (event) => {
+        if (event.data && event.data.type === 'RUNDOWN_GO_NEXT') {
+          if (typeof goNextRundownItem === 'function') goNextRundownItem();
+        }
+      };
+    }
+    attachLiveChannelHandlers(liveChannel);
+
+    function refreshBroadcastChannels() {
+      try { if (liveChannel && typeof liveChannel.close === 'function') liveChannel.close(); } catch (e) {}
+      try { if (tvChannel && typeof tvChannel.close === 'function') tvChannel.close(); } catch (e) {}
+      liveChannel = new BroadcastChannel(getBroadcastChannelName('live'));
+      tvChannel = new BroadcastChannel(getBroadcastChannelName('tv'));
+      attachLiveChannelHandlers(liveChannel);
+    }
 
     // -------------------------------------------------------------------------
     // MASTER LAYER POWER ON/OFF (USER's KEY INNOVATION)
@@ -6619,7 +6678,7 @@ Te adoraré, te adoraré..."
     // -------------------------------------------------------------------------
     // PHASE 14: SMART TV HUB & VIDEO DISPLAY ROUTING MATRIX (WIRELESS OUTPUTS)
     // -------------------------------------------------------------------------
-    const tvChannel = new BroadcastChannel('omnicast_tv_channel');
+    if (!tvChannel) tvChannel = new BroadcastChannel(getBroadcastChannelName('tv'));
     let currentTvMode = 'LOBBY'; // 'LOBBY' | 'SERVICE' | 'ANNOUNCEMENTS'
     let currentTvAlert = '';
 
@@ -6638,10 +6697,12 @@ Te adoraré, te adoraré..."
         const port = net.port || window.location.port || '3000';
         base = `http://${ip}:${port}`;
       }
-      if (room === 'cuneros') return `${base}/tv.html?room=Cuneros&mode=service`;
-      if (room === 'lobby') return `${base}/tv.html?room=Lobby&mode=lobby`;
-      if (room === 'cartelera') return `${base}/tv.html?room=Cartelera&mode=announcements`;
-      return `${base}/tv.html?room=General`;
+      const church = getActiveChurchId();
+      const churchParam = (church && church !== 'default') ? `&church=${encodeURIComponent(church)}` : '';
+      if (room === 'cuneros') return `${base}/tv.html?room=Cuneros&mode=service${churchParam}`;
+      if (room === 'lobby') return `${base}/tv.html?room=Lobby&mode=lobby${churchParam}`;
+      if (room === 'cartelera') return `${base}/tv.html?room=Cartelera&mode=announcements${churchParam}`;
+      return `${base}/tv.html?room=General${churchParam}`;
     }
 
     function setMatrixRoom(room) {
@@ -6679,6 +6740,34 @@ Te adoraré, te adoraré..."
           }
         }
       });
+
+      // Update satellite links with active church parameter
+      const church = getActiveChurchId();
+      const churchParam = (church && church !== 'default') ? `church=${encodeURIComponent(church)}` : '';
+      const churchQuery = churchParam ? `?${churchParam}` : '';
+      const churchAnd = churchParam ? `&${churchParam}` : '';
+
+      const pLink = document.getElementById('matrixLinkProjector');
+      const pPath = document.getElementById('matrixLinkProjectorPath');
+      if (pLink) pLink.href = `/projector.html${churchQuery}`;
+      if (pPath) pPath.textContent = `/projector.html${churchQuery}`;
+
+      const sLink = document.getElementById('matrixLinkStage');
+      const sPath = document.getElementById('matrixLinkStagePath');
+      if (sLink) sLink.href = `/stage.html${churchQuery}`;
+      if (sPath) sPath.textContent = `/stage.html${churchQuery}`;
+
+      const hlCuneros = document.getElementById('matrixHeaderLinkCuneros');
+      if (hlCuneros) hlCuneros.href = `/tv.html?room=Cuneros&mode=service${churchAnd}`;
+
+      const hlLobby = document.getElementById('matrixHeaderLinkLobby');
+      if (hlLobby) hlLobby.href = `/tv.html?room=Lobby&mode=lobby${churchAnd}`;
+
+      const hlCartelera = document.getElementById('matrixHeaderLinkCartelera');
+      if (hlCartelera) hlCartelera.href = `/tv.html?room=Cartelera&mode=announcements${churchAnd}`;
+
+      const hlGeneral = document.getElementById('matrixHeaderLinkGeneral');
+      if (hlGeneral) hlGeneral.href = `/tv.html?room=General${churchAnd}`;
 
       const currentUrl = getMatrixTvUrl(matrixSelectedRoom, isTunnel ? 'tunnel' : 'local');
       const displayEl = document.getElementById('matrixTvUrlDisplay');
@@ -6753,7 +6842,7 @@ Te adoraré, te adoraré..."
       fetch('/api/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'set_tv_mode', mode: currentTvMode })
+        body: JSON.stringify({ action: 'set_tv_mode', mode: currentTvMode, churchId: getActiveChurchId() })
       }).catch(() => {});
 
       const modeNames = {
@@ -6794,7 +6883,7 @@ Te adoraré, te adoraré..."
       fetch('/api/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'set_tv_alert', alert: currentTvAlert })
+        body: JSON.stringify({ action: 'set_tv_alert', alert: currentTvAlert, churchId: getActiveChurchId() })
       }).catch(() => {});
 
       showNotification(`🚨 Alerta enviada a Smart TVs: "${text}"`, 'success');
@@ -6809,7 +6898,7 @@ Te adoraré, te adoraré..."
       fetch('/api/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'set_tv_alert', alert: '' })
+        body: JSON.stringify({ action: 'set_tv_alert', alert: '', churchId: getActiveChurchId() })
       }).catch(() => {});
 
       showNotification('Alerta de sala cuna retirada de las Smart TVs', 'info');
@@ -8065,6 +8154,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       }
 
       hideLoginScreen();
+      refreshBroadcastChannels();
+      initStudioRemoteEvents(true);
+      updateMatrixTvDisplay();
       broadcastSlide();
       if (window.lucide) lucide.createIcons();
     }
@@ -8086,6 +8178,10 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       const viewHq = document.getElementById('viewHQ');
       if (viewHq) viewHq.classList.add('hidden');
+
+      refreshBroadcastChannels();
+      initStudioRemoteEvents(true);
+      updateMatrixTvDisplay();
 
       switchAtemTab('letras');
       showLoginScreen();
@@ -9449,8 +9545,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       };
 
       try {
-        const liveChannel = new BroadcastChannel('omnicast_live_channel');
-        liveChannel.postMessage(payload);
+        if (liveChannel && typeof liveChannel.postMessage === 'function') {
+          liveChannel.postMessage(payload);
+        }
       } catch(e) {}
 
       try {
@@ -11572,6 +11669,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            churchId: getActiveChurchId(),
             itemIndex: currentItemIndex,
             slideIndex: currentSlideIndex,
             isBlackout: Boolean(isClear),
@@ -11628,7 +11726,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       currentRemoteMode = mode;
       if (!cachedRemoteInfo) return;
       const isTunnel = mode === 'tunnel' && Boolean(cachedRemoteInfo.tunnelUrl);
-      const activeUrl = isTunnel ? `${cachedRemoteInfo.tunnelUrl}/remote.html` : (cachedRemoteInfo.localRemoteUrl || cachedRemoteInfo.remoteUrl);
+      const church = getActiveChurchId();
+      const churchParam = (church && church !== 'default') ? `?church=${encodeURIComponent(church)}` : '';
+      let base = isTunnel ? cachedRemoteInfo.tunnelUrl : (cachedRemoteInfo.localRemoteUrl || cachedRemoteInfo.remoteUrl || `${window.location.origin}/remote.html`);
+      base = base.replace(/\/remote\.html.*$/, '') + '/remote.html';
+      const activeUrl = `${base}${churchParam}`;
       currentRemoteUrl = activeUrl;
 
       const urlText = document.getElementById('remoteWifiUrlText');
@@ -11672,20 +11774,28 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     }
 
     function testRemoteWindow() {
-      window.open('remote.html', 'OmniCastRemoteWindow', 'width=420,height=820,menubar=no,toolbar=no,location=no');
+      const church = getActiveChurchId();
+      const churchParam = (church && church !== 'default') ? `?church=${encodeURIComponent(church)}` : '';
+      window.open(`remote.html${churchParam}`, 'OmniCastRemoteWindow', 'width=420,height=820,menubar=no,toolbar=no,location=no');
     }
 
     // Single Unified EventSource Connection for Remote, Stage and Mobile Cam Signals
     let studioMainEvtSource = null;
 
-    function initStudioRemoteEvents() {
-      if (studioMainEvtSource) return;
+    function initStudioRemoteEvents(forceReconnect = false) {
+      if (studioMainEvtSource && !forceReconnect) return;
+      if (studioMainEvtSource && forceReconnect) {
+        try { studioMainEvtSource.close(); } catch (e) {}
+        studioMainEvtSource = null;
+      }
       if (document.readyState !== 'complete') {
-        window.addEventListener('load', () => setTimeout(initStudioRemoteEvents, 600), { once: true });
+        window.addEventListener('load', () => setTimeout(() => initStudioRemoteEvents(forceReconnect), 600), { once: true });
         return;
       }
       try {
-        studioMainEvtSource = new EventSource('/api/events');
+        const church = getActiveChurchId();
+        const sseUrl = (church && church !== 'default') ? `/api/events?church=${encodeURIComponent(church)}` : '/api/events';
+        studioMainEvtSource = new EventSource(sseUrl);
 
         studioMainEvtSource.addEventListener('state', (e) => {
           try {
@@ -12009,10 +12119,14 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     };
 
     document.getElementById('openProjectorBtn').onclick = () => {
-      window.open('projector.html', 'OmniCastProjectorWindow', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
+      const church = getActiveChurchId();
+      const churchParam = (church && church !== 'default') ? `?church=${encodeURIComponent(church)}` : '';
+      window.open(`projector.html${churchParam}`, 'OmniCastProjectorWindow', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
     };
     document.getElementById('openStageBtn').onclick = () => {
-      window.open('stage.html', 'OmniCastStageWindow', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
+      const church = getActiveChurchId();
+      const churchParam = (church && church !== 'default') ? `?church=${encodeURIComponent(church)}` : '';
+      window.open(`stage.html${churchParam}`, 'OmniCastStageWindow', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
     };
 
     // -------------------------------------------------------------------------
@@ -12369,7 +12483,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         slateImageUrl: (shotObj && (shotObj.slateImageUrl || shotObj.imageUrl)) || '',
         slateTitle: (shotObj && shotObj.slateTitle !== undefined) ? shotObj.slateTitle : (shotObj?.title || ''),
         slateSubtitle: (shotObj && shotObj.slateSubtitle !== undefined) ? shotObj.slateSubtitle : (shotObj?.subtitle || ''),
-        slateShowText: (shotObj && typeof shotObj.slateShowText === 'boolean') ? shotObj.slateShowText : false
+        slateShowText: (shotObj && typeof shotObj.slateShowText === 'boolean') ? shotObj.slateShowText : false,
+        churchId: getActiveChurchId()
       };
 
       try {
@@ -14658,7 +14773,7 @@ Pues resucitaste, Rey`
     function sendProjectorVideoCommand(payload) {
       try {
         // Timestamp en cada comando: las pantallas descartan mensajes viejos y compensan la latencia
-        const stamped = { ...payload, ts: Date.now() };
+        const stamped = { ...payload, churchId: getActiveChurchId(), ts: Date.now() };
         syncAllSlaveVideoPlayers(stamped);
         liveChannel.postMessage({ type: 'VIDEO_CONTROL', payload: stamped });
         localStorage.setItem('omnicast_video_control', JSON.stringify(stamped));
@@ -17452,7 +17567,7 @@ Pues resucitaste, Rey`
       if (vUrl !== lastActiveProgramVideoUrl) {
         lastActiveProgramVideoUrl = vUrl;
         try {
-          const payload = vUrl ? { action: 'play', videoUrl: vUrl, ts: Date.now() } : { action: 'stop', ts: Date.now() };
+          const payload = vUrl ? { action: 'play', videoUrl: vUrl, churchId: getActiveChurchId(), ts: Date.now() } : { action: 'stop', churchId: getActiveChurchId(), ts: Date.now() };
           liveChannel.postMessage({ type: 'VIDEO_CONTROL', payload });
           localStorage.setItem('omnicast_video_control', JSON.stringify(payload));
           fetch('/api/video-control', {
@@ -18717,13 +18832,15 @@ Pues resucitaste, Rey`
       const info = await fetchServerNetworkInfo();
 
       // Prefer Cloudflare Tunnel HTTPS (official trusted certificate) or local HTTPS port
+      const church = getActiveChurchId();
+      const churchParam = (church && church !== 'default') ? `&church=${encodeURIComponent(church)}` : '';
       let camUrl = '';
       if (info && info.tunnelUrl) {
-        camUrl = `${info.tunnelUrl}/cam.html?id=${ch}`;
+        camUrl = `${info.tunnelUrl}/cam.html?id=${ch}${churchParam}`;
       } else {
         const ip = info.primaryIp || window.location.hostname;
         const port = info.httpsPort || '3443';
-        camUrl = `https://${ip}:${port}/cam.html?id=${ch}`;
+        camUrl = `https://${ip}:${port}/cam.html?id=${ch}${churchParam}`;
       }
 
       if (input) input.value = camUrl;
@@ -18878,7 +18995,7 @@ Pues resucitaste, Rey`
         await fetch('/api/cam/signal', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(msg)
+          body: JSON.stringify({ ...msg, churchId: getActiveChurchId() })
         });
       } catch (e) {}
     }
@@ -18893,7 +19010,7 @@ Pues resucitaste, Rey`
       fetch('/api/cam/renegotiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ camId: ch })
+        body: JSON.stringify({ camId: ch, churchId: getActiveChurchId() })
       }).catch(() => {});
     }
 
@@ -18901,7 +19018,7 @@ Pues resucitaste, Rey`
       if (studioCamPollInterval) clearInterval(studioCamPollInterval);
       studioCamPollInterval = setInterval(async () => {
         try {
-          const res = await fetch('/api/cam/poll?from=studio');
+          const res = await fetch(`/api/cam/poll?from=studio&church=${encodeURIComponent(getActiveChurchId())}`);
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data.signals) && data.signals.length > 0) {
@@ -18976,7 +19093,7 @@ Pues resucitaste, Rey`
         try { mobileCamWebSockets[ch].close(); } catch(e) {}
       }
       const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${proto}//${window.location.host}/api/cam/ws?role=receiver&cam=${ch}`;
+      const wsUrl = `${proto}//${window.location.host}/api/cam/ws?role=receiver&cam=${ch}&church=${encodeURIComponent(getActiveChurchId())}`;
       let ws;
       try {
         ws = new WebSocket(wsUrl);
@@ -19010,7 +19127,7 @@ Pues resucitaste, Rey`
           const last = mobileCamLastFrameTime[ch] || 0;
           if (now - last > 1500) {
             try {
-              const res = await fetch(`/api/cam/frame?cam=${ch}&_t=${now}`);
+              const res = await fetch(`/api/cam/frame?cam=${ch}&church=${encodeURIComponent(getActiveChurchId())}&_t=${now}`);
               if (res.ok && res.status === 200) {
                 const blob = await res.blob();
                 if (blob && blob.size > 200) {
@@ -19053,7 +19170,7 @@ Pues resucitaste, Rey`
       fetch('/api/cam/tally', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ programCam, previewCam })
+        body: JSON.stringify({ programCam, previewCam, churchId: getActiveChurchId() })
       }).catch(() => {});
     }
 

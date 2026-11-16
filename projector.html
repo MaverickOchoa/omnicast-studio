@@ -105,7 +105,10 @@
   </div>
 
   <script>
-    const channel = new BroadcastChannel('omnicast_live_channel');
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeChurch = urlParams.get('church') || '';
+    const channelName = activeChurch ? `omnicast_live_${activeChurch}` : 'omnicast_live_channel';
+    const channel = new BroadcastChannel(channelName);
     const mainText = document.getElementById('mainText');
     const subText = document.getElementById('subText');
     const refBadge = document.getElementById('referenceBadge');
@@ -839,7 +842,8 @@
 
     window.addEventListener('load', () => {
       setTimeout(() => {
-        const evtSource = new EventSource('/api/events');
+        const sseUrl = activeChurch ? `/api/events?church=${encodeURIComponent(activeChurch)}` : '/api/events';
+        const evtSource = new EventSource(sseUrl);
         evtSource.addEventListener('video_control', (e) => {
           try {
             handleVideoControl(JSON.parse(e.data));
