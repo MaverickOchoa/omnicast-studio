@@ -95,9 +95,38 @@ function loadPersistentDatabase() {
         phone: '+52 55 1234 5678',
         plan: 'Enterprise Multi-Sede',
         createdAt: '2026-01-15'
+      },
+      {
+        id: 'org-imec',
+        name: 'IGLESIA MEXICANA DEL EVANGELIO DE CRISTO',
+        slug: 'imec',
+        adminEmail: 'huttmanochoa@gmail.com',
+        username: 'Huttman Ochoa',
+        password: 'YoYo158087',
+        headquarters: 'IMEC',
+        phone: '5530746982',
+        plan: 'Enterprise Multi-Sede (Sedes Ilimitadas + CDN Global)',
+        createdAt: '2026-11-15'
       }
     ];
+  } else {
+    // Garantizar que IMEC exista permanentemente
+    if (!persistentDb.organizations.some(o => o.id === 'org-imec' || o.slug === 'imec')) {
+      persistentDb.organizations.push({
+        id: 'org-imec',
+        name: 'IGLESIA MEXICANA DEL EVANGELIO DE CRISTO',
+        slug: 'imec',
+        adminEmail: 'huttmanochoa@gmail.com',
+        username: 'Huttman Ochoa',
+        password: 'YoYo158087',
+        headquarters: 'IMEC',
+        phone: '5530746982',
+        plan: 'Enterprise Multi-Sede (Sedes Ilimitadas + CDN Global)',
+        createdAt: '2026-11-15'
+      });
+    }
   }
+
   if (!persistentDb.churches || persistentDb.churches.length === 0) {
     persistentDb.churches = [
       {
@@ -131,18 +160,27 @@ function loadPersistentDatabase() {
       {
         id: 'church-hebron',
         name: 'Comunidad Cristiana Hebrón',
-        type: 'independent', // Iglesia sola / independiente
-        orgId: null,
-        orgName: null,
+        type: 'branch',
+        orgId: 'org-imec',
+        orgName: 'IGLESIA MEXICANA DEL EVANGELIO DE CRISTO',
         city: 'Zapopan, Jalisco',
         email: 'hebron@iglesialocal.org',
         username: 'hebron',
         password: '123',
         operator: 'Pastor Roberto G.',
-        role: 'Iglesia Local Independiente',
+        role: 'Master de Sede Filial',
         status: 'active'
       }
     ];
+  } else {
+    // Asegurar que Hebrón esté vinculada a IMEC
+    const hebron = persistentDb.churches.find(c => c.id === 'church-hebron' || c.username === 'hebron');
+    if (hebron && (!hebron.orgId || hebron.orgId !== 'org-imec')) {
+      hebron.type = 'branch';
+      hebron.orgId = 'org-imec';
+      hebron.orgName = 'IGLESIA MEXICANA DEL EVANGELIO DE CRISTO';
+      hebron.role = 'Master de Sede Filial';
+    }
   }
 
   return persistentDb;
