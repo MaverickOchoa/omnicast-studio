@@ -641,9 +641,12 @@
               <button onclick="setTheme('blue')" id="themeBtn-blue" class="theme-pill px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-sky-950 to-blue-900 text-white border border-sky-500/60 transition shrink-0">
                 🌊 Aguas
               </button>
-              <button onclick="setTheme('emerald')" id="themeBtn-emerald" class="theme-pill px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-emerald-950 to-teal-900 text-white border border-emerald-500/60 transition shrink-0">
-                🌿 Esmeralda
-              </button>
+              <div class="relative inline-flex items-center">
+                <button onclick="handleQuickCustomLoopClick()" id="themeBtn-custom" class="theme-pill px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-sky-950 to-indigo-900 text-white border border-sky-500/60 hover:border-sky-400 transition shrink-0 flex items-center gap-1" title="Fondo o Video Loop personalizado (Clic para aplicar o subir)">
+                  <span id="quickCustomThemeLabel">🎨 Personalizado</span>
+                </button>
+                <input type="file" id="quickCustomLoopFileInput" accept="image/*,video/*" class="hidden" onchange="handleCustomLoopFileUpload(this)">
+              </div>
               <button onclick="setTheme('crimson')" id="themeBtn-crimson" class="theme-pill px-2.5 py-1 rounded-md text-[11px] font-semibold bg-gradient-to-r from-red-950 to-rose-900 text-white border border-rose-500/60 transition shrink-0">
                 🔥 Fuego
               </button>
@@ -4346,9 +4349,17 @@ Te adoraré, te adoraré..."
               <button onclick="selectLyricsMotionLoop('blue')" id="loopCard-blue" class="p-2 rounded-lg bg-gradient-to-br from-sky-950 to-blue-900 border border-slate-700 text-sky-300 text-[11px] font-bold flex flex-col items-center gap-1 transition">
                 <span>🌊 Aguas Vivas</span>
               </button>
-              <button onclick="selectLyricsMotionLoop('emerald')" id="loopCard-emerald" class="p-2 rounded-lg bg-gradient-to-br from-emerald-950 to-teal-900 border border-slate-700 text-emerald-300 text-[11px] font-bold flex flex-col items-center gap-1 transition">
-                <span>🌿 Esmeralda</span>
-              </button>
+              <div id="loopCard-custom" class="p-1.5 rounded-lg bg-gradient-to-br from-sky-950 to-indigo-950 border border-slate-700 text-sky-300 text-[11px] font-bold flex flex-col items-center justify-between gap-1 transition relative overflow-hidden group">
+                <button type="button" onclick="selectLyricsMotionLoop('custom')" class="w-full flex flex-col items-center gap-0.5">
+                  <span id="loopCardCustomIcon" class="text-sm select-none">🎨</span>
+                  <span id="loopCardCustomName" class="text-[10px] text-center font-bold text-sky-200 truncate max-w-[85px]">Personalizado</span>
+                </button>
+                <label class="w-full px-1.5 py-0.5 rounded bg-sky-600/80 hover:bg-sky-500 text-white text-[9px] font-bold text-center cursor-pointer transition shadow flex items-center justify-center gap-1">
+                  <i data-lucide="upload" class="w-2.5 h-2.5"></i>
+                  <span>Subir</span>
+                  <input type="file" id="modalCustomLoopFileInput" accept="image/*,video/*" class="hidden" onchange="handleCustomLoopFileUpload(this)">
+                </label>
+              </div>
               <button onclick="selectLyricsMotionLoop('crimson')" id="loopCard-crimson" class="p-2 rounded-lg bg-gradient-to-br from-red-950 to-rose-900 border border-slate-700 text-rose-300 text-[11px] font-bold flex flex-col items-center gap-1 transition">
                 <span>🔥 Fuego Santo</span>
               </button>
@@ -6295,7 +6306,8 @@ Te adoraré, te adoraré..."
       purple: { name: 'Celestial', css: 'linear-gradient(135deg, #09081a 0%, #1e103a 50%, #7c3aed 100%)', slideTint: 'from-purple-950/60 to-slate-900', activeRing: 'ring-purple-500/50 border-purple-500' },
       gold:   { name: 'Resplandor Oro', css: 'linear-gradient(135deg, #140c03 0%, #381e05 50%, #d97706 100%)', slideTint: 'from-amber-950/60 to-slate-900', activeRing: 'ring-amber-500/50 border-amber-500' },
       blue:   { name: 'Océano Profundo', css: 'linear-gradient(135deg, #031124 0%, #082f49 50%, #0284c7 100%)', slideTint: 'from-sky-950/60 to-slate-900', activeRing: 'ring-sky-500/50 border-sky-500' },
-      emerald:{ name: 'Esmeralda', css: 'linear-gradient(135deg, #021810 0%, #064e3b 50%, #059669 100%)', slideTint: 'from-emerald-950/60 to-slate-900', activeRing: 'ring-emerald-500/50 border-emerald-500' },
+      custom: { name: 'Personalizado', isCustom: true, css: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0284c7 100%)', slideTint: 'from-sky-950/60 to-slate-900', activeRing: 'ring-sky-500/50 border-sky-500' },
+      emerald:{ name: 'Personalizado', isCustom: true, css: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0284c7 100%)', slideTint: 'from-sky-950/60 to-slate-900', activeRing: 'ring-sky-500/50 border-sky-500' },
       crimson:{ name: 'Carmesí', css: 'linear-gradient(135deg, #1a0408 0%, #4c0519 50%, #be123c 100%)', slideTint: 'from-rose-950/60 to-slate-900', activeRing: 'ring-rose-500/50 border-rose-500' },
       bokeh:  { name: 'Ambient Bokeh', css: 'linear-gradient(135deg, #090910 0%, #151525 50%, #8b5cf6 100%)', slideTint: 'from-violet-950/60 to-slate-900', activeRing: 'ring-violet-500/50 border-violet-500' },
       dark:   { name: 'Negro Puro', css: 'linear-gradient(135deg, #000000 0%, #090d16 100%)', slideTint: 'from-slate-950 to-slate-900', activeRing: 'ring-slate-500/50 border-slate-500' }
@@ -6314,25 +6326,85 @@ Te adoraré, te adoraré..."
       textShadow: 'broadcast',        // 'broadcast' | 'glow' | 'none'
       motionLoop: 'purple',           // matches currentTheme
       videoLoopUrl: '',
+      customMediaUrl: '',
+      customMediaType: '',            // 'image' | 'video'
+      customMediaName: '',
       overlayDimmer: 40,              // 15 to 85 %
       backgroundBlur: 0               // 0 to 12 px
     };
 
+    function getTenantLyricsStyleStorageKey() {
+      const church = getActiveChurchId();
+      return `omnicast_lyrics_style_${church}`;
+    }
+
+    function saveLyricsStyleConfig() {
+      try {
+        localStorage.setItem(getTenantLyricsStyleStorageKey(), JSON.stringify(lyricsStyleConfig));
+        if (getActiveChurchId() === 'default') {
+          localStorage.setItem('omnicast_lyrics_style', JSON.stringify(lyricsStyleConfig));
+        }
+      } catch (e) {}
+    }
+
     function loadSavedLyricsStyle() {
       try {
-        const saved = localStorage.getItem('omnicast_lyrics_style');
+        const church = getActiveChurchId();
+        const saved = localStorage.getItem(`omnicast_lyrics_style_${church}`) || localStorage.getItem('omnicast_lyrics_style');
         if (saved) {
           Object.assign(lyricsStyleConfig, JSON.parse(saved));
+          if (lyricsStyleConfig.motionLoop === 'emerald') lyricsStyleConfig.motionLoop = 'custom';
           currentTheme = lyricsStyleConfig.motionLoop || currentTheme;
+          if (currentTheme === 'emerald') currentTheme = 'custom';
+
+          if (lyricsStyleConfig.customMediaUrl) {
+            if (lyricsStyleConfig.customMediaType === 'image') {
+              themesPalette.custom.css = `url("${lyricsStyleConfig.customMediaUrl}") center / cover no-repeat`;
+            } else if (lyricsStyleConfig.customMediaType === 'video') {
+              lyricsStyleConfig.videoLoopUrl = lyricsStyleConfig.customMediaUrl;
+            }
+          }
         }
       } catch (e) {}
       updateQuickLayoutBadges();
+      updateCustomLoopUI();
+    }
+
+    function updateCustomLoopUI() {
+      const qLbl = document.getElementById('quickCustomThemeLabel');
+      const cardIcon = document.getElementById('loopCardCustomIcon');
+      const cardName = document.getElementById('loopCardCustomName');
+
+      if (lyricsStyleConfig.customMediaUrl) {
+        const isVid = lyricsStyleConfig.customMediaType === 'video';
+        const icon = isVid ? '🎬' : '🖼️';
+        const label = lyricsStyleConfig.customMediaName ? (lyricsStyleConfig.customMediaName.slice(0, 12) + (lyricsStyleConfig.customMediaName.length > 12 ? '...' : '')) : 'Mi Fondo';
+        if (qLbl) qLbl.textContent = `${icon} ${label}`;
+        if (cardIcon) cardIcon.textContent = icon;
+        if (cardName) cardName.textContent = label;
+      } else {
+        if (qLbl) qLbl.textContent = '🎨 Personalizado';
+        if (cardIcon) cardIcon.textContent = '🎨';
+        if (cardName) cardName.textContent = 'Personalizado';
+      }
     }
 
     function setTheme(themeKey) {
+      if (themeKey === 'emerald') themeKey = 'custom';
       if (!themesPalette[themeKey]) return;
       currentTheme = themeKey;
       lyricsStyleConfig.motionLoop = themeKey;
+
+      if (themeKey === 'custom' && lyricsStyleConfig.customMediaUrl) {
+        if (lyricsStyleConfig.customMediaType === 'image') {
+          themesPalette.custom.css = `url("${lyricsStyleConfig.customMediaUrl}") center / cover no-repeat`;
+          lyricsStyleConfig.videoLoopUrl = '';
+        } else if (lyricsStyleConfig.customMediaType === 'video') {
+          lyricsStyleConfig.videoLoopUrl = lyricsStyleConfig.customMediaUrl;
+        }
+      } else if (themeKey !== 'custom' && lyricsStyleConfig.videoLoopUrl === lyricsStyleConfig.customMediaUrl) {
+        lyricsStyleConfig.videoLoopUrl = '';
+      }
 
       document.querySelectorAll('.theme-pill').forEach(btn => btn.classList.remove('active-theme'));
       const activeBtn = document.getElementById(`themeBtn-${themeKey}`);
@@ -6341,8 +6413,143 @@ Te adoraré, te adoraré..."
       const monProyectorBg = document.getElementById('monProyectorBg');
       if (monProyectorBg) monProyectorBg.style.background = themesPalette[themeKey].css;
 
+      saveLyricsStyleConfig();
       renderSlidesGrid();
       broadcastSlide();
+    }
+
+    function handleQuickCustomLoopClick() {
+      if (lyricsStyleConfig.customMediaUrl) {
+        setTheme('custom');
+        showToast('🎨 Fondo personalizado activado', '✓');
+      } else {
+        const fileIn = document.getElementById('quickCustomLoopFileInput');
+        if (fileIn) {
+          fileIn.click();
+        } else {
+          openLyricsStyleModal();
+        }
+      }
+    }
+
+    async function handleCustomLoopFileUpload(input) {
+      if (!input || !input.files || input.files.length === 0) return;
+      const file = input.files[0];
+      const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|mkv)$/i.test(file.name);
+      const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
+
+      if (!isVideo && !isImage) {
+        showToast('⚠️ Por favor selecciona una imagen (.png, .jpg, .webp) o video (.mp4, .webm)', '⚠️');
+        return;
+      }
+
+      showToast(`⏳ Subiendo ${isVideo ? 'video loop' : 'imagen de fondo'}: "${file.name}"...`, '⏳');
+
+      const currentOrgId = (typeof currentAccount !== 'undefined' && currentAccount && currentAccount.orgId) ? currentAccount.orgId : '';
+      const currentChurchId = (typeof currentAccount !== 'undefined' && currentAccount && !currentAccount.isOrgAdmin && !currentAccount.isSuperAdmin) ? (currentAccount.churchId || currentAccount.id || '') : '';
+
+      try {
+        if (isImage) {
+          const params = new URLSearchParams({
+            filename: file.name,
+            title: file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
+            author: 'Fondo Personalizado',
+            scope: '📍 SEDE LOCAL',
+            addToLibrary: 'true',
+            targetOrgId: currentOrgId,
+            targetChurchId: currentChurchId
+          });
+
+          const res = await fetch(`/api/upload/image?${params.toString()}`, {
+            method: 'POST',
+            headers: {
+              'X-Org-Id': currentOrgId,
+              'X-Church-Id': currentChurchId
+            },
+            body: file
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            lyricsStyleConfig.customMediaUrl = data.url;
+            lyricsStyleConfig.customMediaType = 'image';
+            lyricsStyleConfig.customMediaName = file.name;
+            lyricsStyleConfig.videoLoopUrl = '';
+            themesPalette.custom.css = `url("${data.url}") center / cover no-repeat`;
+
+            if (Array.isArray(data.libraryItems)) {
+              libraryItems.splice(0, libraryItems.length, ...data.libraryItems);
+            } else if (data.item) {
+              libraryItems.unshift(data.item);
+            }
+            renderSongsList();
+            renderMediaCatalogModal();
+
+            setTheme('custom');
+            saveLyricsStyleConfig();
+            updateCustomLoopUI();
+            updateMotionLoopCardsUI();
+            updateLyricsPreviewBox();
+            showToast(`🎨 Imagen "${file.name}" guardada en Multimedia y aplicada como fondo`, '✓');
+          } else {
+            showToast(`Error al subir imagen: ${data.error || 'Desconocido'}`, '⚠️');
+          }
+        } else {
+          // Video upload
+          const params = new URLSearchParams({
+            filename: file.name,
+            title: file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' '),
+            author: 'Loop Video HD',
+            scope: '📍 SEDE LOCAL',
+            duration: '120',
+            targetOrgId: currentOrgId,
+            targetChurchId: currentChurchId
+          });
+
+          const res = await fetch(`/api/upload/video?${params.toString()}`, {
+            method: 'POST',
+            headers: {
+              'X-Org-Id': currentOrgId,
+              'X-Church-Id': currentChurchId
+            },
+            body: file
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            const vUrl = (data.item && data.item.videoUrl) ? data.item.videoUrl : `/uploads/videos/${data.filename}`;
+            lyricsStyleConfig.customMediaUrl = vUrl;
+            lyricsStyleConfig.customMediaType = 'video';
+            lyricsStyleConfig.customMediaName = file.name;
+            lyricsStyleConfig.videoLoopUrl = vUrl;
+            themesPalette.custom.css = 'linear-gradient(135deg, #090d16 0%, #1e1b4b 100%)';
+
+            if (Array.isArray(data.libraryItems)) {
+              libraryItems.splice(0, libraryItems.length, ...data.libraryItems);
+            } else if (data.item) {
+              libraryItems.unshift(data.item);
+            }
+            if (Array.isArray(data.layer3Videos)) {
+              layer3Videos = data.layer3Videos;
+            }
+            renderSongsList();
+            renderSlidesGrid();
+            renderLayer3VideoShots();
+            renderMediaCatalogModal();
+
+            setTheme('custom');
+            saveLyricsStyleConfig();
+            updateCustomLoopUI();
+            updateMotionLoopCardsUI();
+            updateLyricsPreviewBox();
+            showToast(`🎬 Video Loop "${file.name}" guardado en Multimedia y aplicado como fondo`, '✓');
+          } else {
+            showToast(`Error al subir video: ${data.error || 'Desconocido'}`, '⚠️');
+          }
+        }
+      } catch (err) {
+        showToast('Error de conexión al subir archivo multimedia', '⚠️');
+      } finally {
+        input.value = '';
+      }
     }
 
     function openLyricsStyleModal() {
@@ -6430,14 +6637,14 @@ Te adoraré, te adoraré..."
     }
 
     function updateMotionLoopCardsUI() {
-      ['purple', 'gold', 'blue', 'emerald', 'crimson', 'bokeh', 'dark'].forEach(k => {
+      ['purple', 'gold', 'blue', 'custom', 'crimson', 'bokeh', 'dark'].forEach(k => {
         const card = document.getElementById(`loopCard-${k}`);
         if (!card) return;
-        if (k === lyricsStyleConfig.motionLoop) {
-          card.classList.add('border-purple-500', 'ring-2', 'ring-purple-500/40', 'scale-[1.03]');
+        if (k === lyricsStyleConfig.motionLoop || (k === 'custom' && lyricsStyleConfig.motionLoop === 'emerald')) {
+          card.classList.add('border-sky-500', 'ring-2', 'ring-sky-500/40', 'scale-[1.03]');
           card.classList.remove('border-slate-700');
         } else {
-          card.classList.remove('border-purple-500', 'ring-2', 'ring-purple-500/40', 'scale-[1.03]');
+          card.classList.remove('border-sky-500', 'ring-2', 'ring-sky-500/40', 'scale-[1.03]');
           card.classList.add('border-slate-700');
         }
       });
@@ -6626,10 +6833,7 @@ Te adoraré, te adoraré..."
     }
 
     function applyAndSaveLyricsStyle() {
-      try {
-        localStorage.setItem('omnicast_lyrics_style', JSON.stringify(lyricsStyleConfig));
-      } catch (e) {}
-
+      saveLyricsStyleConfig();
       updateQuickLayoutBadges();
       closeLyricsStyleModal();
       broadcastSlide();
@@ -6641,7 +6845,7 @@ Te adoraré, te adoraré..."
       lyricsStyleConfig.projectorLayout = lyricsStyleConfig.projectorLayout === 'center' ? 'lowerThird' : 'center';
       updateQuickLayoutBadges();
       broadcastSlide();
-      try { localStorage.setItem('omnicast_lyrics_style', JSON.stringify(lyricsStyleConfig)); } catch (e) {}
+      saveLyricsStyleConfig();
       showNotification(`Proyector de Sala cambiado a modo: ${lyricsStyleConfig.projectorLayout.toUpperCase()}`, 'info');
     }
 
@@ -6649,7 +6853,7 @@ Te adoraré, te adoraré..."
       lyricsStyleConfig.streamLayout = lyricsStyleConfig.streamLayout === 'lowerThird' ? 'fullScreen' : 'lowerThird';
       updateQuickLayoutBadges();
       broadcastSlide();
-      try { localStorage.setItem('omnicast_lyrics_style', JSON.stringify(lyricsStyleConfig)); } catch (e) {}
+      saveLyricsStyleConfig();
       showNotification(`Transmisión (Capa 2) cambiada a modo: ${lyricsStyleConfig.streamLayout.toUpperCase()}`, 'info');
     }
 
@@ -11749,6 +11953,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         overlayDarkness: (lyricsStyleConfig.overlayDimmer || 40) / 100,
         backgroundBlur: lyricsStyleConfig.backgroundBlur || 0,
         videoLoopUrl: lyricsStyleConfig.videoLoopUrl || '',
+        customBgUrl: ((currentTheme === 'custom' || currentTheme === 'emerald') && lyricsStyleConfig.customMediaType === 'image') ? (lyricsStyleConfig.customMediaUrl || '') : '',
         campusName: resolvedCampusName,
         timestamp: Date.now()
       };
@@ -18390,7 +18595,8 @@ Pues resucitaste, Rey`
               purple: '#a855f7',
               gold: '#f59e0b',
               blue: '#38bdf8',
-              emerald: '#10b981',
+              custom: '#38bdf8',
+              emerald: '#38bdf8',
               crimson: '#f43f5e',
               bokeh: '#c084fc',
               dark: '#64748b'

@@ -43,6 +43,9 @@
   <!-- Video Loop Background Player (When Video Loop is selected) -->
   <video id="videoLoopPlayer" autoplay loop muted playsinline class="absolute inset-0 w-full h-full object-cover z-0 hidden"></video>
 
+  <!-- Custom Image Loop Background Player (When Image Loop is selected) -->
+  <img id="customImageLoopPlayer" class="absolute inset-0 w-full h-full object-cover z-0 hidden" alt="Fondo Personalizado">
+
   <!-- Full-Screen Media Video Player (When an uploaded .mp4/.webm/.mov video is projected) -->
   <video id="mediaProjectorVideo" muted playsinline preload="auto" class="absolute inset-0 w-full h-full object-contain bg-black z-30 hidden"></video>
 
@@ -162,12 +165,19 @@
         particle: 'rgba(125, 211, 252, 0.55)',
         type: 'waves'
       },
+      custom: { 
+        name: 'Personalizado', 
+        bg1: '#070514', bg2: '#1a0d33', 
+        light1: '#38bdf8', light2: '#818cf8', 
+        particle: 'rgba(56, 189, 248, 0.45)',
+        type: 'nebula'
+      },
       emerald: { 
-        name: 'Revival Emerald', 
-        bg1: '#01140d', bg2: '#043b2d', 
-        light1: '#059669', light2: '#10b981', 
-        particle: 'rgba(110, 231, 183, 0.55)',
-        type: 'rays'
+        name: 'Personalizado', 
+        bg1: '#070514', bg2: '#1a0d33', 
+        light1: '#38bdf8', light2: '#818cf8', 
+        particle: 'rgba(56, 189, 248, 0.45)',
+        type: 'nebula'
       },
       crimson: { 
         name: 'Holy Fire', 
@@ -360,6 +370,22 @@
         ambientOverlay.style.backdropFilter = `blur(${data.backgroundBlur}px)`;
       }
 
+      // Custom Background Image Handler
+      const customImgEl = document.getElementById('customImageLoopPlayer');
+      if (data.customBgUrl) {
+        if (customImgEl) {
+          if (customImgEl.getAttribute('data-src') !== data.customBgUrl) {
+            customImgEl.src = data.customBgUrl;
+            customImgEl.setAttribute('data-src', data.customBgUrl);
+          }
+          customImgEl.classList.remove('hidden');
+        }
+      } else if (customImgEl) {
+        customImgEl.classList.add('hidden');
+        customImgEl.removeAttribute('src');
+        customImgEl.removeAttribute('data-src');
+      }
+
       // Video Loop Handler
       if (data.videoLoopUrl && data.videoLoopUrl !== activeVideoLoop) {
         activeVideoLoop = data.videoLoopUrl;
@@ -367,6 +393,7 @@
         videoLoopPlayer.muted = true;
         videoLoopPlayer.loop = true;
         videoLoopPlayer.classList.remove('hidden');
+        if (customImgEl) customImgEl.classList.add('hidden');
         const p = videoLoopPlayer.play();
         if (p && typeof p.catch === 'function') p.catch(() => {});
         videoLoopPlayer.oncanplay = () => {

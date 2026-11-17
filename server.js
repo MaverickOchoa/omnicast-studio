@@ -1252,11 +1252,18 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  // Endpoint: Stream Upload of Binary Image File (.png, .jpg, .jpeg, .webp, .svg) for Logos & Portadas
+  // Endpoint: Stream Upload of Binary Image File (.png, .jpg, .jpeg, .webp, .svg) for Logos, Portadas & Loops Multimedia
   if (parsedUrl === '/api/upload/image' && req.method === 'POST') {
     try {
       const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
       const rawFilename = fullUrl.searchParams.get('filename') || 'image.png';
+      const title = (fullUrl.searchParams.get('title') || 'Fondo / Imagen HD').trim();
+      const author = (fullUrl.searchParams.get('author') || 'Imagen Local HD').trim();
+      const scope = (fullUrl.searchParams.get('scope') || '📍 SEDE LOCAL').trim();
+      const targetOrgId = fullUrl.searchParams.get('targetOrgId') || fullUrl.searchParams.get('orgId') || req.headers['x-org-id'] || null;
+      const targetChurchId = fullUrl.searchParams.get('targetChurchId') || fullUrl.searchParams.get('churchId') || req.headers['x-church-id'] || null;
+      const addToLibrary = fullUrl.searchParams.get('addToLibrary') === 'true' || fullUrl.searchParams.has('title');
+
       const ext = path.extname(rawFilename).toLowerCase() || '.png';
       const baseSafe = path.basename(rawFilename, ext).replace(/[^a-zA-Z0-9_\-\.]/g, '_').slice(0, 60) || 'image';
       const finalFilename = `${Date.now()}_${baseSafe}${ext}`;
@@ -1267,14 +1274,55 @@ const requestHandler = (req, res) => {
 
       writeStream.on('finish', () => {
         const imageUrl = `/uploads/images/${finalFilename}`;
-        const payload = JSON.stringify({ success: true, url: imageUrl, filename: finalFilename });
+        let newImageItem = null;
+
+        if (addToLibrary) {
+          newImageItem = {
+            id: `media-${Date.now()}`,
+            category: 'medios',
+            isImage: true,
+            imageUrl: imageUrl,
+            filename: finalFilename,
+            title: title,
+            author: `${author} • Imagen HD`,
+            scope: scope,
+            targetOrgId: targetOrgId,
+            targetChurchId: targetChurchId,
+            slides: [
+              {
+                text: title,
+                subText: 'Fondo / Imagen HD • Listo para Proyectar',
+                badge: '🖼️ IMAGEN HD'
+              }
+            ]
+          };
+
+          loadPersistentDatabase();
+          persistentDb.libraryItems.unshift(newImageItem);
+          studioState.libraryItems = persistentDb.libraryItems;
+          savePersistentDatabase();
+
+          broadcastSSE('state', studioState);
+          broadcastSSE('db_update', {
+            libraryItems: persistentDb.libraryItems,
+            updatedAt: persistentDb.updatedAt
+          });
+        }
+
+        const payload = JSON.stringify({
+          success: true,
+          url: imageUrl,
+          filename: finalFilename,
+          item: newImageItem,
+          libraryItems: persistentDb.libraryItems
+        });
         res.writeHead(200, {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(payload),
           'Access-Control-Allow-Origin': '*'
         });
         res.end(payload);
-        console.log(`[OmniCast Image Upload] Saved ${finalFilename} -> ${imageUrl}`);
+        console.log(`[OmniCast Image Upload] Saved ${finalFilename} -> ${imageUrl} (multimedia: ${Boolean(addToLibrary)})`);
       });
 
       writeStream.on('error', (err) => {
