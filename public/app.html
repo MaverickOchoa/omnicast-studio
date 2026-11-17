@@ -5653,6 +5653,11 @@ Te adoraré, te adoraré..."
       };
     }
 
+    // Top-level session identifiers hoisted to prevent Temporal Dead Zone (TDZ)
+    var currentTenantKey = 'gdl';
+    var currentAccount = null;
+    var activeImpersonatedChurch = null;
+
     function getActiveChurchId() {
       // 1. URL search param override (?church=...)
       try {
@@ -8017,9 +8022,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       mty: { name: 'Campus Monterrey Sur', email: 'mty@iglesianacional.org', role: 'SEDE LOCAL AISLADA' }
     };
 
-    let currentTenantKey = 'gdl';
-    let currentAccount = accountsDatabase['admin@iglesianacional.org'];
-    let activeImpersonatedChurch = null;
+    currentTenantKey = 'gdl';
+    currentAccount = accountsDatabase['admin@iglesianacional.org'];
+    activeImpersonatedChurch = null;
 
     // -------------------------------------------------------------------------
     // DYNAMIC ACCOUNT RESOLVER (MULTI-TENANT ROLES: SUPER ADMIN / ORG / CHURCH)
@@ -9919,8 +9924,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         }
       } catch (e) {}
 
-      // Fallback sólo para la sede por defecto histórica / alianza
-      if (tenantKey === 'default' || tenantKey === 'alianza' || tenantKey === 'org-alianza') {
+      // Fallback sólo para sedes por defecto / históricas de Alianza Cristiana
+      const legacyTenants = ['default', 'alianza', 'org-alianza', 'gdl', 'church-gdl', 'mty', 'church-mty', 'hq'];
+      if (legacyTenants.includes(tenantKey)) {
         try {
           const legacyRaw = localStorage.getItem('omnicast_service_item_ids');
           if (legacyRaw) {
@@ -10694,6 +10700,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       }
       if (userOrgId && item.targetOrgId && item.targetOrgId === userOrgId) {
         return true;
+      }
+
+      // Si el elemento no tiene asignación específica (legacy / histórico) y estamos en Alianza o Sede por defecto
+      if (!item.targetOrgId && !item.targetChurchId) {
+        if (!userOrgId || userOrgId === 'org-alianza') return true;
       }
 
       return false;
@@ -14651,6 +14662,9 @@ Pues resucitaste, Rey`
         }
         if (v.targetChurchId && v.targetChurchId === userChurchId) return true;
         if (userOrgId && v.targetOrgId && v.targetOrgId === userOrgId) return true;
+        if (!v.targetOrgId && !v.targetChurchId) {
+          if (!userOrgId || userOrgId === 'org-alianza') return true;
+        }
         return false;
       });
     }
