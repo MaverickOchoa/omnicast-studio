@@ -159,27 +159,31 @@ function loadPersistentDatabase() {
       },
       {
         id: 'church-hebron',
-        name: 'Comunidad Cristiana Hebrón',
+        name: 'Hebron',
         type: 'branch',
         orgId: 'org-imec',
         orgName: 'IGLESIA MEXICANA DEL EVANGELIO DE CRISTO',
         city: 'Zapopan, Jalisco',
-        email: 'hebron@iglesialocal.org',
+        email: 'hebron@imec.org',
         username: 'hebron',
-        password: '123',
+        password: 'YoYo158087',
         operator: 'Pastor Roberto G.',
         role: 'Master de Sede Filial',
         status: 'active'
       }
     ];
   } else {
-    // Asegurar que Hebrón esté vinculada a IMEC
+    // Asegurar que Hebrón esté vinculada a IMEC con credenciales correctas y nombre limpio
     const hebron = persistentDb.churches.find(c => c.id === 'church-hebron' || c.username === 'hebron');
-    if (hebron && (!hebron.orgId || hebron.orgId !== 'org-imec')) {
+    if (hebron) {
+      hebron.name = 'Hebron';
       hebron.type = 'branch';
       hebron.orgId = 'org-imec';
       hebron.orgName = 'IGLESIA MEXICANA DEL EVANGELIO DE CRISTO';
       hebron.role = 'Master de Sede Filial';
+      if (!hebron.password || hebron.password === '123') {
+        hebron.password = 'YoYo158087';
+      }
     }
   }
 

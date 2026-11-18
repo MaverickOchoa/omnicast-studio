@@ -872,18 +872,18 @@
     },
     {
       "id": "church-hebron",
-      "name": "Comunidad Cristiana Hebrón",
+      "name": "Hebron",
       "type": "branch",
       "orgId": "org-imec",
       "orgName": "IGLESIA MEXICANA DEL EVANGELIO DE CRISTO",
       "city": "Zapopan, Jalisco",
-      "email": "hebron@iglesialocal.org",
+      "email": "hebron@imec.org",
       "username": "hebron",
-      "password": "123",
+      "password": "YoYo158087",
       "operator": "Pastor Roberto G.",
       "role": "Master de Sede Filial",
       "status": "active"
     }
   ],
-  "updatedAt": "2026-11-17T11:51:30.449Z"
+  "updatedAt": "2026-11-17T12:11:20.878Z"
 }
