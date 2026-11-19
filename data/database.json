@@ -1,6 +1,77 @@
 {
   "libraryItems": [
     {
+      "id": "song-1795087990068",
+      "category": "alabanza",
+      "title": "Cuando Pienso",
+      "author": "Miel San Marcos",
+      "scope": "📍 SEDE LOCAL",
+      "targetOrgId": "org-imec",
+      "targetChurchId": "church-hebron",
+      "slides": [
+        {
+          "text": "Cuando pienso en lo mucho que hizo por mí",
+          "subText": "Cuando pienso en el día que me liberó",
+          "badge": "VERSO 1"
+        },
+        {
+          "text": "Quiero cantar! Cantar! Cantar! Cantar! Cantar!",
+          "subText": "Quiero cantar! Cantar! Cantar! Cantar! Cantar!",
+          "badge": "VERSO 1"
+        },
+        {
+          "text": "Cuando pienso en lo mucho que hizo por mí",
+          "subText": "Cuando pienso en el día que me liberó",
+          "badge": "VERSO 2"
+        },
+        {
+          "text": "Quiero saltar! Saltar! Saltar! Saltar! Saltar!",
+          "subText": "Quiero saltar! Saltar! Saltar! Saltar! Saltar!",
+          "badge": "VERSO 2"
+        },
+        {
+          "text": "Cuando pienso en lo mucho que hizo por mí",
+          "subText": "Cuando pienso en el día que me liberó",
+          "badge": "VERSO 3"
+        },
+        {
+          "text": "Quiero correr! Correr! Correr! Correr! Correr!",
+          "subText": "Quiero correr! Correr! Correr! Correr! Correr!",
+          "badge": "VERSO 3"
+        },
+        {
+          "text": "Cuando pienso en lo mucho que hizo por mí",
+          "subText": "Cuando pienso en el día que me liberó",
+          "badge": "VERSO 4"
+        },
+        {
+          "text": "Quiero gritar! Gritar! Gritar! Gritar! Gritar!",
+          "subText": "Quiero gritar! Gritar! Gritar! Gritar! Gritar!",
+          "badge": "VERSO 4"
+        },
+        {
+          "text": "Quiero cantar! Cantar! Cantar! Cantar! Cantar!",
+          "subText": "Quiero cantar! Cantar! Cantar! Cantar! Cantar!",
+          "badge": "CORO"
+        },
+        {
+          "text": "Quiero saltar! Saltar! Saltar! Saltar! Saltar!",
+          "subText": "Quiero saltar! Saltar! Saltar! Saltar! Saltar!",
+          "badge": "CORO 2"
+        },
+        {
+          "text": "Quiero correr! Correr! Correr! Correr! Correr!",
+          "subText": "Quiero correr! Correr! Correr! Correr! Correr!",
+          "badge": "CORO 3"
+        },
+        {
+          "text": "Quiero gritar! Gritar! Gritar! Gritar! Gritar!",
+          "subText": "Quiero gritar! Gritar! Gritar! Gritar! Gritar!",
+          "badge": "CORO 4"
+        }
+      ]
+    },
+    {
       "id": "bible-chapter-1794483827161",
       "category": "biblia",
       "title": "Juan 3 Completo (RVA 1909)",
@@ -885,5 +956,25 @@
       "status": "active"
     }
   ],
-  "updatedAt": "2026-11-17T12:11:20.878Z"
+  "diskVideos": [
+    {
+      "filename": "1792843165679_hebron_logo.mp4",
+      "url": "/uploads/videos/1792843165679_hebron_logo.mp4",
+      "sizeBytes": 1334031,
+      "createdAt": "2026-11-19T04:30:44.000Z"
+    },
+    {
+      "filename": "1792857708345_Count_down_hebron.mp4",
+      "url": "/uploads/videos/1792857708345_Count_down_hebron.mp4",
+      "sizeBytes": 11959720,
+      "createdAt": "2026-11-19T04:30:44.000Z"
+    },
+    {
+      "filename": "1793012843212_Tour_Nueva_Plataforma_IMEC.mp4",
+      "url": "/uploads/videos/1793012843212_Tour_Nueva_Plataforma_IMEC.mp4",
+      "sizeBytes": 12880818,
+      "createdAt": "2026-11-19T04:30:44.000Z"
+    }
+  ],
+  "updatedAt": "2026-11-19T11:33:11.604Z"
 }

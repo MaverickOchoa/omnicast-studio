@@ -3035,9 +3035,16 @@ Te adoraré, te adoraré..."
                 <i data-lucide="align-left" class="w-3.5 h-3.5 text-sky-400"></i>
                 Letra Completa (Pega o escribe aquí):
               </label>
-              <button type="button" onclick="clearSongInput()" class="text-[10px] text-slate-400 hover:text-rose-400 transition">
-                Limpiar texto
-              </button>
+              <div class="flex items-center gap-2">
+                <select id="newSongSlideGrouping" onchange="updateSongImportPreview()" class="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-1.5 py-0.5 focus:outline-none focus:border-sky-500 transition cursor-pointer">
+                  <option value="2">2 líneas / Slide (Estándar)</option>
+                  <option value="stanza">1 Diapositiva por Estrofa</option>
+                  <option value="1">1 línea / Slide</option>
+                </select>
+                <button type="button" onclick="clearSongInput()" class="text-[10px] text-slate-400 hover:text-rose-400 transition">
+                  Limpiar
+                </button>
+              </div>
             </div>
             <textarea id="newSongLyrics" rows="12" oninput="updateSongImportPreview()"
                       placeholder="Pega la letra aquí. Ejemplo:&#10;&#10;[Verso 1]&#10;Señor mi Dios, al contemplar los cielos&#10;El firmamento y las mil estrellas&#10;&#10;[Coro]&#10;Mi corazón entona la canción&#10;¡Cuán grande es Él!&#10;&#10;[Puente]&#10;Digno es el Rey que la muerte venció"
@@ -14232,19 +14239,19 @@ Pues resucitaste, Rey`
 
     function slidesToRawLyrics(slides) {
       if (!Array.isArray(slides) || slides.length === 0) return '';
-      const blocks = [];
+      const lines = [];
       let lastBadge = null;
       slides.forEach(s => {
         const badge = s.badge || 'VERSO 1';
         if (badge !== lastBadge) {
-          blocks.push(`[${badge}]`);
+          if (lines.length > 0) lines.push('');
+          lines.push(`[${badge}]`);
           lastBadge = badge;
         }
-        if (s.text) blocks.push(s.text);
-        if (s.subText) blocks.push(s.subText);
-        blocks.push('');
+        if (s.text) lines.push(s.text);
+        if (s.subText) lines.push(s.subText);
       });
-      return blocks.join('\n').trim();
+      return lines.join('\n').trim();
     }
 
     function openNewSongModal() {
@@ -14254,6 +14261,19 @@ Pues resucitaste, Rey`
       clearSongInput();
       const catSel = document.getElementById('newSongCategory');
       if (catSel) catSel.value = activeFilter === 'biblia' ? 'biblia' : 'alabanza';
+
+      // Update scope options dynamically according to active church/session
+      const scopeSel = document.getElementById('newSongScope');
+      if (scopeSel) {
+        let churchLabel = 'Sede Local';
+        if (typeof activeImpersonatedChurch !== 'undefined' && activeImpersonatedChurch) {
+          churchLabel = activeImpersonatedChurch.name || 'Sede Local';
+        } else if (typeof currentAccount !== 'undefined' && currentAccount && (currentAccount.isChurch || currentAccount.churchId)) {
+          churchLabel = currentAccount.name || 'Sede Local';
+        }
+        if (scopeSel.options[0]) scopeSel.options[0].textContent = `📍 Sede Local (${churchLabel})`;
+      }
+
       const modal = document.getElementById('newSongModal');
       if (modal) modal.classList.remove('hidden');
       updateSongImportPreview();
@@ -14292,7 +14312,16 @@ Pues resucitaste, Rey`
       if (t) t.value = item.title || '';
       if (a) a.value = item.author || '';
       if (c) c.value = item.category === 'biblia' ? 'biblia' : 'alabanza';
-      if (s) s.value = (item.scope && item.scope.includes('NACIONAL')) ? 'GLOBAL' : 'LOCAL';
+      if (s) {
+        let churchLabel = 'Sede Local';
+        if (typeof activeImpersonatedChurch !== 'undefined' && activeImpersonatedChurch) {
+          churchLabel = activeImpersonatedChurch.name || 'Sede Local';
+        } else if (typeof currentAccount !== 'undefined' && currentAccount && (currentAccount.isChurch || currentAccount.churchId)) {
+          churchLabel = currentAccount.name || 'Sede Local';
+        }
+        if (s.options[0]) s.options[0].textContent = `📍 Sede Local (${churchLabel})`;
+        s.value = (item.scope && item.scope.includes('NACIONAL')) ? 'GLOBAL' : 'LOCAL';
+      }
       if (l) l.value = slidesToRawLyrics(item.slides || []);
 
       const modal = document.getElementById('newSongModal');
@@ -14382,59 +14411,150 @@ Pues resucitaste, Rey`
       updateSongImportPreview();
     }
 
-    function parseSongLyrics(rawText) {
+    function cleanWebJunk(line) {
+      if (!line) return '';
+      const trimmed = line.trim();
+      const junkPatterns = [
+        /^add to (favorites|playlist)/i,
+        /^(tamanho da fonte|font size|fonte|imprimir|print|cifra|compartir|share)/i,
+        /^(letra enviada por|compositores?:|enviada por|editada por)/i,
+        /^(remover an[uú]ncio|quitar anuncio|reportar erro|reportar error)/i,
+        /^(letras\.com|musixmatch|genius|lacuerda\.net|azlyrics)/i,
+        /^(ver todas as músicas|veja mais músicas|más letras de)/i,
+        /^https?:\/\//i,
+        /^www\./i
+      ];
+      for (const pat of junkPatterns) {
+        if (pat.test(trimmed)) return '';
+      }
+      return trimmed;
+    }
+
+    function parseSongLyrics(rawText, groupingMode = null) {
       if (!rawText || !rawText.trim()) return [];
 
-      const lines = rawText.split(/\r?\n/).map(l => l.trim());
-      const slides = [];
-      let currentBadge = 'VERSO 1';
-      let verseCount = 1;
-      let coroCount = 1;
-      let puenteCount = 1;
-      let buffer = [];
-
-      function flushBuffer() {
-        if (buffer.length === 0) return;
-        for (let i = 0; i < buffer.length; i += 2) {
-          const line1 = buffer[i];
-          const line2 = buffer[i + 1] || '';
-          slides.push({
-            text: line1,
-            subText: line2,
-            badge: currentBadge
-          });
-        }
-        buffer = [];
+      if (!groupingMode) {
+        const sel = document.getElementById('newSongSlideGrouping');
+        groupingMode = sel ? sel.value : '2';
       }
 
-      for (let line of lines) {
-        if (!line) {
-          flushBuffer();
-          continue;
-        }
+      const rawLines = rawText.split(/\r?\n/).map(l => cleanWebJunk(l));
+      const stanzas = [];
+      let currentStanza = { tag: null, lines: [] };
 
-        const tagMatch = line.match(/^\[?(verso\s*\d*|coro\s*\d*|puente\s*\d*|estrofa\s*\d*|intro|outro|v\d+|c\d?|p\d?)\]?:?$/i);
-        if (tagMatch) {
-          flushBuffer();
-          const rawTag = tagMatch[1].toUpperCase();
-          if (rawTag.startsWith('CORO') || rawTag.startsWith('C')) {
-            currentBadge = `CORO ${coroCount > 1 ? coroCount : ''}`.trim();
-            coroCount++;
-          } else if (rawTag.startsWith('PUENTE') || rawTag.startsWith('P')) {
-            currentBadge = `PUENTE ${puenteCount > 1 ? puenteCount : ''}`.trim();
-            puenteCount++;
-          } else if (rawTag.startsWith('VERSO') || rawTag.startsWith('ESTROFA') || rawTag.startsWith('V')) {
-            currentBadge = `VERSO ${verseCount}`;
-            verseCount++;
-          } else {
-            currentBadge = rawTag;
+      const tagRegex = /^\[?(verso\s*\d*|estrofa\s*\d*|coro\s*\d*|puente\s*\d*|pre-?coro\s*\d*|intro|outro|final|estribillo\s*\d*|coda|v\d+|c\d?|p\d?)\]?:?$/i;
+
+      for (let i = 0; i < rawLines.length; i++) {
+        const line = rawLines[i];
+        if (!line) {
+          if (currentStanza.lines.length > 0 || currentStanza.tag) {
+            stanzas.push(currentStanza);
+            currentStanza = { tag: null, lines: [] };
           }
           continue;
         }
 
-        buffer.push(line);
+        const tagMatch = line.match(tagRegex);
+        if (tagMatch) {
+          if (currentStanza.lines.length > 0 || currentStanza.tag) {
+            stanzas.push(currentStanza);
+          }
+          currentStanza = {
+            tag: normalizeTag(tagMatch[1]),
+            lines: []
+          };
+          continue;
+        }
+
+        currentStanza.lines.push(line);
       }
-      flushBuffer();
+
+      if (currentStanza.lines.length > 0 || currentStanza.tag) {
+        stanzas.push(currentStanza);
+      }
+
+      function normalizeTag(raw) {
+        const upper = raw.toUpperCase().replace(/[\[\]:]/g, '').trim();
+        if (upper.startsWith('CORO') || upper.startsWith('ESTRIBILLO') || upper === 'C') return 'CORO';
+        if (upper.startsWith('PUENTE') || upper === 'P') return 'PUENTE';
+        if (upper.startsWith('PRE-CORO') || upper.startsWith('PRECORO')) return 'PRE-CORO';
+        if (upper.startsWith('VERSO') || upper.startsWith('ESTROFA') || upper.startsWith('V')) {
+          const numMatch = upper.match(/\d+/);
+          return numMatch ? `VERSO ${numMatch[0]}` : 'VERSO';
+        }
+        return upper;
+      }
+
+      const slides = [];
+      let verseCount = 1;
+      let coroCount = 1;
+      let puenteCount = 1;
+      let primaryVerseOpening = null;
+
+      for (const st of stanzas) {
+        if (st.lines.length >= 2 && !primaryVerseOpening) {
+          primaryVerseOpening = st.lines[0].toLowerCase();
+          break;
+        }
+      }
+
+      stanzas.forEach((stanza) => {
+        if (stanza.lines.length === 0) return;
+
+        let badge = stanza.tag;
+        if (!badge) {
+          const firstLine = stanza.lines[0] ? stanza.lines[0].toLowerCase() : '';
+          const isSameOpening = primaryVerseOpening && firstLine.length > 8 && firstLine === primaryVerseOpening;
+
+          if (isSameOpening) {
+            badge = `VERSO ${verseCount}`;
+            verseCount++;
+          } else if (stanza.lines.length <= 2 && /cantar|saltar|correr|gritar|aleluya|gloria|hosanna|santo|digno/i.test(stanza.lines.join(' '))) {
+            badge = coroCount === 1 ? 'CORO' : `CORO ${coroCount}`;
+            coroCount++;
+          } else {
+            badge = `VERSO ${verseCount}`;
+            verseCount++;
+          }
+        } else {
+          if (badge === 'VERSO') {
+            badge = `VERSO ${verseCount}`;
+            verseCount++;
+          } else if (badge === 'CORO') {
+            badge = coroCount === 1 ? 'CORO' : `CORO ${coroCount}`;
+            coroCount++;
+          } else if (badge === 'PUENTE') {
+            badge = puenteCount === 1 ? 'PUENTE' : `PUENTE ${puenteCount}`;
+            puenteCount++;
+          }
+        }
+
+        if (groupingMode === 'stanza') {
+          slides.push({
+            text: stanza.lines.slice(0, 2).join(' / '),
+            subText: stanza.lines.slice(2).join(' / ') || '',
+            badge: badge
+          });
+        } else if (groupingMode === '1') {
+          stanza.lines.forEach(line => {
+            slides.push({
+              text: line,
+              subText: '',
+              badge: badge
+            });
+          });
+        } else {
+          for (let i = 0; i < stanza.lines.length; i += 2) {
+            const line1 = stanza.lines[i];
+            const line2 = stanza.lines[i + 1] || '';
+            slides.push({
+              text: line1,
+              subText: line2,
+              badge: badge
+            });
+          }
+        }
+      });
 
       if (slides.length === 0 && rawText.trim()) {
         slides.push({
@@ -14453,8 +14573,11 @@ Pues resucitaste, Rey`
       const counter = document.getElementById('parsedSlidesCounter');
       if (!previewContainer) return;
 
+      const groupingSel = document.getElementById('newSongSlideGrouping');
+      const groupingMode = groupingSel ? groupingSel.value : '2';
+
       const text = lyricsInput ? lyricsInput.value : '';
-      const slides = parseSongLyrics(text);
+      const slides = parseSongLyrics(text, groupingMode);
 
       if (counter) {
         counter.textContent = `${slides.length} Diapositiva${slides.length === 1 ? '' : 's'}`;
@@ -14475,9 +14598,20 @@ Pues resucitaste, Rey`
       slides.forEach((slide, idx) => {
         const card = document.createElement('div');
         card.className = 'p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex flex-col gap-1 shadow-sm';
+
+        let badgeColor = 'bg-sky-500/20 text-sky-300 border-sky-500/30';
+        const bUpper = (slide.badge || '').toUpperCase();
+        if (bUpper.includes('CORO') || bUpper.includes('ESTRIBILLO')) {
+          badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+        } else if (bUpper.includes('PUENTE')) {
+          badgeColor = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+        } else if (bUpper.includes('PRE-CORO')) {
+          badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+        }
+
         card.innerHTML = `
           <div class="flex items-center justify-between text-[10px]">
-            <span class="font-bold px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 font-mono">${slide.badge}</span>
+            <span class="font-bold px-1.5 py-0.2 rounded border font-mono ${badgeColor}">${slide.badge}</span>
             <span class="text-slate-500 font-mono">Slide #${idx + 1}</span>
           </div>
           <p class="text-xs font-bold text-white leading-tight">${slide.text}</p>
@@ -14494,6 +14628,8 @@ Pues resucitaste, Rey`
       const inCategory = document.getElementById('newSongCategory');
       const inScope = document.getElementById('newSongScope');
       const inLyrics = document.getElementById('newSongLyrics');
+      const groupingSel = document.getElementById('newSongSlideGrouping');
+      const groupingMode = groupingSel ? groupingSel.value : '2';
 
       const title = (inTitle ? inTitle.value : '').trim();
       if (!title) {
@@ -14503,7 +14639,7 @@ Pues resucitaste, Rey`
       }
 
       const lyrics = inLyrics ? inLyrics.value : '';
-      const slides = parseSongLyrics(lyrics);
+      const slides = parseSongLyrics(lyrics, groupingMode);
       if (slides.length === 0) {
         alert('Por favor pega la letra para generar las diapositivas.');
         if (inLyrics) inLyrics.focus();
@@ -14517,7 +14653,14 @@ Pues resucitaste, Rey`
 
       let targetIndex = 0;
       const currentOrgId = (typeof currentAccount !== 'undefined' && currentAccount && currentAccount.orgId) ? currentAccount.orgId : null;
-      const currentChurchId = (typeof currentAccount !== 'undefined' && currentAccount && !currentAccount.isOrgAdmin && !currentAccount.isSuperAdmin) ? (currentAccount.churchId || currentAccount.id) : null;
+      let currentChurchId = null;
+      if (typeof activeImpersonatedChurch !== 'undefined' && activeImpersonatedChurch) {
+        currentChurchId = activeImpersonatedChurch.id || activeImpersonatedChurch.username;
+      } else if (typeof currentAccount !== 'undefined' && currentAccount) {
+        if (currentAccount.churchId) currentChurchId = currentAccount.churchId;
+        else if (currentAccount.isChurch) currentChurchId = currentAccount.id || currentAccount.username;
+        else if (!currentAccount.isOrgAdmin && !currentAccount.isSuperAdmin) currentChurchId = currentAccount.id;
+      }
 
       if (editingSongIndex !== null && libraryItems[editingSongIndex]) {
         libraryItems[editingSongIndex].title = title;
@@ -14528,7 +14671,7 @@ Pues resucitaste, Rey`
         if (!libraryItems[editingSongIndex].targetOrgId && currentOrgId) {
           libraryItems[editingSongIndex].targetOrgId = currentOrgId;
         }
-        if (!libraryItems[editingSongIndex].targetChurchId && scopeVal === 'LOCAL' && currentChurchId) {
+        if (scopeVal === 'LOCAL' && currentChurchId) {
           libraryItems[editingSongIndex].targetChurchId = currentChurchId;
         }
         targetIndex = editingSongIndex;
