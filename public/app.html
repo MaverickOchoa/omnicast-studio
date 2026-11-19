@@ -2212,23 +2212,36 @@ Te adoraré, te adoraré..."
 
           <!-- Columna Derecha: Vista Previa, Separación & Publicación Nacional -->
           <div class="w-full lg:w-7/12 h-full flex flex-col bg-[#0d131f] border border-slate-800 rounded-xl p-3.5 gap-3 overflow-hidden shadow">
-            <!-- Header of parsed songs list -->
-            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-bold text-white uppercase tracking-wider">Canciones Detectadas & Organizadas</span>
-                <span id="bulkParsedBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30">
-                  0 Canciones
-                </span>
-                <span id="bulkTotalSlidesBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-                  0 Diapositivas
-                </span>
+            <!-- Header of right column: Switcher Ingest vs Published + Action buttons -->
+            <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-2 gap-2">
+              <div class="flex items-center gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                <button type="button" id="btnHqSongViewIngest" onclick="switchHqSongView('ingest')"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                  <i data-lucide="file-input" class="w-3.5 h-3.5"></i>
+                  <span>Subir / Parsear</span>
+                  <span id="bulkParsedBadge" class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-sky-500/30 font-bold">0</span>
+                </button>
+                <button type="button" id="btnHqSongViewPublished" onclick="switchHqSongView('published')"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-400 hover:text-white border border-transparent">
+                  <i data-lucide="library" class="w-3.5 h-3.5"></i>
+                  <span id="hqPublishedSongsTitleTab">Canciones en la Red</span>
+                  <span id="hqPublishedSongsBadge" class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-bold">0</span>
+                </button>
               </div>
-              <div class="flex items-center gap-2">
+
+              <!-- Controls for Ingest View -->
+              <div id="bulkIngestActions" class="flex items-center gap-2">
                 <button onclick="toggleBulkSelectAll(true)" class="text-[10px] text-sky-400 hover:underline">Seleccionar Todas</button>
                 <span class="text-slate-700">|</span>
                 <button onclick="toggleBulkSelectAll(false)" class="text-[10px] text-slate-400 hover:underline">Deseleccionar</button>
                 <span class="text-slate-700">|</span>
                 <button onclick="clearBulkParser()" class="text-[10px] text-red-400 hover:underline">Limpiar</button>
+              </div>
+
+              <!-- Controls for Published View -->
+              <div id="bulkPublishedSearchWrapper" class="hidden flex items-center gap-1.5">
+                <input type="text" id="hqPublishedSearchInput" oninput="renderHqPublishedSongsList()" placeholder="Buscar en librería..."
+                       class="bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 w-44 font-mono">
               </div>
             </div>
 
@@ -2252,8 +2265,13 @@ Te adoraré, te adoraré..."
               </div>
             </div>
 
+            <!-- List of Published Songs in the Network -->
+            <div id="hqPublishedSongsContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 hidden">
+              <!-- Populated by JS -->
+            </div>
+
             <!-- Bottom Master Push Bar -->
-            <div class="pt-3 border-t border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
+            <div id="bulkSongsBottomBar" class="pt-3 border-t border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
               <!-- Bloque Super Admin -->
               <div id="bulkSongAssignSuperAdminBox" class="flex flex-col md:flex-row md:items-center justify-between gap-3 w-full">
                 <div class="flex items-center gap-3">
@@ -20899,6 +20917,11 @@ Pues resucitaste, Rey`
       if (tab === 'churches') renderHqChurchesList();
       if (tab === 'videos') renderHqOrgVideos();
       if (tab === 'telemetry') renderHqTelemetry();
+      if (tab === 'songs') {
+        const titleTab = document.getElementById('hqPublishedSongsTitleTab');
+        if (titleTab) titleTab.textContent = isOrg ? 'Canciones en la Red' : 'Catálogo Nacional';
+        renderHqPublishedSongsList();
+      }
       updateHqKpis();
       if (window.lucide) lucide.createIcons();
     }
@@ -21189,7 +21212,7 @@ Resucitaste en majestad`;
       const totalSlides = parsedBulkSongs.reduce((acc, s) => acc + s.slideCount, 0);
       const selectedCount = parsedBulkSongs.filter(s => s.selected).length;
 
-      if (parsedBadge) parsedBadge.textContent = `${totalSongs} Cancion${totalSongs === 1 ? '' : 'es'}`;
+      if (parsedBadge) parsedBadge.textContent = `${totalSongs}`;
       if (slidesBadge) slidesBadge.textContent = `${totalSlides} Diapositivas`;
 
       if (publishBtn) {
@@ -21197,6 +21220,17 @@ Resucitaste en majestad`;
       }
       if (publishText) {
         publishText.textContent = selectedCount > 0 ? `🚀 Publicar ${selectedCount} Cancion${selectedCount === 1 ? '' : 'es'} a Sedes` : '🚀 Publicar a Todas las Sedes';
+      }
+
+      const publishOrgBtn = document.getElementById('btnPublishBulkOrg');
+      const publishOrgText = document.getElementById('btnPublishBulkOrgText');
+      if (publishOrgBtn) {
+        publishOrgBtn.disabled = selectedCount === 0;
+      }
+      if (publishOrgText) {
+        publishOrgText.textContent = selectedCount > 0 
+          ? `🚀 Publicar ${selectedCount} Cancion${selectedCount === 1 ? '' : 'es'} en mi Red` 
+          : '🚀 Publicar en mi Red de Sedes';
       }
 
       if (totalSongs === 0) {
@@ -21833,9 +21867,146 @@ Resucitaste en majestad`;
 
       const kpiSongsCount = document.getElementById('hqKpiSongsCount');
       if (kpiSongsCount) {
-        const countSongs = libraryItems.filter(item => item.category !== 'medios' && !item.isVideo && item.category !== 'biblia' && (!isOrg || !item.targetOrgId || item.targetOrgId === currentOrgId)).length;
+        const countSongs = libraryItems.filter(item => item.category !== 'medios' && !item.isVideo && item.category !== 'biblia' && (!isOrg || item.targetOrgId === currentOrgId)).length;
         kpiSongsCount.textContent = `${countSongs} Oficiales`;
       }
+
+      const hqPubBadge = document.getElementById('hqPublishedSongsBadge');
+      if (hqPubBadge) {
+        const countSongs = libraryItems.filter(item => item.category !== 'medios' && !item.isVideo && item.category !== 'biblia' && (!isOrg || item.targetOrgId === currentOrgId)).length;
+        hqPubBadge.textContent = `${countSongs}`;
+      }
+    }
+
+    let currentHqSongView = 'ingest';
+
+    function switchHqSongView(view) {
+      currentHqSongView = view;
+      const btnIngest = document.getElementById('btnHqSongViewIngest');
+      const btnPublished = document.getElementById('btnHqSongViewPublished');
+      const ingestActions = document.getElementById('bulkIngestActions');
+      const searchWrapper = document.getElementById('bulkPublishedSearchWrapper');
+      const ingestContainer = document.getElementById('bulkSongsContainer');
+      const publishedContainer = document.getElementById('hqPublishedSongsContainer');
+      const bottomBar = document.getElementById('bulkSongsBottomBar');
+
+      const isOrg = currentAccount && currentAccount.isOrgAdmin;
+      const activeColor = isOrg ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' : 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+      const inactiveColor = 'text-slate-400 hover:text-white border-transparent';
+
+      if (view === 'ingest') {
+        if (btnIngest) btnIngest.className = `px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border ${activeColor}`;
+        if (btnPublished) btnPublished.className = `px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border ${inactiveColor}`;
+        if (ingestActions) ingestActions.classList.remove('hidden');
+        if (searchWrapper) searchWrapper.classList.add('hidden');
+        if (ingestContainer) ingestContainer.classList.remove('hidden');
+        if (publishedContainer) publishedContainer.classList.add('hidden');
+        if (bottomBar) bottomBar.classList.remove('hidden');
+      } else {
+        if (btnIngest) btnIngest.className = `px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border ${inactiveColor}`;
+        if (btnPublished) btnPublished.className = `px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border ${activeColor}`;
+        if (ingestActions) ingestActions.classList.add('hidden');
+        if (searchWrapper) searchWrapper.classList.remove('hidden');
+        if (ingestContainer) ingestContainer.classList.add('hidden');
+        if (publishedContainer) publishedContainer.classList.remove('hidden');
+        if (bottomBar) bottomBar.classList.add('hidden');
+        renderHqPublishedSongsList();
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderHqPublishedSongsList() {
+      const container = document.getElementById('hqPublishedSongsContainer');
+      const badge = document.getElementById('hqPublishedSongsBadge');
+      if (!container) return;
+
+      const isOrg = currentAccount && currentAccount.isOrgAdmin;
+      const currentOrgId = currentAccount ? currentAccount.orgId : null;
+      const searchIn = document.getElementById('hqPublishedSearchInput');
+      const q = (searchIn ? searchIn.value : '').toLowerCase().trim();
+
+      const publishedSongs = libraryItems.filter(item => {
+        if (item.category === 'medios' || Boolean(item.isVideo) || item.category === 'biblia') return false;
+        if (isOrg) {
+          return Boolean(currentOrgId && item.targetOrgId === currentOrgId);
+        }
+        return true; // Super admin sees all
+      }).filter(item => {
+        if (!q) return true;
+        return (item.title && item.title.toLowerCase().includes(q)) ||
+               (item.author && item.author.toLowerCase().includes(q));
+      });
+
+      if (badge) badge.textContent = `${publishedSongs.length}`;
+
+      if (publishedSongs.length === 0) {
+        container.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 p-8 gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-sky-400">
+              <i data-lucide="music" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-slate-300">No hay canciones publicadas en la red aún</h4>
+              <p class="text-[11px] text-slate-500 max-w-sm mt-1">
+                Pega tu cancionero en la columna izquierda y presiona <strong>"Publicar en mi Red de Sedes"</strong> para que todas las sedes filiales puedan proyectarlas.
+              </p>
+            </div>
+            <button onclick="switchHqSongView('ingest')" class="mt-2 px-3 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-xs font-bold border border-sky-500/30 transition flex items-center gap-1.5">
+              <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i>
+              <span>Ir al Analizador de Canciones</span>
+            </button>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = '';
+      publishedSongs.forEach((song, idx) => {
+        const card = document.createElement('div');
+        card.className = 'p-3 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900/90 transition flex flex-col gap-2 shadow-sm';
+        const slideCount = song.slides ? song.slides.length : 0;
+        
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-start gap-2.5 min-w-0">
+              <span class="text-sm mt-0.5 select-none">🎵</span>
+              <div class="flex flex-col min-w-0">
+                <span class="text-xs font-bold text-white leading-snug line-clamp-1">${song.title}</span>
+                <span class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${song.author || 'Autor desconocido'} • ${slideCount} diapositivas</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded border bg-sky-500/10 text-sky-300 border-sky-500/20">
+                ${song.scope || (isOrg ? currentAccount.orgName : 'LIBRERÍA')}
+              </span>
+              <button onclick="deleteHqPublishedSong('${song.id}')" title="Eliminar de la red" class="p-1 rounded hover:bg-rose-950/60 text-slate-500 hover:text-rose-400 transition">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+          <div class="text-[10.5px] text-slate-400 italic bg-slate-950/60 p-1.5 rounded border border-slate-800/60 truncate">
+            "${song.slides && song.slides[0] ? song.slides[0].text : ''}"
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function deleteHqPublishedSong(songId) {
+      const idx = libraryItems.findIndex(i => i.id === songId);
+      if (idx === -1) return;
+      const song = libraryItems[idx];
+      if (!confirm(`¿Eliminar la canción "${song.title}" de la librería de la red?`)) return;
+
+      libraryItems.splice(idx, 1);
+      renderSongsList();
+      renderCatalogSongs();
+      renderHqPublishedSongsList();
+      saveDatabaseToServer();
+      updateHqKpis();
+      showToast(`🗑️ "${song.title}" eliminada de la red`, '✓');
     }
 
     function publishBulkSongsToNetwork() {
@@ -21849,6 +22020,7 @@ Resucitaste en majestad`;
       let targetOrgId = null;
       let targetChurchId = null;
       let scopeLabel = '🌐 GLOBAL';
+      let isSystemGlobal = false;
 
       if (isOrg) {
         // Enforce strict org isolation: songs uploaded by organization are ONLY seen by its filial churches
@@ -21867,6 +22039,9 @@ Resucitaste en majestad`;
           targetChurchId = entitySelect ? entitySelect.value : null;
           const ch = (churches || []).find(c => c.id === targetChurchId);
           scopeLabel = ch ? `⛪ ${ch.name}` : '⛪ IGLESIA';
+        } else {
+          isSystemGlobal = true;
+          scopeLabel = '🌐 GLOBAL';
         }
       }
 
@@ -21882,11 +22057,17 @@ Resucitaste en majestad`;
           scope: scopeLabel,
           targetOrgId: targetOrgId,
           targetChurchId: targetChurchId,
+          isSystemGlobal: isSystemGlobal,
           slides: song.slides
         };
 
-        const existingIdx = libraryItems.findIndex(i => i.title.toLowerCase() === song.title.toLowerCase());
+        const existingIdx = libraryItems.findIndex(i => 
+          i.title.toLowerCase() === song.title.toLowerCase() &&
+          ((!targetOrgId && !i.targetOrgId) || (targetOrgId && i.targetOrgId === targetOrgId)) &&
+          ((!targetChurchId && !i.targetChurchId) || (targetChurchId && i.targetChurchId === targetChurchId))
+        );
         if (existingIdx !== -1) {
+          cleanSong.id = libraryItems[existingIdx].id;
           libraryItems[existingIdx] = cleanSong;
           updatedCount++;
         } else {
@@ -21896,6 +22077,8 @@ Resucitaste en majestad`;
       });
 
       renderSongsList();
+      renderCatalogSongs();
+      renderHqPublishedSongsList();
       saveDatabaseToServer();
       updateHqKpis();
 
@@ -21914,32 +22097,12 @@ Resucitaste en majestad`;
 
       const destText = isOrg ? `la red de ${currentAccount.orgName}` : scopeLabel;
       showToast(`✅ ${selected.length} canciones publicadas en ${destText}`, '🚀');
+
+      // Cambiar automáticamente a la vista de canciones publicadas para confirmación visual instantánea
+      switchHqSongView('published');
     }
 
     const publishBulkSongsToNationalNetwork = publishBulkSongsToNetwork;
-
-    function updateHqKpis() {
-      const kpiOrgs = document.getElementById('hqKpiOrgsCount');
-      if (kpiOrgs) {
-        const count = (organizations || []).length;
-        kpiOrgs.textContent = `${count} ${count === 1 ? 'Red' : 'Redes'}`;
-      }
-      const kpiChurches = document.getElementById('hqKpiChurchesCount');
-      if (kpiChurches) {
-        const count = (churches || []).length;
-        kpiChurches.textContent = `${count} Activas`;
-      }
-      const kpiSongs = document.getElementById('hqKpiSongsCount');
-      if (kpiSongs) {
-        const officialCount = libraryItems.filter(i => i.scope && i.scope.includes('NACIONAL')).length;
-        kpiSongs.textContent = `${officialCount} Oficiales`;
-      }
-      const kpiVideos = document.getElementById('hqKpiVideosCount');
-      if (kpiVideos) {
-        const vidCount = libraryItems.filter(i => i.isVideo || i.category === 'medios').length;
-        kpiVideos.textContent = `${vidCount} Videos`;
-      }
-    }
 
     function publishNationalVideoCampaign() {
       const titleInput = document.getElementById('hqVideoTitle');
