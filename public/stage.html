@@ -116,7 +116,7 @@
       <h1 id="stageCurrentText" class="stage-current text-white text-left">
         ¿Quién rompe el poder del pecado y la oscuridad?
       </h1>
-      <p id="stageCurrentSub" class="text-2xl text-slate-400 font-light mt-3">
+      <p id="stageCurrentSub" class="stage-current text-white text-left mt-2">
         Su amor es poderoso y tan fuerte
       </p>
     </div>
@@ -321,20 +321,24 @@
         stageCurrentText.textContent = fullTxt;
         stageCurrentSub.textContent = data.subText || '';
 
-        // Auto-escalado dinámico según longitud del versículo o letra
-        if (fullTxt.length > 200) {
-          stageCurrentText.style.fontSize = 'clamp(1.2rem, 2.3vw, 2.2rem)';
-          stageCurrentText.style.lineHeight = '1.25';
-        } else if (fullTxt.length > 120) {
-          stageCurrentText.style.fontSize = 'clamp(1.5rem, 3.2vw, 3.0rem)';
-          stageCurrentText.style.lineHeight = '1.2';
-        } else if (fullTxt.length > 70) {
-          stageCurrentText.style.fontSize = 'clamp(1.9rem, 4.0vw, 3.8rem)';
-          stageCurrentText.style.lineHeight = '1.18';
-        } else {
-          stageCurrentText.style.fontSize = '';
-          stageCurrentText.style.lineHeight = '';
+        // Auto-escalado dinámico según longitud del versículo o letra (ambas líneas parejas)
+        const combinedStageLen = fullTxt.length + (data.subText ? data.subText.length : 0);
+        let fSize = '';
+        let lHeight = '';
+        if (combinedStageLen > 200) {
+          fSize = 'clamp(1.2rem, 2.3vw, 2.2rem)';
+          lHeight = '1.25';
+        } else if (combinedStageLen > 120) {
+          fSize = 'clamp(1.5rem, 3.2vw, 3.0rem)';
+          lHeight = '1.2';
+        } else if (combinedStageLen > 70) {
+          fSize = 'clamp(1.9rem, 4.0vw, 3.8rem)';
+          lHeight = '1.18';
         }
+        stageCurrentText.style.fontSize = fSize;
+        stageCurrentText.style.lineHeight = lHeight;
+        stageCurrentSub.style.fontSize = fSize;
+        stageCurrentSub.style.lineHeight = lHeight;
       }
       if (data.songTitle) stageSongTitle.textContent = data.songTitle;
       if (data.isVideo) {

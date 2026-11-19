@@ -718,7 +718,7 @@
             <span id="monProyectorText" class="relative z-10 text-white font-bold text-xs leading-snug drop-shadow-md">
               ¿Quién rompe el poder del pecado y la oscuridad?
             </span>
-            <span id="monProyectorSub" class="relative z-10 text-[10px] text-slate-300 mt-1">
+            <span id="monProyectorSub" class="relative z-10 text-white font-bold text-xs leading-snug drop-shadow-md mt-0.5">
               Su amor es poderoso y tan fuerte
             </span>
           </div>
@@ -11812,11 +11812,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             </span>
             <span class="text-[10px] font-mono text-slate-400">#${idx + 1}</span>
           </div>
-          <div class="z-10 my-auto text-center px-1 py-1">
-            <p class="text-xs font-bold ${isCurrent ? 'text-white' : 'text-slate-200'} leading-snug">
+          <div class="z-10 my-auto text-center px-1 py-1 space-y-1">
+            <p class="text-xs font-bold ${isCurrent ? 'text-white' : 'text-slate-100'} leading-snug">
               ${slide.text}
             </p>
-            ${slide.subText ? `<p class="text-[10px] text-slate-400 mt-1">${slide.subText}</p>` : ''}
+            ${slide.subText ? `<p class="text-xs font-bold ${isCurrent ? 'text-white' : 'text-slate-100'} leading-snug">${slide.subText}</p>` : ''}
           </div>
           <div class="z-10 flex items-center justify-end pt-1">
             <span class="text-[9px] font-mono ${isCurrent ? 'text-sky-300 font-bold' : 'text-slate-500'}">
@@ -12443,8 +12443,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           if (monStreamVideoCanvas) monStreamVideoCanvas.classList.add('hidden');
           if (monProyectorText) { monProyectorText.classList.remove('hidden'); monProyectorText.textContent = slide.text; }
           if (monProyectorSub) { monProyectorSub.classList.remove('hidden'); monProyectorSub.textContent = slide.subText || ''; }
-          monStageCurrent.textContent = slide.text;
-          monStageNext.textContent = nextSlide ? nextSlide.text : '--- Fin ---';
+          monStageCurrent.textContent = slide.subText ? `${slide.text} / ${slide.subText}` : slide.text;
+          monStageNext.textContent = nextSlide ? (nextSlide.subText ? `${nextSlide.text} / ${nextSlide.subText}` : nextSlide.text) : '--- Fin ---';
 
           if (monStreamTitle) monStreamTitle.textContent = '3. Lower Third Streaming (Capa 2)';
           if (monStreamBadge) {
@@ -14614,8 +14614,10 @@ Pues resucitaste, Rey`
             <span class="font-bold px-1.5 py-0.2 rounded border font-mono ${badgeColor}">${slide.badge}</span>
             <span class="text-slate-500 font-mono">Slide #${idx + 1}</span>
           </div>
-          <p class="text-xs font-bold text-white leading-tight">${slide.text}</p>
-          ${slide.subText ? `<p class="text-[10px] text-slate-400">${slide.subText}</p>` : ''}
+          <div class="space-y-0.5">
+            <p class="text-xs font-bold text-white leading-tight">${slide.text}</p>
+            ${slide.subText ? `<p class="text-xs font-bold text-slate-200 leading-tight">${slide.subText}</p>` : ''}
+          </div>
         `;
         previewContainer.appendChild(card);
       });
