@@ -2056,7 +2056,7 @@
 
         <div class="flex items-center gap-2 shrink-0">
           <span class="text-[11px] text-amber-400/90 font-mono hidden md:inline">
-            Entorno: <strong id="hqSessionIndicatorName" class="text-white">Búnker Multi-Tenant</strong>
+            Entorno: <strong id="hqSessionIndicatorName" class="text-white max-w-[180px] truncate inline-block align-bottom" title="Entorno Activo">Búnker Multi-Tenant</strong>
           </span>
         </div>
       </div>
@@ -2312,7 +2312,7 @@ Te adoraré, te adoraré..."
               </div>
 
               <!-- Bloque Organización / Institución (Sin selector de destino: Exclusivo de su Red) -->
-              <div id="bulkSongAssignOrgAdminBox" class="hidden flex flex-col md:flex-row md:items-center justify-between gap-3 w-full">
+              <div id="bulkSongAssignOrgAdminBox" class="hidden flex flex-wrap items-center justify-between gap-3 w-full">
                 <div class="flex items-center gap-3">
                   <span class="text-xl">🏢</span>
                   <div>
@@ -2326,16 +2326,16 @@ Te adoraré, te adoraré..."
                   </div>
                 </div>
 
-                <div class="flex items-center gap-2 shrink-0">
-                  <div class="px-3 py-1.5 rounded-lg bg-sky-950/60 border border-sky-500/30 text-sky-300 text-xs font-semibold flex items-center gap-1.5">
-                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-sky-400"></i>
-                    <span>Red: <strong id="bulkSongAssignOrgNameLabel" class="text-white">...</strong></span>
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                  <div class="px-3 py-1.5 rounded-lg bg-sky-950/60 border border-sky-500/30 text-sky-300 text-xs font-semibold flex items-center gap-1.5 max-w-[220px] truncate" title="Red Institucional Activa">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-sky-400 shrink-0"></i>
+                    <span class="truncate">Red: <strong id="bulkSongAssignOrgNameLabel" class="text-white">...</strong></span>
                   </div>
                   <button onclick="publishBulkSongsToNetwork()" 
                           id="btnPublishBulkOrg"
                           disabled
-                          class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-xs transition active:scale-95 shadow-lg shadow-sky-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                    <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                          class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-xs transition active:scale-95 shadow-lg shadow-sky-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap">
+                    <i data-lucide="upload-cloud" class="w-4 h-4 shrink-0"></i>
                     <span id="btnPublishBulkOrgText">🚀 Publicar en mi Red de Sedes</span>
                   </button>
                 </div>
@@ -10791,6 +10791,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       songs.forEach(item => {
         const inService = serviceItemIds.includes(item.id);
         const slideCount = item.slides ? item.slides.length : 0;
+        const displayScope = (item.scope && item.scope.length > 20)
+          ? (item.targetOrgId ? '🏢 RED INSTITUCIONAL' : item.scope.substring(0, 18) + '...')
+          : (item.scope || 'REPERTORIO');
         const card = document.createElement('div');
         card.className = `p-3 rounded-xl border flex flex-col justify-between gap-3 transition ${
           inService ? 'bg-slate-900/90 border-emerald-500/40 shadow-sm' : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
@@ -10804,8 +10807,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
                 <span class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">${item.author || 'Autor desconocido'} • ${slideCount} diapositivas</span>
               </div>
             </div>
-            <span class="text-[8.5px] font-mono px-1.5 py-0.5 rounded border bg-sky-500/10 text-sky-300 border-sky-500/20 shrink-0">
-              ${item.scope || 'REPERTORIO'}
+            <span title="${item.scope || ''}" class="text-[8.5px] font-mono px-1.5 py-0.5 rounded border bg-sky-500/10 text-sky-300 border-sky-500/20 shrink-0 whitespace-nowrap">
+              ${displayScope}
             </span>
           </div>
 
