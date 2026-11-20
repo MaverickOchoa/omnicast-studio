@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-slate-100 select-none">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>OmniCast Telestrator • Tableta del Predicador</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Prevent any pull-to-refresh or accidental gesture navigating on tablets */
+    html, body {
+      overscroll-behavior: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+    }
+    .canvas-container {
+      touch-action: none;
+    }
+    .glass-bar {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .active-tool {
+      background: rgba(56, 189, 248, 0.2) !important;
+      border-color: rgba(56, 189, 248, 0.6) !important;
+      color: #38bdf8 !important;
+    }
+    /* Telestrator Slide Background Typography */
+    .slide-bg-text {
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 25px rgba(0, 0, 0, 0.8);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col bg-[#07090e] text-white">
+
+  <!-- ========================================================================= -->
+  <!-- TOP TELEMETRY & TALLY HEADER                                              -->
+  <!-- ========================================================================= -->
+  <header class="h-14 px-4 border-b border-slate-800/80 flex items-center justify-between shrink-0 glass-bar z-30">
+    <!-- Left: Identity & Live Tally -->
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-600/30">
+        <i data-lucide="edit-3" class="w-4 h-4"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xs sm:text-sm font-bold tracking-wide text-white">OmniCast Telestrator</h1>
+          <span id="churchBadge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+            Sede Local
+          </span>
+        </div>
+        <p class="text-[10px] text-slate-400 hidden sm:block">Tableta Digital del Púlpito • Anotaciones en Vivo</p>
+      </div>
+    </div>
+
+    <!-- Center: Mode Switcher -->
+    <div class="flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-1 gap-1">
+      <button id="btnModeTelestrator" onclick="setCanvasMode('telestrator')"
+              class="px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 bg-sky-600 text-white shadow-sm">
+        <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+        <span class="hidden md:inline">Sobre Diapositiva</span>
+        <span class="md:hidden">Diapositiva</span>
+      </button>
+      <button id="btnModeBlackboard" onclick="setCanvasMode('blackboard')"
+              class="px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 text-slate-400 hover:text-white">
+        <i data-lucide="square" class="w-3.5 h-3.5"></i>
+        <span class="hidden md:inline">Pizarra Limpia</span>
+        <span class="md:hidden">Pizarra</span>
+      </button>
+    </div>
+
+    <!-- Right: Broadcast & Projector Tally Badges -->
+    <div class="flex items-center gap-2">
+      <!-- Projector Tally Indicator -->
+      <div id="tallyProjector" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-slate-400 transition-all duration-300">
+        <span id="tallyProjectorDot" class="w-2 h-2 rounded-full bg-slate-600"></span>
+        <span id="tallyProjectorText">SALA: ESPERA</span>
+      </div>
+
+      <!-- Stream Tally Indicator -->
+      <div id="tallyStream" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-slate-400 transition-all duration-300">
+        <span id="tallyStreamDot" class="w-2 h-2 rounded-full bg-slate-600"></span>
+        <span id="tallyStreamText">STREAM: ESPERA</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN DRAWING VIEWPORT (CANVAS + LIVE SLIDE BACKGROUND LAYER)              -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 relative overflow-hidden flex items-center justify-center p-2 sm:p-4 bg-[#05070c]">
+
+    <!-- Layer 0: Telestrator Stage Canvas Container (16:9 Aspect Ratio) -->
+    <div id="viewportContainer" class="relative w-full max-w-6xl aspect-[16/9] max-h-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-[#090d16] flex items-center justify-center">
+
+      <!-- Background: Live Slide Content (Active only in Telestrator Mode) -->
+      <div id="slideBackgroundLayer" class="absolute inset-0 flex flex-col items-center justify-center p-6 md:p-12 text-center pointer-events-none transition-all duration-300">
+        <!-- Badge -->
+        <span id="liveSlideBadge" class="mb-3 px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+          VERSÍCULO BÍBLICO
+        </span>
+        <!-- Text 1 -->
+        <h2 id="liveSlideText" class="slide-bg-text text-xl sm:text-2xl md:text-4xl lg:text-5xl font-black text-white leading-tight max-w-4xl">
+          Cargando versículo o diapositiva activa...
+        </h2>
+        <!-- Text 2 -->
+        <p id="liveSlideSubText" class="slide-bg-text text-base sm:text-xl md:text-3xl font-bold text-slate-200 mt-3 max-w-4xl">
+          
+        </p>
+        <!-- Scripture reference or song title -->
+        <span id="liveSlideReference" class="mt-4 text-xs md:text-sm font-semibold text-slate-400 font-mono">
+          Reina Valera 1960
+        </span>
+      </div>
+
+      <!-- Blackboard Grid Overlay (Active only in Blackboard Mode) -->
+      <div id="blackboardLayer" class="absolute inset-0 bg-[#07090e] hidden pointer-events-none transition-all duration-300">
+        <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px]"></div>
+      </div>
+
+      <!-- Layer 1: HTML5 Interactive Telestrator Drawing Canvas -->
+      <canvas id="paintCanvas" class="absolute inset-0 w-full h-full cursor-crosshair z-20"></canvas>
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- BOTTOM FLOATING ERGONOMIC TOOLBAR DOCK                                    -->
+  <!-- ========================================================================= -->
+  <footer class="h-20 px-3 md:px-6 border-t border-slate-800/80 flex items-center justify-between shrink-0 glass-bar z-30">
+    
+    <!-- Group 1: Tools (Pen, Highlighter, Eraser) -->
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <button id="toolPen" onclick="selectTool('pen')"
+              title="Pluma Fina"
+              class="active-tool p-2.5 sm:px-3 sm:py-2 rounded-xl border border-slate-700 bg-slate-900/80 text-slate-300 hover:text-white transition active:scale-95 flex items-center gap-2">
+        <i data-lucide="edit-2" class="w-5 h-5"></i>
+        <span class="text-xs font-bold hidden md:inline">Pluma</span>
+      </button>
+
+      <button id="toolHighlighter" onclick="selectTool('highlighter')"
+              title="Marcador Resaltador"
+              class="p-2.5 sm:px-3 sm:py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-white transition active:scale-95 flex items-center gap-2">
+        <i data-lucide="highlighter" class="w-5 h-5"></i>
+        <span class="text-xs font-bold hidden md:inline">Resaltador</span>
+      </button>
+
+      <button id="toolEraser" onclick="selectTool('eraser')"
+              title="Borrador de Trazo"
+              class="p-2.5 sm:px-3 sm:py-2 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-400 hover:text-white transition active:scale-95 flex items-center gap-2">
+        <i data-lucide="eraser" class="w-5 h-5"></i>
+        <span class="text-xs font-bold hidden md:inline">Borrador</span>
+      </button>
+    </div>
+
+    <!-- Group 2: Quick Neon Colors -->
+    <div class="flex items-center gap-2 sm:gap-3 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-2xl">
+      <!-- Yellow Neon -->
+      <button onclick="setColor('#facc15')" title="Amarillo Neón"
+              class="color-btn w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#facc15] shadow-md transition active:scale-90 ring-2 ring-white ring-offset-2 ring-offset-slate-900"
+              data-color="#facc15"></button>
+      <!-- Pure White -->
+      <button onclick="setColor('#ffffff')" title="Blanco Nítido"
+              class="color-btn w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white shadow-md transition active:scale-90"
+              data-color="#ffffff"></button>
+      <!-- Electric Cyan -->
+      <button onclick="setColor('#38bdf8')" title="Cian Eléctrico"
+              class="color-btn w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#38bdf8] shadow-md transition active:scale-90"
+              data-color="#38bdf8"></button>
+      <!-- Coral Red -->
+      <button onclick="setColor('#f87171')" title="Rojo Coral"
+              class="color-btn w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#f87171] shadow-md transition active:scale-90"
+              data-color="#f87171"></button>
+      <!-- Neon Green -->
+      <button onclick="setColor('#4ade80')" title="Verde Neón"
+              class="color-btn w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#4ade80] shadow-md transition active:scale-90"
+              data-color="#4ade80"></button>
+    </div>
+
+    <!-- Group 3: Size, Undo & Clear -->
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- Stroke Size Selector -->
+      <select id="strokeSizeSelect" onchange="setSize(this.value)"
+              class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-xl px-2.5 py-2 focus:outline-none focus:border-sky-500 cursor-pointer">
+        <option value="3">Fino (3px)</option>
+        <option value="6" selected>Medio (6px)</option>
+        <option value="12">Grueso (12px)</option>
+      </select>
+
+      <!-- Undo -->
+      <button onclick="undoLastStroke()" title="Deshacer último trazo"
+              class="p-2 sm:px-3 sm:py-2 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition active:scale-95 flex items-center gap-1.5">
+        <i data-lucide="undo-2" class="w-4 h-4"></i>
+        <span class="text-xs font-semibold hidden lg:inline">Deshacer</span>
+      </button>
+
+      <!-- Clear Canvas -->
+      <button onclick="clearAllStrokes()" title="Limpiar toda la pizarra"
+              class="p-2 sm:px-3.5 sm:py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white transition active:scale-95 flex items-center gap-1.5">
+        <i data-lucide="trash-2" class="w-4 h-4 text-rose-400"></i>
+        <span class="text-xs font-bold hidden sm:inline">Limpiar</span>
+      </button>
+    </div>
+
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- SCRIPT: REAL-TIME WEBSOCKET & VECTOR STROKE ENGINE                         -->
+  <!-- ========================================================================= -->
+  <script>
+    // 1. Identify URL Tenant / Church
+    const urlParams = new URLSearchParams(window.location.search);
+    const churchId = urlParams.get('church') || 'church-hebron';
+    const churchBadgeEl = document.getElementById('churchBadge');
+    if (churchBadgeEl) {
+      churchBadgeEl.textContent = churchId === 'church-hebron' ? 'Hebron' : (churchId === 'church-gdl' ? 'Guadalajara' : churchId);
+    }
+
+    // 2. Canvas & Context Setup
+    const canvas = document.getElementById('paintCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('viewportContainer');
+
+    // State Variables
+    let currentMode = 'telestrator'; // 'telestrator' | 'blackboard'
+    let currentTool = 'pen'; // 'pen' | 'highlighter' | 'eraser'
+    let currentColor = '#facc15';
+    let currentSize = 6;
+    let isDrawing = false;
+    let currentStroke = null;
+    let allStrokes = [];
+
+    // Tally State
+    let isLiveOnProjector = false;
+    let isLiveOnStream = false;
+
+    // 3. WebSocket Connection
+    let ws = null;
+    let wsReconnectTimer = null;
+
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/api/pad-ws?church=${encodeURIComponent(churchId)}`;
+      
+      try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          console.log('[Telestrator WS] Conectado al servidor de trazos');
+          if (wsReconnectTimer) {
+            clearTimeout(wsReconnectTimer);
+            wsReconnectTimer = null;
+          }
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            handleWsMessage(data);
+          } catch (e) {
+            console.error('[Telestrator WS] Error al procesar mensaje:', e);
+          }
+        };
+
+        ws.onclose = () => {
+          console.warn('[Telestrator WS] Desconectado. Reintentando en 3s...');
+          if (!wsReconnectTimer) {
+            wsReconnectTimer = setTimeout(connectWebSocket, 3000);
+          }
+        };
+
+        ws.onerror = (err) => {
+          console.error('[Telestrator WS] Error en socket:', err);
+        };
+      } catch (err) {
+        console.error('[Telestrator WS] Error al inicializar conexión:', err);
+        if (!wsReconnectTimer) {
+          wsReconnectTimer = setTimeout(connectWebSocket, 3000);
+        }
+      }
+    }
+
+    function sendWs(payload) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(payload));
+      }
+    }
+
+    function handleWsMessage(data) {
+      if (data.type === 'init') {
+        allStrokes = data.strokes || [];
+        if (data.mode) setCanvasMode(data.mode, false);
+        if (data.lastSlide) updateSlideBackground(data.lastSlide);
+        updateTallyBadges(data.liveProjector, data.liveStream);
+        redrawAllStrokes();
+      } else if (data.type === 'stroke_start') {
+        // External stroke started (e.g. preview mirror or second tablet)
+        allStrokes.push(data.stroke);
+        redrawAllStrokes();
+      } else if (data.type === 'stroke_move') {
+        const targetStroke = allStrokes.find(s => s.id === data.strokeId);
+        if (targetStroke) {
+          targetStroke.points.push(data.point);
+          drawLastSegment(targetStroke);
+        }
+      } else if (data.type === 'stroke_end') {
+        redrawAllStrokes();
+      } else if (data.type === 'clear') {
+        allStrokes = [];
+        clearLocalCanvas();
+      } else if (data.type === 'undo') {
+        allStrokes.pop();
+        redrawAllStrokes();
+      } else if (data.type === 'mode') {
+        setCanvasMode(data.mode, false);
+      } else if (data.type === 'status_update') {
+        updateTallyBadges(data.liveProjector, data.liveStream);
+      } else if (data.type === 'toggle_projector') {
+        isLiveOnProjector = Boolean(data.enabled);
+        updateTallyBadges(isLiveOnProjector, isLiveOnStream);
+      } else if (data.type === 'toggle_stream') {
+        isLiveOnStream = Boolean(data.enabled);
+        updateTallyBadges(isLiveOnProjector, isLiveOnStream);
+      } else if (data.type === 'slide_sync') {
+        updateSlideBackground(data);
+      }
+    }
+
+    // 4. Resize Canvas to Match Exact Internal Resolution
+    function resizeCanvas() {
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      
+      ctx.scale(dpr, dpr);
+      redrawAllStrokes();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // 5. Drawing Pointer Event Listeners
+    canvas.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      canvas.setPointerCapture(e.pointerId);
+      isDrawing = true;
+
+      const rect = canvas.getBoundingClientRect();
+      const normX = (e.clientX - rect.left) / rect.width;
+      const normY = (e.clientY - rect.top) / rect.height;
+
+      currentStroke = {
+        id: `strk-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        tool: currentTool,
+        color: currentColor,
+        size: currentSize,
+        points: [{ x: normX, y: normY, pressure: e.pressure || 0.5 }]
+      };
+
+      allStrokes.push(currentStroke);
+
+      sendWs({
+        type: 'stroke_start',
+        churchId: churchId,
+        stroke: currentStroke
+      });
+
+      drawLastSegment(currentStroke);
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!isDrawing || !currentStroke) return;
+      e.preventDefault();
+
+      const rect = canvas.getBoundingClientRect();
+      const normX = (e.clientX - rect.left) / rect.width;
+      const normY = (e.clientY - rect.top) / rect.height;
+
+      const newPoint = { x: normX, y: normY, pressure: e.pressure || 0.5 };
+      currentStroke.points.push(newPoint);
+
+      sendWs({
+        type: 'stroke_move',
+        churchId: churchId,
+        strokeId: currentStroke.id,
+        point: newPoint
+      });
+
+      drawLastSegment(currentStroke);
+    });
+
+    const stopDrawing = (e) => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      if (currentStroke) {
+        sendWs({
+          type: 'stroke_end',
+          churchId: churchId,
+          strokeId: currentStroke.id
+        });
+        currentStroke = null;
+      }
+    };
+
+    canvas.addEventListener('pointerup', stopDrawing);
+    canvas.addEventListener('pointercancel', stopDrawing);
+
+    // 6. Canvas Render Engine (Normalized Coordinates)
+    function clearLocalCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+    }
+
+    function drawLastSegment(stroke) {
+      if (!stroke || stroke.points.length < 2) return;
+      const rect = canvas.getBoundingClientRect();
+      const p1 = stroke.points[stroke.points.length - 2];
+      const p2 = stroke.points[stroke.points.length - 1];
+
+      ctx.save();
+      applyStrokeStyle(stroke);
+
+      ctx.beginPath();
+      ctx.moveTo(p1.x * rect.width, p1.y * rect.height);
+      ctx.lineTo(p2.x * rect.width, p2.y * rect.height);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function redrawAllStrokes() {
+      clearLocalCanvas();
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      allStrokes.forEach(stroke => {
+        if (!stroke.points || stroke.points.length < 1) return;
+        ctx.save();
+        applyStrokeStyle(stroke);
+
+        if (stroke.points.length === 1) {
+          const pt = stroke.points[0];
+          ctx.beginPath();
+          ctx.arc(pt.x * rect.width, pt.y * rect.height, stroke.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(stroke.points[0].x * rect.width, stroke.points[0].y * rect.height);
+          for (let i = 1; i < stroke.points.length; i++) {
+            const p = stroke.points[i];
+            ctx.lineTo(p.x * rect.width, p.y * rect.height);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+    }
+
+    function applyStrokeStyle(stroke) {
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (stroke.tool === 'highlighter') {
+        ctx.globalAlpha = 0.45;
+        ctx.strokeStyle = stroke.color;
+        ctx.fillStyle = stroke.color;
+        ctx.lineWidth = stroke.size * 2.8;
+      } else if (stroke.tool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = stroke.size * 3.5;
+      } else {
+        ctx.globalAlpha = 1.0;
+        ctx.strokeStyle = stroke.color;
+        ctx.fillStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+      }
+    }
+
+    // 7. Toolbar Controls
+    function selectTool(tool) {
+      currentTool = tool;
+      document.querySelectorAll('#toolPen, #toolHighlighter, #toolEraser').forEach(b => {
+        b.classList.remove('active-tool');
+        b.classList.add('border-slate-800', 'text-slate-400');
+      });
+
+      const btn = document.getElementById(tool === 'pen' ? 'toolPen' : (tool === 'highlighter' ? 'toolHighlighter' : 'toolEraser'));
+      if (btn) {
+        btn.classList.add('active-tool');
+        btn.classList.remove('border-slate-800', 'text-slate-400');
+      }
+    }
+
+    function setColor(colorHex) {
+      currentColor = colorHex;
+      if (currentTool === 'eraser') selectTool('pen');
+
+      document.querySelectorAll('.color-btn').forEach(btn => {
+        if (btn.getAttribute('data-color') === colorHex) {
+          btn.className = 'color-btn w-6 h-6 sm:w-7 sm:h-7 rounded-full shadow-md transition active:scale-90 ring-2 ring-white ring-offset-2 ring-offset-slate-900';
+          btn.style.backgroundColor = colorHex;
+        } else {
+          btn.className = 'color-btn w-6 h-6 sm:w-7 sm:h-7 rounded-full shadow-md transition active:scale-90';
+          btn.style.backgroundColor = btn.getAttribute('data-color');
+        }
+      });
+    }
+
+    function setSize(val) {
+      currentSize = parseInt(val, 10) || 6;
+    }
+
+    function undoLastStroke() {
+      if (allStrokes.length === 0) return;
+      allStrokes.pop();
+      redrawAllStrokes();
+      sendWs({ type: 'undo', churchId: churchId });
+    }
+
+    function clearAllStrokes() {
+      allStrokes = [];
+      clearLocalCanvas();
+      sendWs({ type: 'clear', churchId: churchId });
+    }
+
+    // 8. Modes: Telestrator (Over Slide) vs. Blackboard (Clean Dark)
+    function setCanvasMode(mode, broadcast = true) {
+      currentMode = mode;
+      const btnTel = document.getElementById('btnModeTelestrator');
+      const btnBb = document.getElementById('btnModeBlackboard');
+      const slideLayer = document.getElementById('slideBackgroundLayer');
+      const bbLayer = document.getElementById('blackboardLayer');
+
+      if (mode === 'telestrator') {
+        if (btnTel) { btnTel.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 bg-sky-600 text-white shadow-sm'; }
+        if (btnBb) { btnBb.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 text-slate-400 hover:text-white'; }
+        if (slideLayer) slideLayer.classList.remove('hidden');
+        if (bbLayer) bbLayer.classList.add('hidden');
+      } else {
+        if (btnTel) { btnTel.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 text-slate-400 hover:text-white'; }
+        if (btnBb) { btnBb.className = 'px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition active:scale-95 bg-indigo-600 text-white shadow-sm'; }
+        if (slideLayer) slideLayer.classList.add('hidden');
+        if (bbLayer) bbLayer.classList.remove('hidden');
+      }
+
+      if (broadcast) {
+        sendWs({ type: 'mode', churchId: churchId, mode: mode });
+      }
+    }
+
+    // 9. Update Live Slide Content Background
+    function updateSlideBackground(data) {
+      const badgeEl = document.getElementById('liveSlideBadge');
+      const textEl = document.getElementById('liveSlideText');
+      const subTextEl = document.getElementById('liveSlideSubText');
+      const refEl = document.getElementById('liveSlideReference');
+
+      if (badgeEl) badgeEl.textContent = data.badge || (data.isBible ? 'SAGRADAS ESCRITURAS' : 'ALABANZA');
+      if (textEl) textEl.textContent = data.text || '';
+      if (subTextEl) subTextEl.textContent = data.subText || '';
+      if (refEl) refEl.textContent = data.songTitle || (data.author ? `• ${data.author}` : '');
+    }
+
+    // 10. Update Tally Status Badges
+    function updateTallyBadges(liveProj, liveStrm) {
+      isLiveOnProjector = Boolean(liveProj);
+      isLiveOnStream = Boolean(liveStrm);
+
+      // Projector
+      const pBadge = document.getElementById('tallyProjector');
+      const pDot = document.getElementById('tallyProjectorDot');
+      const pTxt = document.getElementById('tallyProjectorText');
+      if (isLiveOnProjector) {
+        pBadge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[10px] font-mono font-bold text-emerald-300 shadow-sm animate-pulse';
+        pDot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+        pTxt.textContent = 'SALA: EN PANTALLA';
+      } else {
+        pBadge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-slate-400';
+        pDot.className = 'w-2 h-2 rounded-full bg-slate-600';
+        pTxt.textContent = 'SALA: ESPERA';
+      }
+
+      // Stream
+      const sBadge = document.getElementById('tallyStream');
+      const sDot = document.getElementById('tallyStreamDot');
+      const sTxt = document.getElementById('tallyStreamText');
+      if (isLiveOnStream) {
+        sBadge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-[10px] font-mono font-bold text-purple-300 shadow-sm animate-pulse';
+        sDot.className = 'w-2 h-2 rounded-full bg-purple-400';
+        sTxt.textContent = 'STREAM: AL AIRE';
+      } else {
+        sBadge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-slate-400';
+        sDot.className = 'w-2 h-2 rounded-full bg-slate-600';
+        sTxt.textContent = 'STREAM: ESPERA';
+      }
+    }
+
+    // 11. Listen for BroadcastChannel slide updates on local devices
+    const channelName = churchId ? `omnicast_live_${churchId}` : 'omnicast_live_channel';
+    const bChannel = new BroadcastChannel(channelName);
+    bChannel.onmessage = (ev) => {
+      if (ev.data && !ev.data.isClear) {
+        updateSlideBackground(ev.data);
+      }
+    };
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      resizeCanvas();
+      connectWebSocket();
+    });
+  </script>
+</body>
+</html>

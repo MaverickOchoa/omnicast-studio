@@ -1388,6 +1388,8 @@ const requestHandler = (req, res) => {
     reqPath = '/app.html';
   } else if (reqPath === '/login') {
     reqPath = '/app.html';
+  } else if (reqPath === '/pad' || reqPath === '/pizarra' || reqPath === '/tablet') {
+    reqPath = '/pad.html';
   }
 
   const filePath = path.join(PUBLIC_DIR, reqPath);
@@ -2443,6 +2445,104 @@ mobileCamWss.on('connection', (ws, request) => {
   }
 });
 
+// =========================================================================
+// OMNICAST TELESTRATOR & PREACHER TABLET: REAL-TIME VECTOR DRAWING RELAY (WS)
+// =========================================================================
+const padWss = new WebSocket.Server({ noServer: true });
+const padRoomsMap = new Map(); // key: churchId -> Set of ws clients
+const padStateMap = new Map(); // key: churchId -> { strokes: [], mode: 'telestrator', liveProjector: false, liveStream: false }
+
+function getPadState(churchId) {
+  if (!padStateMap.has(churchId)) {
+    padStateMap.set(churchId, {
+      strokes: [],
+      mode: 'telestrator',
+      liveProjector: false,
+      liveStream: false
+    });
+  }
+  return padStateMap.get(churchId);
+}
+
+padWss.on('connection', (ws, request) => {
+  const host = request.headers.host || 'localhost';
+  const url = new URL(request.url, `http://${host}`);
+  const churchId = url.searchParams.get('church') || 'church-hebron';
+
+  if (!padRoomsMap.has(churchId)) {
+    padRoomsMap.set(churchId, new Set());
+  }
+  padRoomsMap.get(churchId).add(ws);
+
+  const state = getPadState(churchId);
+  try {
+    ws.send(JSON.stringify({
+      type: 'init',
+      strokes: state.strokes,
+      mode: state.mode,
+      liveProjector: state.liveProjector,
+      liveStream: state.liveStream,
+      lastSlide: state.lastSlide || null
+    }));
+  } catch (e) {}
+
+  ws.on('message', (message) => {
+    try {
+      const data = JSON.parse(message.toString());
+      const cId = data.churchId || churchId;
+      const room = padRoomsMap.get(cId);
+      const cState = getPadState(cId);
+
+      if (data.type === 'stroke_start') {
+        if (data.stroke) {
+          cState.strokes.push(data.stroke);
+        }
+      } else if (data.type === 'stroke_move') {
+        const s = cState.strokes.find(st => st.id === data.strokeId);
+        if (s && data.point) {
+          s.points.push(data.point);
+        }
+      } else if (data.type === 'clear') {
+        cState.strokes = [];
+      } else if (data.type === 'undo') {
+        cState.strokes.pop();
+      } else if (data.type === 'mode') {
+        cState.mode = data.mode || 'telestrator';
+      } else if (data.type === 'toggle_projector') {
+        cState.liveProjector = Boolean(data.enabled);
+      } else if (data.type === 'toggle_stream') {
+        cState.liveStream = Boolean(data.enabled);
+      } else if (data.type === 'slide_sync') {
+        cState.lastSlide = data;
+      }
+
+      if (room) {
+        const jsonStr = JSON.stringify(data);
+        for (const client of room) {
+          if (client !== ws && client.readyState === WebSocket.OPEN) {
+            try { client.send(jsonStr); } catch (e) {}
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Pad WS] Error handling message:', err);
+    }
+  });
+
+  ws.on('close', () => {
+    const room = padRoomsMap.get(churchId);
+    if (room) {
+      room.delete(ws);
+      if (room.size === 0) padRoomsMap.delete(churchId);
+    }
+  });
+
+  ws.on('error', () => {
+    const room = padRoomsMap.get(churchId);
+    if (room) room.delete(ws);
+  });
+});
+
 const handleUpgrade = (request, socket, head) => {
   try {
     const host = request.headers.host || 'localhost';
@@ -2458,6 +2558,10 @@ const handleUpgrade = (request, socket, head) => {
     } else if (parsed.pathname === '/api/cam/ws') {
       mobileCamWss.handleUpgrade(request, socket, head, ws => {
         mobileCamWss.emit('connection', ws, request);
+      });
+    } else if (parsed.pathname === '/api/pad-ws') {
+      padWss.handleUpgrade(request, socket, head, ws => {
+        padWss.emit('connection', ws, request);
       });
     } else {
       socket.destroy();

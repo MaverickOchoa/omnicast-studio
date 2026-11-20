@@ -783,6 +783,56 @@
             </div>
           </div>
         </div>
+
+        <!-- 4. Tableta del Predicador (Pizarra & Telestrator) -->
+        <div class="flex flex-col gap-1.5 pt-2 border-t border-slate-800/80">
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center gap-1.5">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span class="font-semibold text-slate-300">4. Tableta Púlpito</span>
+            </div>
+            <a id="linkOpenPadTablet" href="/pad.html" target="_blank" title="Abrir en Tablet del Predicador" class="text-[10px] font-mono text-sky-400 hover:text-sky-300 flex items-center gap-1 transition">
+              <span>Abrir Tablet</span>
+              <i data-lucide="external-link" class="w-3 h-3"></i>
+            </a>
+          </div>
+
+          <!-- Mini Preview Canvas -->
+          <div class="aspect-video w-full bg-[#07090e] rounded-lg border border-slate-800 relative overflow-hidden flex items-center justify-center">
+            <div id="monPadBgSlide" class="absolute inset-0 p-2 flex flex-col items-center justify-center text-center opacity-40 pointer-events-none">
+              <p id="monPadBgText" class="text-[9px] font-bold text-white line-clamp-2">Diapositiva Activa</p>
+            </div>
+            <canvas id="monPadCanvas" width="320" height="180" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
+            <div id="monPadEmptyIndicator" class="text-[9px] text-slate-600 font-mono z-0">
+              [Pizarra en espera...]
+            </div>
+          </div>
+
+          <!-- Dual Operator Controls (Screen Operator + Stream Operator) -->
+          <div class="flex items-center gap-1.5 mt-1">
+            <!-- Screen Operator Toggle -->
+            <button id="btnCabinPadProjector" onclick="togglePadLiveProjector()"
+                    title="Operador de Pantallas: Proyectar trazos en la sala"
+                    class="flex-1 py-1.5 px-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition active:scale-95 shadow">
+              <span id="dotCabinPadProjector" class="w-2 h-2 rounded-full bg-slate-600"></span>
+              <span id="textCabinPadProjector">SALA (OFF)</span>
+            </button>
+
+            <!-- Stream Operator Toggle -->
+            <button id="btnCabinPadStream" onclick="togglePadLiveStream()"
+                    title="Operador de Streaming: Superponer trazos sobre la transmisión"
+                    class="flex-1 py-1.5 px-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition active:scale-95 shadow">
+              <span id="dotCabinPadStream" class="w-2 h-2 rounded-full bg-slate-600"></span>
+              <span id="textCabinPadStream">STREAM (OFF)</span>
+            </button>
+
+            <!-- Clear button -->
+            <button onclick="cabinClearPadStrokes()" title="Limpiar trazos de la tableta"
+                    class="p-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-rose-500/40 text-slate-400 hover:text-rose-400 transition active:scale-95">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
       </section>
     </div>
 
@@ -8426,6 +8476,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (typeof renderSlidesGrid === 'function') renderSlidesGrid();
       if (typeof renderMediaCatalogModal === 'function') renderMediaCatalogModal();
       if (typeof syncLayer1ToProjector === 'function') syncLayer1ToProjector();
+      if (typeof connectCabinPadWs === 'function') connectCabinPadWs();
 
       broadcastSlide();
       if (window.lucide) lucide.createIcons();
@@ -12461,6 +12512,26 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           }
         }
       }
+
+      // Sincronizar texto de la diapositiva en el monitor mini-preview y en la tableta del predicador
+      const monPadBgText = document.getElementById('monPadBgText');
+      if (monPadBgText) {
+        monPadBgText.textContent = isClear ? '[Pantalla Limpia]' : (slide ? slide.text : '');
+      }
+      if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN && !isClear && slide) {
+        try {
+          cabinPadWs.send(JSON.stringify({
+            type: 'slide_sync',
+            churchId: getActiveChurchId(),
+            text: slide.text || '',
+            subText: slide.subText || '',
+            badge: slide.badge || (item.category === 'biblia' ? 'SAGRADAS ESCRITURAS' : 'ALABANZA'),
+            songTitle: item.title || '',
+            author: item.author || '',
+            isBible: item.category === 'biblia'
+          }));
+        } catch (e) {}
+      }
     }
 
     document.getElementById('clearSlideBtn').onclick = () => broadcastSlide(true);
@@ -12487,6 +12558,225 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       const churchParam = (church && church !== 'default') ? `?church=${encodeURIComponent(church)}` : '';
       window.open(`stage.html${churchParam}`, 'OmniCastStageWindow', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
     };
+    const linkOpenPadTabletEl = document.getElementById('linkOpenPadTablet');
+    if (linkOpenPadTabletEl) {
+      linkOpenPadTabletEl.onclick = (e) => {
+        e.preventDefault();
+        const church = getActiveChurchId();
+        window.open(`/pad.html?church=${encodeURIComponent(church)}`, 'OmniCastPadWindow', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
+      };
+    }
+
+    // =========================================================================
+    // TELESTRATOR & PREACHER TABLET: CABIN MONITORING & OPERATOR DUAL CONTROL
+    // =========================================================================
+    let cabinPadStrokes = [];
+    let padLiveProjector = false;
+    let padLiveStream = false;
+    let padMode = 'telestrator';
+    let cabinPadWs = null;
+    let cabinPadWsReconnectTimer = null;
+
+    function renderTelestratorStrokesToCanvas(targetCtx, strokes, width, height) {
+      if (!strokes || strokes.length === 0) return;
+      strokes.forEach(stroke => {
+        if (!stroke.points || stroke.points.length === 0) return;
+        targetCtx.save();
+        targetCtx.lineCap = 'round';
+        targetCtx.lineJoin = 'round';
+
+        const scale = width / 1920;
+        if (stroke.tool === 'highlighter') {
+          targetCtx.globalAlpha = 0.45;
+          targetCtx.strokeStyle = stroke.color || '#facc15';
+          targetCtx.fillStyle = stroke.color || '#facc15';
+          targetCtx.lineWidth = Math.max(3, (stroke.size || 6) * scale * 3.0);
+        } else if (stroke.tool === 'eraser') {
+          targetCtx.globalCompositeOperation = 'destination-out';
+          targetCtx.lineWidth = Math.max(4, (stroke.size || 6) * scale * 3.8);
+        } else {
+          targetCtx.globalAlpha = 1.0;
+          targetCtx.strokeStyle = stroke.color || '#facc15';
+          targetCtx.fillStyle = stroke.color || '#facc15';
+          targetCtx.lineWidth = Math.max(2, (stroke.size || 6) * scale * 1.6);
+        }
+
+        if (stroke.points.length === 1) {
+          const pt = stroke.points[0];
+          targetCtx.beginPath();
+          targetCtx.arc(pt.x * width, pt.y * height, targetCtx.lineWidth / 2, 0, Math.PI * 2);
+          targetCtx.fill();
+        } else {
+          targetCtx.beginPath();
+          targetCtx.moveTo(stroke.points[0].x * width, stroke.points[0].y * height);
+          for (let i = 1; i < stroke.points.length; i++) {
+            const p = stroke.points[i];
+            targetCtx.lineTo(p.x * width, p.y * height);
+          }
+          targetCtx.stroke();
+        }
+        targetCtx.restore();
+      });
+    }
+
+    function redrawCabinPadPreview() {
+      const canvas = document.getElementById('monPadCanvas');
+      const emptyInd = document.getElementById('monPadEmptyIndicator');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (cabinPadStrokes.length > 0) {
+        if (emptyInd) emptyInd.classList.add('hidden');
+        renderTelestratorStrokesToCanvas(ctx, cabinPadStrokes, canvas.width, canvas.height);
+      } else {
+        if (emptyInd) emptyInd.classList.remove('hidden');
+      }
+    }
+
+    function updateCabinPadButtonsUI() {
+      const btnProj = document.getElementById('btnCabinPadProjector');
+      const dotProj = document.getElementById('dotCabinPadProjector');
+      const txtProj = document.getElementById('textCabinPadProjector');
+
+      const btnStrm = document.getElementById('btnCabinPadStream');
+      const dotStrm = document.getElementById('dotCabinPadStream');
+      const txtStrm = document.getElementById('textCabinPadStream');
+
+      if (btnProj && dotProj && txtProj) {
+        if (padLiveProjector) {
+          btnProj.className = 'flex-1 py-1.5 px-2 rounded-lg bg-emerald-600/20 border border-emerald-500/50 text-emerald-300 font-bold text-[10px] flex items-center justify-center gap-1 transition active:scale-95 shadow animate-pulse';
+          dotProj.className = 'w-2 h-2 rounded-full bg-emerald-400';
+          txtProj.textContent = 'SALA (ON)';
+        } else {
+          btnProj.className = 'flex-1 py-1.5 px-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition active:scale-95 shadow';
+          dotProj.className = 'w-2 h-2 rounded-full bg-slate-600';
+          txtProj.textContent = 'SALA (OFF)';
+        }
+      }
+
+      if (btnStrm && dotStrm && txtStrm) {
+        if (padLiveStream) {
+          btnStrm.className = 'flex-1 py-1.5 px-2 rounded-lg bg-purple-600/20 border border-purple-500/50 text-purple-300 font-bold text-[10px] flex items-center justify-center gap-1 transition active:scale-95 shadow animate-pulse';
+          dotStrm.className = 'w-2 h-2 rounded-full bg-purple-400';
+          txtStrm.textContent = 'STREAM (ON)';
+        } else {
+          btnStrm.className = 'flex-1 py-1.5 px-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition active:scale-95 shadow';
+          dotStrm.className = 'w-2 h-2 rounded-full bg-slate-600';
+          txtStrm.textContent = 'STREAM (OFF)';
+        }
+      }
+    }
+
+    function togglePadLiveProjector() {
+      padLiveProjector = !padLiveProjector;
+      updateCabinPadButtonsUI();
+      if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN) {
+        cabinPadWs.send(JSON.stringify({
+          type: 'toggle_projector',
+          churchId: getActiveChurchId(),
+          enabled: padLiveProjector
+        }));
+      }
+    }
+
+    function togglePadLiveStream() {
+      padLiveStream = !padLiveStream;
+      updateCabinPadButtonsUI();
+      if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN) {
+        cabinPadWs.send(JSON.stringify({
+          type: 'toggle_stream',
+          churchId: getActiveChurchId(),
+          enabled: padLiveStream
+        }));
+      }
+    }
+
+    function cabinClearPadStrokes() {
+      cabinPadStrokes = [];
+      redrawCabinPadPreview();
+      if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN) {
+        cabinPadWs.send(JSON.stringify({
+          type: 'clear',
+          churchId: getActiveChurchId()
+        }));
+      }
+    }
+
+    function connectCabinPadWs() {
+      const pProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const cTarget = getActiveChurchId() || 'church-hebron';
+      const pUrl = `${pProto}//${window.location.host}/api/pad-ws?church=${encodeURIComponent(cTarget)}`;
+
+      const linkOpenPad = document.getElementById('linkOpenPadTablet');
+      if (linkOpenPad) {
+        linkOpenPad.href = `/pad.html?church=${encodeURIComponent(cTarget)}`;
+      }
+
+      try {
+        if (cabinPadWs) {
+          try { cabinPadWs.close(); } catch(e) {}
+        }
+        cabinPadWs = new WebSocket(pUrl);
+
+        cabinPadWs.onopen = () => {
+          if (cabinPadWsReconnectTimer) {
+            clearTimeout(cabinPadWsReconnectTimer);
+            cabinPadWsReconnectTimer = null;
+          }
+        };
+
+        cabinPadWs.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data);
+            if (msg.type === 'init') {
+              cabinPadStrokes = msg.strokes || [];
+              padLiveProjector = Boolean(msg.liveProjector);
+              padLiveStream = Boolean(msg.liveStream);
+              if (msg.mode) padMode = msg.mode;
+              updateCabinPadButtonsUI();
+              redrawCabinPadPreview();
+            } else if (msg.type === 'stroke_start') {
+              if (msg.stroke) cabinPadStrokes.push(msg.stroke);
+              redrawCabinPadPreview();
+            } else if (msg.type === 'stroke_move') {
+              const s = cabinPadStrokes.find(st => st.id === msg.strokeId);
+              if (s && msg.point) {
+                s.points.push(msg.point);
+                redrawCabinPadPreview();
+              }
+            } else if (msg.type === 'stroke_end') {
+              redrawCabinPadPreview();
+            } else if (msg.type === 'clear') {
+              cabinPadStrokes = [];
+              redrawCabinPadPreview();
+            } else if (msg.type === 'undo') {
+              cabinPadStrokes.pop();
+              redrawCabinPadPreview();
+            } else if (msg.type === 'mode') {
+              padMode = msg.mode || 'telestrator';
+            } else if (msg.type === 'toggle_projector') {
+              padLiveProjector = Boolean(msg.enabled);
+              updateCabinPadButtonsUI();
+            } else if (msg.type === 'toggle_stream') {
+              padLiveStream = Boolean(msg.enabled);
+              updateCabinPadButtonsUI();
+            }
+          } catch (e) {}
+        };
+
+        cabinPadWs.onclose = () => {
+          if (!cabinPadWsReconnectTimer) {
+            cabinPadWsReconnectTimer = setTimeout(connectCabinPadWs, 4000);
+          }
+        };
+      } catch (err) {
+        if (!cabinPadWsReconnectTimer) {
+          cabinPadWsReconnectTimer = setTimeout(connectCabinPadWs, 4000);
+        }
+      }
+    }
+    setTimeout(connectCabinPadWs, 500);
 
     // -------------------------------------------------------------------------
     // WIRECAST ENGINE: 1920x1080 FHD RESOLUTION & NEW LAYER HIERARCHY
@@ -19020,6 +19310,19 @@ Pues resucitaste, Rey`
           ctx.font = '26px Inter, sans-serif';
           ctx.fillText('Reunión Dominical de Celebración', 160, 965);
         }
+      }
+
+      // =======================================================================
+      // TELESTRATOR & PREACHER TABLET OVERLAY (STREAM BROADCAST OUTPUT)
+      // =======================================================================
+      if (padLiveStream && cabinPadStrokes && cabinPadStrokes.length > 0) {
+        if (padMode === 'blackboard') {
+          ctx.save();
+          ctx.fillStyle = '#07090e';
+          ctx.fillRect(0, 0, w, h);
+          ctx.restore();
+        }
+        renderTelestratorStrokesToCanvas(ctx, cabinPadStrokes, w, h);
       }
 
       // =======================================================================
