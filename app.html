@@ -244,10 +244,12 @@
         rundown: 'viewRundown',
         arena: 'viewArena',
         audio: 'viewAudio',
-        hq: 'viewHQ'
+        hq: 'viewHQ',
+        tableta: 'viewTableta',
+        pantallas: 'viewPantallas'
       }[tabName] || 'viewLetras';
 
-      ['viewLetras', 'viewWirecast', 'viewRundown', 'viewArena', 'viewAudio', 'viewHQ'].forEach(v => {
+      ['viewLetras', 'viewWirecast', 'viewRundown', 'viewArena', 'viewAudio', 'viewHQ', 'viewTableta', 'viewPantallas'].forEach(v => {
         const el = document.getElementById(v);
         if (el) el.classList.add('hidden');
       });
@@ -263,7 +265,9 @@
         wirecast: 'tabBtnWirecast',
         rundown: 'tabBtnRundown',
         audio: 'tabBtnAudio',
-        arena: 'tabBtnArena'
+        arena: 'tabBtnArena',
+        tableta: 'tabBtnTableta',
+        pantallas: 'tabBtnPantallas'
       };
       const activeBtn = document.getElementById(btnIdMap[tabName]);
       if (activeBtn) {
@@ -358,10 +362,8 @@
       
     </div>
 
-    <!-- ===================================================================== -->
-    <!-- MASTER BROADCAST CONTROLS (ALWAYS VISIBLE ACROSS ALL TABS LIKE OBS / WIRECAST) -->
-    <!-- ===================================================================== -->
-    <div class="flex items-center gap-1.5 shrink-0">
+    <!-- 2. CONTEXT: SWITCHER WIRECAST (Streaming Mode - Minimalist Broadcast Bar) -->
+    <div id="topContextWirecast" class="hidden flex items-center gap-1.5 shrink-0">
       <button id="btnMasterStream" onclick="toggleMasterLiveStream()" title="Iniciar o Detener Transmisión en Vivo a YouTube / Facebook"
               class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-md shadow-emerald-950/40 active:scale-95 whitespace-nowrap shrink-0">
         <i data-lucide="radio" class="w-3.5 h-3.5 shrink-0"></i>
@@ -390,10 +392,7 @@
         <span class="text-slate-400 font-mono text-[10px]">STREAM:</span>
         <span id="quickStreamLayoutLabelTop" class="text-emerald-400 font-bold">📺 LOWER THIRD</span>
       </button>
-    </div>
 
-    <!-- 2. CONTEXT: SWITCHER WIRECAST (Streaming Mode - Minimalist Broadcast Bar) -->
-    <div id="topContextWirecast" class="hidden flex items-center gap-2 shrink-0">
       <!-- Telemetry Capsule (Consolidated) -->
       <div class="hidden xl:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">
         <span class="hidden 2xl:inline text-sky-400 font-bold">1080p60</span>
@@ -441,28 +440,6 @@
 
     <!-- Operator Avatar, Settings Button & SaaS Logout -->
     <div class="flex items-center gap-2 shrink-0">
-      <!-- Cámaras & QR Móvil (Botón Único Unificado en Barra Superior) -->
-      <button onclick="openHardwareModal()" id="topBtnCamarasQrGlobal" title="Configurar Cámaras (OBSBOT/HDMI/USB) y Código QR para Celulares (OmniCast Mobile Cam)" class="flex items-center gap-1.5 bg-emerald-950/70 hover:bg-emerald-900/80 text-emerald-200 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-emerald-500/40 transition active:scale-95 shadow group shrink-0 whitespace-nowrap">
-        <i data-lucide="qr-code" class="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform shrink-0"></i>
-        <span id="topHwStatusBadge" class="hidden sm:inline whitespace-nowrap">Cámaras • QR</span>
-      </button>
-      <!-- Matriz de Pantallas & Smart TVs Button -->
-      <button onclick="openDisplayMatrixModal()" id="topBtnPantallas" title="Matriz de Pantallas, Smart TVs y Salidas Inalámbricas" class="flex items-center gap-1.5 bg-gradient-to-r from-sky-950/80 to-indigo-950/80 hover:from-sky-900 hover:to-indigo-900 text-sky-200 hover:text-white text-xs font-semibold px-2 py-1.5 rounded-lg border border-sky-500/40 transition active:scale-95 shadow group shrink-0 whitespace-nowrap">
-        <i data-lucide="tv-2" class="w-3.5 h-3.5 text-sky-400 group-hover:scale-110 transition-transform shrink-0"></i>
-        <span class="hidden lg:inline whitespace-nowrap">Pantallas</span>
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-      </button>
-
-      <!-- Botón de Acceso Directo: Tableta del Predicador (Pizarra & Telestrator) -->
-      <a id="topBtnTabletaPulpito" href="/pad" target="_blank" title="Abrir Tableta del Predicador (Pizarra Digital y Telestrator)"
-         class="flex items-center gap-1.5 bg-gradient-to-r from-amber-950/90 to-yellow-950/90 hover:from-amber-900 hover:to-yellow-900 text-amber-200 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-amber-500/50 transition active:scale-95 shadow group shrink-0 whitespace-nowrap">
-        <i data-lucide="edit-3" class="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform shrink-0"></i>
-        <span class="whitespace-nowrap">Tableta Púlpito</span>
-        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
-      </a>
-
-      
-
       <!-- PWA Install Button -->
       <button id="pwaInstallBtn" onclick="triggerPwaInstall()" title="Instalar OmniCast Studio como aplicación de escritorio nativa" 
               class="hidden flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-blue-400/40 transition active:scale-95 shadow-md shadow-blue-500/20 group shrink-0 whitespace-nowrap animate-pulse">
@@ -470,10 +447,10 @@
         <span class="whitespace-nowrap">Instalar App</span>
       </button>
 
+      <!-- Botón Ajustes (Solo Icono) -->
       <button onclick="openCampusSettingsModal()" title="Ajustes de Sede, Temas y Preferencias Locales" 
-              class="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-700/80 transition active:scale-95 shadow group shrink-0 whitespace-nowrap">
-        <i data-lucide="settings" class="w-3.5 h-3.5 text-sky-400 group-hover:rotate-45 transition-transform duration-200 shrink-0"></i>
-        <span class="hidden xl:inline whitespace-nowrap">Ajustes</span>
+              class="w-8 h-8 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700/80 transition active:scale-95 shadow group shrink-0" aria-label="Ajustes">
+        <i data-lucide="settings" class="w-4 h-4 text-sky-400 group-hover:rotate-45 transition-transform duration-200 shrink-0"></i>
       </button>
 
       <div id="topOperatorAvatar" title="Operador de Sede Conectado" class="w-7 h-7 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center shadow select-none shrink-0">
@@ -2581,36 +2558,305 @@ Te adoraré, te adoraré..."
 
       </div>
     </div>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- VIEW 6: TABLETA DEL PREDICADOR (PIZARRA & TELESTRATOR)                -->
+    <!-- --------------------------------------------------------------------- -->
+    <div id="viewTableta" class="w-full h-full flex flex-col p-3 md:p-4 gap-3 overflow-hidden hidden">
+      <!-- Top Bar -->
+      <div class="bg-[#0d131f] border border-slate-800 p-2.5 rounded-xl flex flex-wrap items-center justify-between gap-2.5 shrink-0 shadow-lg select-none">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+            <i data-lucide="edit-3" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+              Tableta del Predicador • Telestrator & Pizarra
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            </h3>
+            <p class="text-[10px] text-slate-400">Pizarra táctil en vivo y anotaciones con lápiz / resaltador sobre diapositivas</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Tally Status -->
+          <div class="flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono">
+            <span id="viewTabletaTallySala" class="font-bold text-slate-400">SALA: OFF</span>
+            <span class="text-slate-700">•</span>
+            <span id="viewTabletaTallyStream" class="font-bold text-amber-400">STREAM: CAPA 2</span>
+          </div>
+
+          <!-- Standalone link / iPad -->
+          <a id="btnOpenTabletaStandalone" href="/pad" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-bold text-xs shadow-md shadow-amber-950/40 transition active:scale-95">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            <span>Abrir en iPad / Pantalla Completa ↗</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Embedded Telestrator Frame -->
+      <div class="flex-1 w-full bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl relative">
+        <iframe id="tabletaEmbeddedIframe" src="/pad" class="w-full h-full border-0"></iframe>
+      </div>
+    </div>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- VIEW 7: MATRIZ DE PANTALLAS & SMART TV HUB                           -->
+    <!-- --------------------------------------------------------------------- -->
+    <div id="viewPantallas" class="w-full h-full flex flex-col p-3 md:p-4 gap-4 overflow-y-auto hidden">
+      <!-- Header -->
+      <div class="bg-[#0d131f] border border-slate-800 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-lg select-none">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500/20 to-indigo-500/20 border border-sky-500/30 text-sky-400 flex items-center justify-center">
+            <i data-lucide="tv-2" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+              Matriz de Pantallas & Smart TV Hub
+              <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">EN VIVO</span>
+            </h3>
+            <p class="text-xs text-slate-400">Enruta contenidos independientes a Proyectores, Retorno de Músicos, Smart TVs y Pantallas LED</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <a href="/projector.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-sky-500/40 hover:bg-slate-800 text-sky-300 text-xs font-bold transition flex items-center gap-1.5">
+            <i data-lucide="projector" class="w-3.5 h-3.5"></i>
+            <span>Proyector Altar ↗</span>
+          </a>
+          <a href="/stage.html" target="_blank" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-amber-500/40 hover:bg-slate-800 text-amber-300 text-xs font-bold transition flex items-center gap-1.5">
+            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+            <span>Stage Display ↗</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Nursery / Parent Calling Banner -->
+      <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 shadow-md">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-red-400 flex items-center gap-1.5">
+            <i data-lucide="bell" class="w-4 h-4"></i> Llamado a Padres (Alerta en Smart TVs de Sala Cuna):
+          </span>
+          <span class="text-[10px] font-mono text-slate-500">Parpadea inmediatamente en todas las pantallas de TV</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="text" id="tvAlertInputView" placeholder="Ej: Padres del bebé C-14 favor pasar a sala cuna..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:border-red-500 font-medium">
+          <button onclick="sendTvParentAlertFromView()" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center gap-1.5 shadow transition active:scale-95 shrink-0">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            <span>Enviar Alerta</span>
+          </button>
+          <button onclick="clearTvParentAlertFromView()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold shrink-0">
+            Limpiar
+          </button>
+        </div>
+
+        <!-- Quick Alert Chips -->
+        <div class="flex items-center gap-2 pt-1 overflow-x-auto text-[11px] scrollbar-none">
+          <span class="text-[10px] text-slate-500 font-mono">Rápidos:</span>
+          <button onclick="setQuickAlertTextView('Bebé C-14 favor pasar a sala cuna')" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">
+            Bebé C-14
+          </button>
+          <button onclick="setQuickAlertTextView('Bebé A-03 favor pasar a sala cuna')" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">
+            Bebé A-03
+          </button>
+          <button onclick="setQuickAlertTextView('Vehículo con luces encendidas en estacionamiento')" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800">
+            Auto en estacionamiento
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 Salidas Físicas e Inalámbricas -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <!-- Salida 1 -->
+        <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3 shadow-md hover:border-sky-500/40 transition">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="projector" class="w-4 h-4 text-sky-400"></i>
+              <h5 class="text-xs font-bold text-white">Salida 1: Proyector Altar</h5>
+            </div>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">HDMI 1080p</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Letras de alabanza gigantes, pasajes bíblicos y fondos dinámicos en el auditorio principal.</p>
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[10px] font-mono text-slate-500">/projector.html</span>
+            <a id="viewPantallasLinkProjector" href="/projector.html" target="_blank" class="text-xs text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1">
+              Abrir <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Salida 2 -->
+        <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3 shadow-md hover:border-amber-500/40 transition">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
+              <h5 class="text-xs font-bold text-white">Salida 2: Monitor Pastor</h5>
+            </div>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold">STAGE DISPLAY</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Retorno de músicos y púlpito con reloj de tiempo real, cronómetro y notas privadas.</p>
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[10px] font-mono text-slate-500">/stage.html</span>
+            <a id="viewPantallasLinkStage" href="/stage.html" target="_blank" class="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1">
+              Abrir <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Salida 3 -->
+        <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-amber-950/20 to-slate-900 border border-amber-500/40 space-y-3 shadow-lg">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="edit-3" class="w-4 h-4 text-amber-400"></i>
+              <h5 class="text-xs font-bold text-white">Salida 3: Tableta Púlpito</h5>
+            </div>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40">TELESTRATOR</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Pizarra táctil e iPad para dibujar sobre notas o diapositivas en tiempo real.</p>
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[10px] font-mono text-slate-500">/pad</span>
+            <button onclick="switchAtemTab('tableta')" class="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1">
+              Ver Pizarra <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Salida 4 -->
+        <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3 shadow-md hover:border-purple-500/40 transition">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i data-lucide="grid-3x3" class="w-4 h-4 text-purple-400"></i>
+              <h5 class="text-xs font-bold text-white">Salida 4: Pantallas LED</h5>
+            </div>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold">MAPEO LED</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Compositor Ultra-Wide 3840x1080 y tótems de escenario con slicing multicapa.</p>
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+            <span class="text-[10px] font-mono text-slate-500">Columna Mapeo</span>
+            <button onclick="switchAtemTab('arena')" class="text-xs text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1">
+              Ir a Mapeo <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Smart TV Hub Box -->
+      <div class="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4 shadow-xl">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+          <div class="space-y-0.5">
+            <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+              <i data-lucide="wifi" class="w-4 h-4"></i> ¿Cómo conectar cualquier Smart TV (Samsung, LG, Android TV, Roku, Fire TV)?
+            </span>
+            <p class="text-[11px] text-slate-400">Selecciona la sala de destino y el método de red para generar su enlace y código QR individual:</p>
+          </div>
+
+          <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 shrink-0">
+            <button type="button" onclick="setMatrixNetworkMode('local')" id="btnMatrixNetLocalView"
+                    class="px-3 py-1.5 rounded-lg bg-sky-600 text-white font-bold text-xs flex items-center gap-1.5 shadow transition">
+              <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+              <span>📶 Wi-Fi Local</span>
+            </button>
+            <button type="button" onclick="setMatrixNetworkMode('tunnel')" id="btnMatrixNetTunnelView"
+                    class="px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition">
+              <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
+              <span>☁️ Internet (Cloudflare)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Room Selector Chips -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-[11px] font-mono text-slate-500 uppercase tracking-wider mr-1">SALA TV:</span>
+          <button type="button" onclick="setMatrixRoom('cuneros')" class="matrix-room-btn-cuneros px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 bg-sky-500/20 border-sky-400 text-sky-200">
+            <span>👶 Cuneros (En Vivo)</span>
+          </button>
+          <button type="button" onclick="setMatrixRoom('lobby')" class="matrix-room-btn-lobby px-3 py-1.5 rounded-xl border text-xs font-medium transition flex items-center gap-1.5 bg-slate-900 border-slate-800 text-slate-300 hover:text-white">
+            <span>☕ Lobby (Bienvenida)</span>
+          </button>
+          <button type="button" onclick="setMatrixRoom('cartelera')" class="matrix-room-btn-cartelera px-3 py-1.5 rounded-xl border text-xs font-medium transition flex items-center gap-1.5 bg-slate-900 border-slate-800 text-slate-300 hover:text-white">
+            <span>📢 Cartelera (Avisos)</span>
+          </button>
+          <button type="button" onclick="setMatrixRoom('general')" class="matrix-room-btn-general px-3 py-1.5 rounded-xl border text-xs font-medium transition flex items-center gap-1.5 bg-slate-900 border-slate-800 text-slate-300 hover:text-white">
+            <span>🔀 Dinámica (Estudio)</span>
+          </button>
+        </div>
+
+        <!-- Card URL + QR Code Display -->
+        <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-col md:flex-row items-center gap-5 justify-between">
+          <div class="space-y-2 flex-1 w-full">
+            <div class="flex items-center gap-2">
+              <span id="matrixTvQrTitleView" class="text-xs font-bold text-amber-300 uppercase tracking-wider">👶 Sala Cuna / Culto en Vivo (Audio + Video)</span>
+              <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-black/60 text-slate-400 border border-slate-800">Modo fijado individualmente</span>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800 font-mono text-xs text-emerald-400 overflow-x-auto">
+              <span id="matrixTvUrlDisplayView" class="select-all truncate">http://localhost:3000/tv.html?room=Cuneros</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Abre el navegador en la Smart TV y entra a esta dirección, o escanea el código QR con un celular conectado a la red.</p>
+            <div class="flex items-center gap-2 pt-1">
+              <button onclick="copyMatrixTvUrl()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold flex items-center gap-1.5 transition active:scale-95">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span>Copiar</span>
+              </button>
+              <button onclick="openSelectedMatrixTv()" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold flex items-center gap-1.5 transition active:scale-95">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span>Abrir</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="p-2.5 bg-white rounded-xl shadow-lg shrink-0 flex items-center justify-center">
+            <img id="matrixTvQrImgView" src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=http%3A%2F%2Flocalhost%3A3000%2Ftv.html%3Froom%3DCuneros" alt="QR Smart TV" class="w-32 h-32 block">
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <!-- ========================================================================= -->
   <!-- 3. ATEM-STYLE BOTTOM NAVIGATION DOCK                                      -->
   <!-- ========================================================================= -->
   <footer class="h-10 bg-[#0a0e17] border-t border-slate-800/90 flex items-stretch justify-center px-2 shrink-0 select-none z-30">
-    <div class="flex items-stretch gap-1 w-full max-w-5xl">
+    <div class="flex items-stretch gap-1 w-full max-w-5xl overflow-x-auto scrollbar-none">
       <button onclick="switchAtemTab('letras')" id="tabBtnLetras" 
-              class="atem-dock-tab active flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-bold tracking-wider border-t-2 border-transparent hover:bg-slate-800/40 transition">
-        <span>1. LETRAS & BIBLIA</span>
+              class="atem-dock-tab active flex-1 flex items-center justify-center px-2.5 py-1.5 text-xs font-bold tracking-wider border-t-2 border-transparent hover:bg-slate-800/40 transition whitespace-nowrap">
+        <span>1. LETRAS</span>
       </button>
 
       <button onclick="switchAtemTab('wirecast')" id="tabBtnWirecast" 
-              class="atem-dock-tab flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition">
+              class="atem-dock-tab flex-1 flex items-center justify-center px-2.5 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition whitespace-nowrap">
         <span>2. SWITCHER</span>
       </button>
 
       <button onclick="switchAtemTab('rundown')" id="tabBtnRundown" 
-              class="atem-dock-tab flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition">
-        <span>3. MINUTO A MINUTO</span>
+              class="atem-dock-tab flex-1 flex items-center justify-center px-2.5 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition whitespace-nowrap">
+        <span>3. TIEMPOS</span>
       </button>
 
       <button onclick="switchAtemTab('audio')" id="tabBtnAudio" 
-              class="atem-dock-tab flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition">
+              class="atem-dock-tab flex-1 flex items-center justify-center px-2.5 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition whitespace-nowrap">
         <span>4. AUDIO</span>
       </button>
 
       <button onclick="switchAtemTab('arena')" id="tabBtnArena" 
-              class="atem-dock-tab flex-1 flex items-center justify-center px-3 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition">
+              class="atem-dock-tab flex-1 flex items-center justify-center px-2.5 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition whitespace-nowrap">
         <span>5. MAPEO</span>
+      </button>
+
+      <button onclick="switchAtemTab('tableta')" id="tabBtnTableta" 
+              class="atem-dock-tab flex-1 flex items-center justify-center px-2.5 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition whitespace-nowrap">
+        <span class="flex items-center gap-1.5">
+          <span>6. TABLETA</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+        </span>
+      </button>
+
+      <button onclick="switchAtemTab('pantallas')" id="tabBtnPantallas" 
+              class="atem-dock-tab flex-1 flex items-center justify-center px-2.5 py-1.5 text-xs font-bold tracking-wider text-slate-400 border-t-2 border-transparent hover:bg-slate-800/40 hover:text-slate-200 transition whitespace-nowrap">
+        <span class="flex items-center gap-1.5">
+          <span>7. PANTALLAS</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+        </span>
       </button>
     </div>
   </footer>
@@ -3263,13 +3509,13 @@ Te adoraré, te adoraré..."
     </div>
   </div>
 
-  <!-- Decodificadores maestros de video en raíz de body (sin oclusión detrás del footer ni display:none para garantizar decodificación GPU continua en Chrome) -->
-  <video id="programMediaVideo" muted playsinline preload="auto" style="position: fixed; bottom: 42px; right: 12px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
-  <video id="layer3ProgramVideo" muted playsinline preload="auto" style="position: fixed; bottom: 42px; right: 20px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
-  <video id="previewMediaVideo" muted playsinline preload="auto" style="position: fixed; bottom: 42px; right: 4px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
-  <video id="wirecastProgramVideo" muted playsinline preload="auto" style="position: fixed; bottom: 42px; right: 28px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
-  <video id="wirecastPreviewVideo" muted playsinline preload="auto" style="position: fixed; bottom: 42px; right: 36px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
-  <audio id="layer5AudioPlayer" loop playsinline preload="auto" style="display: none;"></audio>
+  <!-- Decodificadores maestros de video en raíz de body (con CORS anónimo habilitado para ruteo Web Audio y decodificación GPU continua) -->
+  <video id="programMediaVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 42px; right: 12px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
+  <video id="layer3ProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 42px; right: 20px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
+  <video id="previewMediaVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 42px; right: 4px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
+  <video id="wirecastProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 42px; right: 28px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
+  <video id="wirecastPreviewVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 42px; right: 36px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
+  <audio id="layer5AudioPlayer" crossorigin="anonymous" loop playsinline preload="auto" style="display: none;"></audio>
 
   <!-- ========================================================================= -->
   <!-- MODAL: AGREGAR / EDITAR BLOQUE DE MINUTO A MINUTO (SERVICE RUNDOWN)        -->
@@ -7048,6 +7294,18 @@ Te adoraré, te adoraré..."
         }
       }
 
+      const btnLocV = document.getElementById('btnMatrixNetLocalView');
+      const btnTunV = document.getElementById('btnMatrixNetTunnelView');
+      if (btnLocV && btnTunV) {
+        if (isTunnel) {
+          btnTunV.className = 'px-3 py-1.5 rounded-lg bg-sky-600 text-white font-bold text-xs flex items-center gap-1.5 shadow transition cursor-pointer';
+          btnLocV.className = 'px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition cursor-pointer';
+        } else {
+          btnLocV.className = 'px-3 py-1.5 rounded-lg bg-sky-600 text-white font-bold text-xs flex items-center gap-1.5 shadow transition cursor-pointer';
+          btnTunV.className = 'px-3 py-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white font-medium text-xs flex items-center gap-1.5 transition cursor-pointer';
+        }
+      }
+
       ['cuneros', 'lobby', 'cartelera', 'general'].forEach(r => {
         const pill = document.getElementById(`btnMatrixRoom-${r}`);
         if (pill) {
@@ -7057,6 +7315,13 @@ Te adoraré, te adoraré..."
             pill.className = 'px-2.5 py-1.5 rounded-lg bg-slate-900/90 text-slate-400 hover:text-white border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer';
           }
         }
+        document.querySelectorAll(`.matrix-room-btn-${r}`).forEach(btn => {
+          if (r === matrixSelectedRoom) {
+            btn.className = `matrix-room-btn-${r} px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 bg-sky-500/20 border-sky-400 text-sky-200`;
+          } else {
+            btn.className = `matrix-room-btn-${r} px-3 py-1.5 rounded-xl border text-xs font-medium transition flex items-center gap-1.5 bg-slate-900 border-slate-800 text-slate-300 hover:text-white`;
+          }
+        });
       });
 
       // Update satellite links with active church parameter
@@ -7080,6 +7345,11 @@ Te adoraré, te adoraré..."
       if (padLink) padLink.href = `/pad.html${churchQuery}`;
       if (padPath) padPath.textContent = `/pad${churchQuery}`;
 
+      const vpProj = document.getElementById('viewPantallasLinkProjector');
+      if (vpProj) vpProj.href = `/projector.html${churchQuery}`;
+      const vpStage = document.getElementById('viewPantallasLinkStage');
+      if (vpStage) vpStage.href = `/stage.html${churchQuery}`;
+
       const hlCuneros = document.getElementById('matrixHeaderLinkCuneros');
       if (hlCuneros) hlCuneros.href = `/tv.html?room=Cuneros&mode=service${churchAnd}`;
 
@@ -7095,11 +7365,16 @@ Te adoraré, te adoraré..."
       const currentUrl = getMatrixTvUrl(matrixSelectedRoom, isTunnel ? 'tunnel' : 'local');
       const displayEl = document.getElementById('matrixTvUrlDisplay');
       if (displayEl) displayEl.textContent = currentUrl;
+      const displayElV = document.getElementById('matrixTvUrlDisplayView');
+      if (displayElV) displayElV.textContent = currentUrl;
 
       const qrImg = document.getElementById('matrixTvQrImg');
       if (qrImg) qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(currentUrl)}`;
+      const qrImgV = document.getElementById('matrixTvQrImgView');
+      if (qrImgV) qrImgV.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(currentUrl)}`;
 
       const titleEl = document.getElementById('matrixTvQrTitle');
+      const titleElV = document.getElementById('matrixTvQrTitleView');
       const roomNames = {
         'cuneros': '👶 Sala Cuna / Culto en Vivo (Audio + Video)',
         'lobby': '☕ Lobby & Bienvenida (Reloj + Cuenta Regresiva)',
@@ -7107,6 +7382,7 @@ Te adoraré, te adoraré..."
         'general': '🔀 Pantalla Dinámica (Sigue al Estudio)'
       };
       if (titleEl) titleEl.textContent = roomNames[matrixSelectedRoom] || 'Smart TV Hub';
+      if (titleElV) titleElV.textContent = roomNames[matrixSelectedRoom] || 'Smart TV Hub';
       if (window.lucide) lucide.createIcons();
     }
 
@@ -7232,6 +7508,45 @@ Te adoraré, te adoraré..."
       if (inp) {
         inp.value = txt;
         sendTvParentAlert();
+      }
+    }
+
+    function sendTvParentAlertFromView() {
+      const inp = document.getElementById('tvAlertInputView');
+      if (!inp) return;
+      const text = inp.value.trim();
+      if (!text) {
+        showNotification('Escribe el mensaje o número de cuna para alertar', 'info');
+        return;
+      }
+      currentTvAlert = text;
+      tvChannel.postMessage({ type: 'SET_ALERT', alert: currentTvAlert });
+      fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_tv_alert', alert: currentTvAlert, churchId: getActiveChurchId() })
+      }).catch(() => {});
+      showNotification(`🚨 Alerta enviada a Smart TVs: "${text}"`, 'success');
+    }
+
+    function clearTvParentAlertFromView() {
+      currentTvAlert = '';
+      const inp = document.getElementById('tvAlertInputView');
+      if (inp) inp.value = '';
+      tvChannel.postMessage({ type: 'SET_ALERT', alert: '' });
+      fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'set_tv_alert', alert: '', churchId: getActiveChurchId() })
+      }).catch(() => {});
+      showNotification('Alerta de sala cuna retirada de las Smart TVs', 'info');
+    }
+
+    function setQuickAlertTextView(txt) {
+      const inp = document.getElementById('tvAlertInputView');
+      if (inp) {
+        inp.value = txt;
+        sendTvParentAlertFromView();
       }
     }
 
@@ -11446,10 +11761,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     function playMediaVideoElement(vidEl, url, options = {}) {
       if (!vidEl || !url) return;
       const loop = options.loop !== undefined ? options.loop : true;
-      const muted = options.muted !== undefined ? options.muted : false;
+      const muted = options.muted !== undefined ? options.muted : Boolean(activeVideoMuted);
 
       vidEl.loop = loop;
       vidEl.muted = muted;
+      try { vidEl.crossOrigin = 'anonymous'; } catch (e) {}
 
       const isProgramDecoder = (
         vidEl.id === 'programMediaVideo' ||
@@ -11458,6 +11774,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       );
       if (isProgramDecoder && typeof omniAudio !== 'undefined') {
         omniAudio.attachVideoElement(vidEl, url);
+        omniAudio.resume();
       }
 
       const isNewSource = (vidEl.getAttribute('data-src') !== url);
@@ -11478,7 +11795,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         const p = vidEl.play();
         if (p !== undefined) {
           p.catch(err => {
-            console.warn('[OmniCast Video Engine] Autoplay audio restringido por navegador, reproduciendo en modo protegido (muted):', err);
+            console.warn('[OmniCast Video Engine] Autoplay protegido por navegador:', err);
             vidEl.muted = true;
             vidEl.play().catch(e => console.warn('[OmniCast Video Engine] Muted retry error:', e));
           });
@@ -11998,12 +12315,10 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         progVid.loop = Boolean(activeVideoLoopEnabled);
 
         if (typeof omniAudio !== 'undefined') {
-          if (!progVid.muted) {
-            const attached = omniAudio.attachVideoElement(progVid, item.videoUrl);
-            if (!attached && !omniAudio.isSameOriginUrl(item.videoUrl) && !progVid._warnedExternalAudio) {
-              progVid._warnedExternalAudio = true;
-              showToast('⚠️ Video externo: suena en bocinas pero sube el MP4 local para enviarlo al streaming', 'ℹ️');
-            }
+          const attached = omniAudio.attachVideoElement(progVid, item.videoUrl);
+          if (!attached && !omniAudio.isSameOriginUrl(item.videoUrl) && !progVid._warnedExternalAudio) {
+            progVid._warnedExternalAudio = true;
+            showToast('⚠️ Video externo: suena en bocinas pero sube el MP4 local para enviarlo al streaming', 'ℹ️');
           }
           omniAudio.resume();
         }
@@ -12022,7 +12337,6 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
               if (err && err.name === 'AbortError') return;
               console.warn('[OmniCast Studio Video] Autoplay audio restringido, modo silenciado seguro:', err);
               progVid.muted = true;
-              activeVideoMuted = true;
               progVid.play().then(() => updateActiveVideoTransportUI()).catch(e => {
                 if (e && e.name !== 'AbortError') console.error('[OmniCast Studio Video] Error:', e);
               });
@@ -12279,7 +12593,6 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
                     if (p && typeof p.catch === 'function') {
                       p.catch(() => {
                         progVid.muted = true;
-                        activeVideoMuted = true;
                         progVid.play().catch(() => {});
                       });
                     }
@@ -12321,7 +12634,6 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
               if (p && typeof p.catch === 'function') {
                 p.catch(() => {
                   progVid.muted = true;
-                  activeVideoMuted = true;
                   progVid.play().catch(() => {});
                 });
               }
@@ -15570,7 +15882,6 @@ Pues resucitaste, Rey`
         return p.catch(err => {
           console.warn('[OmniCast Video Engine] Autoplay protegido por navegador. Reproduciendo en modo seguro:', err);
           vidEl.muted = true;
-          activeVideoMuted = true;
           updateActiveVideoTransportUI();
           return vidEl.play().catch(e => {
             console.error('[OmniCast Video Engine] Error crítico de reproducción:', e);
@@ -15796,10 +16107,9 @@ Pues resucitaste, Rey`
         if (typeof updateLayerPowerUI === 'function') updateLayerPowerUI(2);
         progVid.muted = Boolean(activeVideoMuted);
         progVid.loop = Boolean(activeVideoLoopEnabled);
+        progVid.muted = Boolean(activeVideoMuted);
         if (typeof omniAudio !== 'undefined') {
-          if (!progVid.muted) {
-            omniAudio.attachVideoElement(progVid, item.videoUrl);
-          }
+          omniAudio.attachVideoElement(progVid, item.videoUrl);
           omniAudio.resume();
         }
         progVid.play().then(() => {
@@ -15809,7 +16119,6 @@ Pues resucitaste, Rey`
         }).catch(err => {
           console.warn('Audio play restricted, trying safe mode:', err);
           progVid.muted = true;
-          activeVideoMuted = true;
           progVid.play().then(() => {
             sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime, loop: Boolean(activeVideoLoopEnabled) });
             broadcastSlide(false, true, 'play');
@@ -16111,7 +16420,13 @@ Pues resucitaste, Rey`
         }
         try {
           const parsed = new URL(u, window.location.origin);
-          return parsed.origin === window.location.origin;
+          if (parsed.origin === window.location.origin) return true;
+          if (parsed.pathname && parsed.pathname.startsWith('/uploads/')) return true;
+          const isLocal = (h) => h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.') || h.startsWith('10.') || h.startsWith('172.');
+          if (isLocal(parsed.hostname) && (parsed.port === window.location.port || !parsed.port)) {
+            return true;
+          }
+          return false;
         } catch (e) {
           return false;
         }
@@ -16429,13 +16744,15 @@ Pues resucitaste, Rey`
       attachVideoElement(vidEl, url) {
         if (!vidEl) return false;
         const srcUrl = url || vidEl.getAttribute('data-src') || vidEl.currentSrc || vidEl.src || '';
-        if (!this.isSameOriginUrl(srcUrl)) {
-          // URL externa sin CORS: dejar salida nativa intacta para no silenciar el video
+        if (srcUrl.startsWith('data:') || srcUrl.startsWith('blob:')) {
+          // soportado
+        } else if (!this.isSameOriginUrl(srcUrl) && !srcUrl.startsWith('http')) {
           return false;
         }
         const c = this.init();
         if (!c) return false;
         this.resume();
+        try { vidEl.crossOrigin = 'anonymous'; } catch (e) {}
         if (!vidEl._omniAudioSource) {
           try {
             vidEl._omniAudioSource = c.createMediaElementSource(vidEl);
@@ -16691,7 +17008,13 @@ Pues resucitaste, Rey`
       hasActiveProgramVideo() {
         return ['programMediaVideo', 'layer3ProgramVideo', 'wirecastProgramVideo'].some(id => {
           const v = document.getElementById(id);
-          return Boolean(v && !v.paused && !v.ended && !v.muted && v._omniAudioSource);
+          if (v && !v.paused && !v.ended) {
+            if (!v._omniAudioSource) {
+              this.attachVideoElement(v, v.getAttribute('data-src') || v.src || '');
+            }
+            return Boolean(v._omniAudioSource || v.readyState >= 2);
+          }
+          return false;
         });
       }
 
@@ -16700,7 +17023,7 @@ Pues resucitaste, Rey`
           hasRealAudioInputConnected() ||
           hasRealCh2InputConnected() ||
           this.isLayer5Playing ||
-          this.hasActiveProgramVideo() ||
+          (this.hasActiveProgramVideo() && !activeVideoMuted) ||
           fairlightState.testTone
         );
       }
@@ -16725,7 +17048,7 @@ Pues resucitaste, Rey`
         const m2 = hasRealCh2InputConnected() ? this._measureAnalyser(n.ch2Analyser) : { pct: 0, rms: 0, peak: 0 };
         const m3L = this.isLayer5Playing ? this._measureAnalyser(n.ch3AnalyserL) : { pct: 0, rms: 0, peak: 0 };
         const m3R = this.isLayer5Playing ? this._measureAnalyser(n.ch3AnalyserR) : { pct: 0, rms: 0, peak: 0 };
-        const m4 = this.hasActiveProgramVideo() ? this._measureAnalyser(n.ch4Analyser) : { pct: 0, rms: 0, peak: 0 };
+        const m4 = (this.hasActiveProgramVideo() && !activeVideoMuted) ? this._measureAnalyser(n.ch4Analyser) : { pct: 0, rms: 0, peak: 0 };
 
         // Auto-Ducking real: atenúa CH 4 (-12dB => gain ~0.251) cuando CH 1 detecta habla real
         const nowMs = performance.now();
@@ -21552,14 +21875,6 @@ Pues resucitaste, Rey`
     // DOCK NAVIGATION
     // -------------------------------------------------------------------------
     function switchAtemTab(tabName) {
-      const topBtnPantallas = document.getElementById('topBtnPantallas');
-      if (topBtnPantallas) {
-        if (tabName === 'letras' || tabName === 'rundown') {
-          topBtnPantallas.classList.remove('hidden');
-        } else {
-          topBtnPantallas.classList.add('hidden');
-        }
-      }
       document.getElementById('viewLetras').classList.add('hidden');
       document.getElementById('viewWirecast').classList.add('hidden');
       const viewRundown = document.getElementById('viewRundown');
@@ -21568,6 +21883,10 @@ Pues resucitaste, Rey`
       document.getElementById('viewAudio').classList.add('hidden');
       const viewHq = document.getElementById('viewHQ');
       if (viewHq) viewHq.classList.add('hidden');
+      const viewTableta = document.getElementById('viewTableta');
+      if (viewTableta) viewTableta.classList.add('hidden');
+      const viewPantallas = document.getElementById('viewPantallas');
+      if (viewPantallas) viewPantallas.classList.add('hidden');
 
       document.querySelectorAll('.atem-dock-tab').forEach(tab => {
         tab.classList.remove('active');
@@ -21581,7 +21900,9 @@ Pues resucitaste, Rey`
         rundown: 'topContextLetras',
         arena: 'topContextArena',
         audio: 'topContextAudio',
-        hq: 'topContextHq'
+        hq: 'topContextHq',
+        tableta: 'topContextLetras',
+        pantallas: 'topContextLetras'
       };
       Object.keys(contexts).forEach(key => {
         const el = document.getElementById(contexts[key]);
@@ -21618,6 +21939,48 @@ Pues resucitaste, Rey`
         document.getElementById('viewAudio').classList.remove('hidden');
         document.getElementById('tabBtnAudio').classList.add('active');
         document.getElementById('tabBtnAudio').classList.remove('text-slate-400');
+      } else if (tabName === 'tableta') {
+        if (viewTableta) viewTableta.classList.remove('hidden');
+        const tabTableta = document.getElementById('tabBtnTableta');
+        if (tabTableta) {
+          tabTableta.classList.add('active');
+          tabTableta.classList.remove('text-slate-400');
+        }
+        const cTarget = getActiveChurchId();
+        const iframe = document.getElementById('tabletaEmbeddedIframe');
+        if (iframe) {
+          const targetSrc = `/pad.html?church=${encodeURIComponent(cTarget)}`;
+          if (!iframe.src || !iframe.src.includes(`church=${encodeURIComponent(cTarget)}`)) {
+            iframe.src = targetSrc;
+          }
+        }
+        const standBtn = document.getElementById('btnOpenTabletaStandalone');
+        if (standBtn) {
+          standBtn.href = `/pad.html?church=${encodeURIComponent(cTarget)}`;
+        }
+        updateCabinPadButtonsUI();
+      } else if (tabName === 'pantallas') {
+        if (viewPantallas) viewPantallas.classList.remove('hidden');
+        const tabPantallas = document.getElementById('tabBtnPantallas');
+        if (tabPantallas) {
+          tabPantallas.classList.add('active');
+          tabPantallas.classList.remove('text-slate-400');
+        }
+        const cTarget = getActiveChurchId();
+        const projLink = document.getElementById('viewPantallasLinkProjector');
+        if (projLink) projLink.href = `/projector.html?church=${encodeURIComponent(cTarget)}`;
+        const stageLink = document.getElementById('viewPantallasLinkStage');
+        if (stageLink) stageLink.href = `/stage.html?church=${encodeURIComponent(cTarget)}`;
+
+        fetch('/api/info').then(r => r.json()).then(data => {
+          matrixNetworkInfo = data;
+          if (data && data.tunnelUrl) matrixNetworkMode = 'tunnel';
+          else matrixNetworkMode = 'local';
+          updateMatrixTvDisplay();
+        }).catch(() => {
+          matrixNetworkInfo = { primaryIp: window.location.hostname || 'localhost', port: window.location.port || '3000' };
+          updateMatrixTvDisplay();
+        });
       } else if (tabName === 'hq') {
         if (viewHq) viewHq.classList.remove('hidden');
         const tabHq = document.getElementById('tabBtnHq');
