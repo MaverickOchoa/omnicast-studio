@@ -319,9 +319,9 @@
 
       <!-- Sede Activa Aislada (Indicador Estático SaaS Comercial) -->
       <div id="activeTenantBadge" title="Sede Institucional Conectada (Entorno Aislado)" 
-           class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/60 rounded-lg px-2 py-1 text-left select-none shadow-sm max-w-[205px] overflow-hidden shrink">
+           class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/60 rounded-lg px-2 py-1 text-left select-none shadow-sm max-w-[140px] md:max-w-[205px] overflow-hidden shrink">
         <span id="activeTenantDot" class="w-2 h-2 rounded-full bg-slate-500 shrink-0"></span>
-        <span id="activeTenantName" class="text-xs font-semibold text-slate-200 max-w-[115px] truncate">OmniCast Studio</span>
+        <span id="activeTenantName" class="text-xs font-semibold text-slate-200 max-w-[75px] md:max-w-[115px] truncate">OmniCast Studio</span>
         <span id="activeTenantRoleBadge" class="hidden text-[9px] px-1 py-0.2 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30 font-mono font-bold max-w-[65px] truncate">SEDE AISLADA</span>
         <span id="activeTenantAccount" class="hidden text-[10px] text-slate-400">Autenticando...</span>
       </div>
@@ -367,7 +367,7 @@
       <button id="btnMasterStream" onclick="toggleMasterLiveStream()" title="Iniciar o Detener Transmisión en Vivo a YouTube / Facebook"
               class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-md shadow-emerald-950/40 active:scale-95 whitespace-nowrap shrink-0">
         <i data-lucide="radio" class="w-3.5 h-3.5 shrink-0"></i>
-        <span>TRANSMITIR EN VIVO</span>
+        <span><span class="hidden sm:inline">TRANSMITIR </span>EN VIVO</span>
       </button>
 
       <div id="livePill" class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-900 border border-slate-700/60 shadow-inner whitespace-nowrap shrink-0">
@@ -389,7 +389,7 @@
 
       <button onclick="toggleStreamLayoutQuick()" id="quickStreamLayoutBtnTop" title="Alternar disposición de Letras en Streaming (Lower Third vs Pantalla Completa)"
               class="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold px-2 py-1 rounded-lg border border-slate-800 transition active:scale-95 shadow whitespace-nowrap shrink-0">
-        <span class="text-slate-400 font-mono text-[10px]">STREAM:</span>
+        <span class="hidden md:inline text-slate-400 font-mono text-[10px]">STREAM:</span>
         <span id="quickStreamLayoutLabelTop" class="text-emerald-400 font-bold">📺 LOWER THIRD</span>
       </button>
 
@@ -435,6 +435,12 @@
         MUTE
       </button>
     </div>
+
+    <!-- 5. CONTEXT: TABLETA -->
+    <div id="topContextTableta" class="hidden"></div>
+
+    <!-- 6. CONTEXT: PANTALLAS -->
+    <div id="topContextPantallas" class="hidden"></div>
 
     <div class="h-4 w-[1px] bg-slate-800 mx-1"></div>
 
@@ -21901,8 +21907,8 @@ Pues resucitaste, Rey`
         arena: 'topContextArena',
         audio: 'topContextAudio',
         hq: 'topContextHq',
-        tableta: 'topContextLetras',
-        pantallas: 'topContextLetras'
+        tableta: 'topContextTableta',
+        pantallas: 'topContextPantallas'
       };
       Object.keys(contexts).forEach(key => {
         const el = document.getElementById(contexts[key]);
