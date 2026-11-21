@@ -95,26 +95,27 @@
   <main class="flex-1 relative overflow-hidden flex items-center justify-center p-2 sm:p-4 bg-[#05070c]">
 
     <!-- Layer 0: Telestrator Stage Canvas Container (16:9 Aspect Ratio) -->
-    <div id="viewportContainer" class="relative w-full max-w-6xl aspect-[16/9] max-h-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-[#090d16] flex items-center justify-center">
+    <div id="viewportContainer" class="relative w-full max-w-6xl aspect-[16/9] max-h-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-[#090d16] flex items-center justify-center [container-type:size]">
 
       <!-- Background: Live Slide Content (Active only in Telestrator Mode) -->
-      <div id="slideBackgroundLayer" class="absolute inset-0 flex flex-col items-center justify-center p-6 md:p-12 text-center pointer-events-none transition-all duration-300">
-        <!-- Badge -->
-        <span id="liveSlideBadge" class="mb-3 px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
-          VERSÍCULO BÍBLICO
-        </span>
-        <!-- Text 1 -->
-        <h2 id="liveSlideText" class="slide-bg-text text-xl sm:text-2xl md:text-4xl lg:text-5xl font-black text-white leading-tight max-w-4xl">
-          Cargando versículo o diapositiva activa...
-        </h2>
-        <!-- Text 2 -->
-        <p id="liveSlideSubText" class="slide-bg-text text-base sm:text-xl md:text-3xl font-bold text-slate-200 mt-3 max-w-4xl">
-          
-        </p>
-        <!-- Scripture reference or song title -->
-        <span id="liveSlideReference" class="mt-4 text-xs md:text-sm font-semibold text-slate-400 font-mono">
-          Reina Valera 1960
-        </span>
+      <div id="slideBackgroundLayer" class="absolute inset-0 flex flex-col items-center justify-center p-[4cqw] text-center pointer-events-none transition-all duration-300">
+        <div class="w-[94%] max-w-6xl flex flex-col items-center justify-center text-center">
+          <!-- Badge -->
+          <div id="liveSlideBadge" class="hidden mb-[1.5cqw] px-[2.2cqw] py-[0.5cqw] rounded-full text-[1.4cqw] font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            VERSO 1
+          </div>
+          <!-- Text 1 -->
+          <h2 id="liveSlideText" class="slide-bg-text text-[3.8cqw] font-black text-white leading-tight tracking-wide">
+            Cargando versículo o diapositiva activa...
+          </h2>
+          <!-- Text 2 -->
+          <p id="liveSlideSubText" class="slide-bg-text text-[3.8cqw] font-black text-white leading-tight tracking-wide mt-[1.2cqw]">
+            
+          </p>
+        </div>
+        <!-- Scripture reference or song title (watermark in bottom right, identical to projector so it never shifts the center) -->
+        <div id="liveSlideReference" class="absolute bottom-3 right-4 text-xs font-semibold text-slate-400/60 font-mono">
+        </div>
       </div>
 
       <!-- Blackboard Grid Overlay (Active only in Blackboard Mode) -->
@@ -464,18 +465,20 @@
       ctx.lineJoin = 'round';
 
       if (stroke.tool === 'highlighter') {
-        ctx.globalAlpha = 0.45;
-        ctx.strokeStyle = stroke.color;
-        ctx.fillStyle = stroke.color;
-        ctx.lineWidth = stroke.size * 2.8;
+        ctx.globalAlpha = 0.28;
+        ctx.globalCompositeOperation = 'screen';
+        ctx.strokeStyle = stroke.color || '#facc15';
+        ctx.fillStyle = stroke.color || '#facc15';
+        ctx.lineWidth = (stroke.size || 6) * 2.5;
       } else if (stroke.tool === 'eraser') {
         ctx.globalCompositeOperation = 'destination-out';
-        ctx.lineWidth = stroke.size * 3.5;
+        ctx.lineWidth = (stroke.size || 6) * 3.5;
       } else {
         ctx.globalAlpha = 1.0;
-        ctx.strokeStyle = stroke.color;
-        ctx.fillStyle = stroke.color;
-        ctx.lineWidth = stroke.size;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = stroke.color || '#facc15';
+        ctx.fillStyle = stroke.color || '#facc15';
+        ctx.lineWidth = stroke.size || 6;
       }
     }
 
@@ -551,17 +554,58 @@
       }
     }
 
-    // 9. Update Live Slide Content Background
+    // 9. Update Live Slide Content Background (Ambas líneas con tipografía e interlineado idéntico)
     function updateSlideBackground(data) {
       const badgeEl = document.getElementById('liveSlideBadge');
       const textEl = document.getElementById('liveSlideText');
       const subTextEl = document.getElementById('liveSlideSubText');
       const refEl = document.getElementById('liveSlideReference');
 
-      if (badgeEl) badgeEl.textContent = data.badge || (data.isBible ? 'SAGRADAS ESCRITURAS' : 'ALABANZA');
-      if (textEl) textEl.textContent = data.text || '';
-      if (subTextEl) subTextEl.textContent = data.subText || '';
-      if (refEl) refEl.textContent = data.songTitle || (data.author ? `• ${data.author}` : '');
+      const txt = (data.text || '').trim();
+      const sub = (data.subText || '').trim();
+      const combinedLength = txt.length + sub.length;
+
+      const isUp = typeof data.isUppercase === 'boolean' ? data.isUppercase : true;
+
+      let fontClass = 'text-[3.6cqw]';
+      let marginClass = 'mt-[1.2cqw]';
+      if (combinedLength > 120) {
+        fontClass = 'text-[2.4cqw]';
+        marginClass = 'mt-[0.8cqw]';
+      } else if (combinedLength > 55) {
+        fontClass = 'text-[3.0cqw]';
+        marginClass = 'mt-[1.0cqw]';
+      }
+
+      if (textEl) {
+        textEl.textContent = txt;
+        textEl.style.textTransform = isUp ? 'uppercase' : 'none';
+        textEl.className = `slide-bg-text font-black text-white leading-tight tracking-wide ${fontClass}`;
+      }
+      if (subTextEl) {
+        subTextEl.textContent = sub;
+        subTextEl.style.textTransform = isUp ? 'uppercase' : 'none';
+        if (sub) {
+          subTextEl.className = `slide-bg-text font-black text-white leading-tight tracking-wide ${fontClass} ${marginClass}`;
+          subTextEl.classList.remove('hidden');
+        } else {
+          subTextEl.classList.add('hidden');
+        }
+      }
+
+      if (badgeEl) {
+        if (data.badge) {
+          badgeEl.textContent = data.badge;
+          badgeEl.className = 'mb-[1.5cqw] px-[2.2cqw] py-[0.5cqw] rounded-full text-[1.4cqw] font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30';
+          badgeEl.classList.remove('hidden');
+        } else {
+          badgeEl.classList.add('hidden');
+        }
+      }
+
+      if (refEl) {
+        refEl.textContent = data.songTitle || (data.author ? `• ${data.author}` : '');
+      }
     }
 
     // 10. Update Tally Status Badges
@@ -607,10 +651,24 @@
       }
     };
 
+    // 12. Load last slide from localStorage on initial load
+    function loadSavedSlide() {
+      try {
+        const saved = localStorage.getItem('omnicast_current_slide');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && !parsed.isClear) {
+            updateSlideBackground(parsed);
+          }
+        }
+      } catch (e) {}
+    }
+
     // Initialize
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
       resizeCanvas();
+      loadSavedSlide();
       connectWebSocket();
     });
   </script>

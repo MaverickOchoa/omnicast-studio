@@ -826,13 +826,13 @@
               <span id="textCabinPadProjector">SALA (OFF)</span>
             </button>
 
-            <!-- Stream Operator Toggle -->
-            <button id="btnCabinPadStream" onclick="togglePadLiveStream()"
-                    title="Operador de Streaming: Superponer trazos sobre la transmisión"
-                    class="flex-1 py-1.5 px-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition active:scale-95 shadow">
+            <!-- Stream Operator Info Badge (Controlled by Stream Operator via Capa 2) -->
+            <div id="btnCabinPadStream"
+                 title="Controlado por el Operador de Streaming desde Capa 2 del Switcher"
+                 class="flex-1 py-1.5 px-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 font-mono text-[10px] flex items-center justify-center gap-1 cursor-default">
               <span id="dotCabinPadStream" class="w-2 h-2 rounded-full bg-slate-600"></span>
-              <span id="textCabinPadStream">STREAM (OFF)</span>
-            </button>
+              <span id="textCabinPadStream">STREAM: CAPA 2</span>
+            </div>
 
             <!-- Clear button -->
             <button onclick="cabinClearPadStrokes()" title="Limpiar trazos de la tableta"
@@ -4597,25 +4597,25 @@ Te adoraré, te adoraré..."
   <!-- MODAL: MATRIZ DE SALIDAS & SMART TV HUB (PANTALLAS SIN CABLE HDMI)        -->
   <!-- ========================================================================= -->
   <div id="displayMatrixModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 md:p-4">
-    <div class="bg-[#0b101a] border border-slate-700/80 rounded-2xl max-w-4xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[94vh] overflow-hidden">
+    <div class="bg-[#0b101a] border border-slate-700/80 rounded-2xl max-w-5xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[94vh] overflow-hidden">
       
       <!-- Modal Header -->
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
         <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 shadow-inner">
+          <div class="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 shadow-inner shrink-0">
             <i data-lucide="tv-2" class="w-5 h-5"></i>
           </div>
           <div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <h3 class="text-base font-bold text-white tracking-wide">Matriz de Pantallas & Smart TV Hub</h3>
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase">
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase whitespace-nowrap">
                 4 Salidas Activas • Sin Cables HDMI
               </span>
             </div>
             <p class="text-xs text-slate-400">Enruta contenidos independientes a Proyectores, Retorno de Músicos, Smart TVs de pasillos y Pantallas LED</p>
           </div>
         </div>
-        <button onclick="closeDisplayMatrixModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+        <button onclick="closeDisplayMatrixModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition shrink-0" title="Cerrar">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -4827,8 +4827,6 @@ Te adoraré, te adoraré..."
               </button>
             </div>
           </div>
-        </div>
-
         </div>
 
         <!-- Connection Instructions Box with QR & Room Picker -->
@@ -6315,6 +6313,21 @@ Te adoraré, te adoraré..."
 
       if (layerId === 1) {
         if (typeof syncLayer1ToProjector === 'function') syncLayer1ToProjector();
+      }
+
+      if (layerId === 2) {
+        const isPadOnProgram = Boolean(layerPower[2] && (wirecastState.program[2] === 7 || (shotConfig && shotConfig[2] && shotConfig[2].find(s => s.id === wirecastState.program[2] && s.type === 'telestrator'))));
+        if (padLiveStream !== isPadOnProgram) {
+          padLiveStream = isPadOnProgram;
+          updateCabinPadButtonsUI();
+          if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN) {
+            cabinPadWs.send(JSON.stringify({
+              type: 'toggle_stream',
+              churchId: getActiveChurchId(),
+              enabled: padLiveStream
+            }));
+          }
+        }
       }
 
       updateLayerPowerUI(layerId);
@@ -12539,7 +12552,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           if (monLowerThird) {
             monLowerThird.classList.remove('hidden');
             monLowerThird.style.opacity = '1';
-            monLowerThirdText.textContent = slide.text;
+            monLowerThirdText.innerHTML = slide.subText 
+              ? `${slide.text}<br><span class="text-white font-bold">${slide.subText}</span>` 
+              : slide.text;
             monLowerThirdSub.textContent = `${item.title} • ${slide.badge || 'En Vivo'}`;
           }
         }
@@ -12548,7 +12563,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       // Sincronizar texto de la diapositiva en el monitor mini-preview y en la tableta del predicador
       const monPadBgText = document.getElementById('monPadBgText');
       if (monPadBgText) {
-        monPadBgText.textContent = isClear ? '[Pantalla Limpia]' : (slide ? slide.text : '');
+        monPadBgText.textContent = isClear ? '[Pantalla Limpia]' : (slide ? (slide.subText ? `${slide.text} / ${slide.subText}` : slide.text) : '');
       }
       if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN && !isClear && slide) {
         try {
@@ -12560,7 +12575,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             badge: slide.badge || (item.category === 'biblia' ? 'SAGRADAS ESCRITURAS' : 'ALABANZA'),
             songTitle: item.title || '',
             author: item.author || '',
-            isBible: item.category === 'biblia'
+            isBible: item.category === 'biblia',
+            isUppercase: Boolean(lyricsStyleConfig && lyricsStyleConfig.isUppercase)
           }));
         } catch (e) {}
       }
@@ -12627,15 +12643,17 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
         const scale = width / 1920;
         if (stroke.tool === 'highlighter') {
-          targetCtx.globalAlpha = 0.45;
+          targetCtx.globalAlpha = 0.28;
+          targetCtx.globalCompositeOperation = 'screen';
           targetCtx.strokeStyle = stroke.color || '#facc15';
           targetCtx.fillStyle = stroke.color || '#facc15';
-          targetCtx.lineWidth = Math.max(3, (stroke.size || 6) * scale * 3.0);
+          targetCtx.lineWidth = Math.max(3, (stroke.size || 6) * scale * 2.5);
         } else if (stroke.tool === 'eraser') {
           targetCtx.globalCompositeOperation = 'destination-out';
           targetCtx.lineWidth = Math.max(4, (stroke.size || 6) * scale * 3.8);
         } else {
           targetCtx.globalAlpha = 1.0;
+          targetCtx.globalCompositeOperation = 'source-over';
           targetCtx.strokeStyle = stroke.color || '#facc15';
           targetCtx.fillStyle = stroke.color || '#facc15';
           targetCtx.lineWidth = Math.max(2, (stroke.size || 6) * scale * 1.6);
@@ -12697,13 +12715,13 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       if (btnStrm && dotStrm && txtStrm) {
         if (padLiveStream) {
-          btnStrm.className = 'flex-1 py-1.5 px-2 rounded-lg bg-purple-600/20 border border-purple-500/50 text-purple-300 font-bold text-[10px] flex items-center justify-center gap-1 transition active:scale-95 shadow animate-pulse';
-          dotStrm.className = 'w-2 h-2 rounded-full bg-purple-400';
-          txtStrm.textContent = 'STREAM (ON)';
+          btnStrm.className = 'flex-1 py-1.5 px-2 rounded-lg bg-red-600/20 border border-red-500/50 text-red-300 font-mono text-[10px] font-bold flex items-center justify-center gap-1 cursor-default animate-pulse shadow';
+          dotStrm.className = 'w-2 h-2 rounded-full bg-red-400';
+          txtStrm.textContent = 'STREAM: AL AIRE';
         } else {
-          btnStrm.className = 'flex-1 py-1.5 px-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition active:scale-95 shadow';
+          btnStrm.className = 'flex-1 py-1.5 px-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-400 font-mono text-[10px] flex items-center justify-center gap-1 cursor-default';
           dotStrm.className = 'w-2 h-2 rounded-full bg-slate-600';
-          txtStrm.textContent = 'STREAM (OFF)';
+          txtStrm.textContent = 'STREAM: CAPA 2';
         }
       }
     }
@@ -12721,15 +12739,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     }
 
     function togglePadLiveStream() {
-      padLiveStream = !padLiveStream;
-      updateCabinPadButtonsUI();
-      if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN) {
-        cabinPadWs.send(JSON.stringify({
-          type: 'toggle_stream',
-          churchId: getActiveChurchId(),
-          enabled: padLiveStream
-        }));
-      }
+      // La emisión de la tableta a streaming es controlada por el Operador de Transmisión en la Capa 2 del Switcher
+      alert('La salida a Streaming de la Tableta Púlpito la controla el Operador de Transmisión desde la Capa 2 (Toma 7: Tableta Púlpito) en el Switcher.');
     }
 
     function cabinClearPadStrokes() {
@@ -12768,6 +12779,38 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             clearTimeout(cabinPadWsReconnectTimer);
             cabinPadWsReconnectTimer = null;
           }
+          // Sincronizar estado actual de stream y sala con el servidor WebSocket
+          try {
+            const isPadOnProgram = Boolean(layerPower[2] && (wirecastState.program[2] === 7 || (shotConfig && shotConfig[2] && shotConfig[2].find(s => s.id === wirecastState.program[2] && s.type === 'telestrator'))));
+            padLiveStream = isPadOnProgram;
+            cabinPadWs.send(JSON.stringify({
+              type: 'toggle_stream',
+              churchId: getActiveChurchId(),
+              enabled: padLiveStream
+            }));
+            cabinPadWs.send(JSON.stringify({
+              type: 'toggle_projector',
+              churchId: getActiveChurchId(),
+              enabled: padLiveProjector
+            }));
+            if (typeof currentItemIndex === 'number' && currentItemIndex >= 0 && typeof currentSlideIndex === 'number' && currentSlideIndex >= 0 && typeof libraryItems !== 'undefined') {
+              const curIt = libraryItems[currentItemIndex];
+              const curSl = curIt ? (curIt.slides || [])[currentSlideIndex] : null;
+              if (curSl) {
+                cabinPadWs.send(JSON.stringify({
+                  type: 'slide_sync',
+                  churchId: getActiveChurchId(),
+                  text: curSl.text || '',
+                  subText: curSl.subText || '',
+                  badge: curSl.badge || (curIt.category === 'biblia' ? 'SAGRADAS ESCRITURAS' : 'ALABANZA'),
+                  songTitle: curIt.title || '',
+                  author: curIt.author || '',
+                  isBible: curIt.category === 'biblia',
+                  isUppercase: Boolean(lyricsStyleConfig && lyricsStyleConfig.isUppercase)
+                }));
+              }
+            }
+          } catch (e) {}
         };
 
         cabinPadWs.onmessage = (ev) => {
@@ -12776,10 +12819,18 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             if (msg.type === 'init') {
               cabinPadStrokes = msg.strokes || [];
               padLiveProjector = Boolean(msg.liveProjector);
-              padLiveStream = Boolean(msg.liveStream);
+              const isPadOnProgram = Boolean(layerPower[2] && (wirecastState.program[2] === 7 || (shotConfig && shotConfig[2] && shotConfig[2].find(s => s.id === wirecastState.program[2] && s.type === 'telestrator'))));
+              padLiveStream = isPadOnProgram;
               if (msg.mode) padMode = msg.mode;
               updateCabinPadButtonsUI();
               redrawCabinPadPreview();
+              if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN && Boolean(msg.liveStream) !== padLiveStream) {
+                cabinPadWs.send(JSON.stringify({
+                  type: 'toggle_stream',
+                  churchId: getActiveChurchId(),
+                  enabled: padLiveStream
+                }));
+              }
             } else if (msg.type === 'stroke_start') {
               if (msg.stroke) cabinPadStrokes.push(msg.stroke);
               redrawCabinPadPreview();
@@ -12842,7 +12893,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
     const shotNames = {
       1: { 1: 'Logo Oficial Blanco', 2: 'Logo Dorado Especial', 3: 'Watermark Discreto' },
-      2: { 1: 'Letras en Vivo', 2: 'Pr. David Mendoza (LT)', 3: 'Cintillo Diezmos', 4: 'Bienvenidos' },
+      2: { 1: 'Letras en Vivo', 2: 'Pr. David Mendoza (LT)', 3: 'Cintillo Diezmos', 4: 'Bienvenidos', 5: 'Redes Sociales', 6: 'QR Enlace', 7: 'Tableta Púlpito' },
       3: { 1: 'Video Nacional CDN (Campaña 2026)', 2: 'Video Local (Retiro Jóvenes GDL)' },
       4: { 1: 'Cámara 1: Púlpito', 2: 'Cámara 2: Altar Abierto', 3: 'Cámara 3: Músicos', 4: 'PiP Split Screen' },
       5: { 1: 'Audio Focusrite USB', 2: 'Pad Oración' }
@@ -12893,7 +12944,8 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         { id: 3, title: 'TICKER INFORMATIVO', subtitle: 'Cintillo inferior', type: 'ticker', tickerText: 'BIENVENIDOS • TRANSMISIÓN EN VIVO • COMPARTE ESTA REUNIÓN', badge: 'TICKER', color: 'emerald' },
         { id: 4, title: 'BIENVENIDA', subtitle: '¡Bienvenidos!', type: 'banner', bannerTitle: '¡Bienvenidos!', bannerSubtitle: 'Reunión de Celebración', badge: 'BANNER', color: 'purple' },
         { id: 5, title: 'REDES SOCIALES', subtitle: 'Redes Sociales', type: 'social', socialHandle: 'Síguenos en Redes Sociales • En Vivo', badge: 'REDES', color: 'sky' },
-        { id: 6, title: 'QR ENLACE', subtitle: 'Código QR', type: 'qr', qrLabel: 'Escanea el código QR', badge: 'QR', color: 'rose' }
+        { id: 6, title: 'QR ENLACE', subtitle: 'Código QR', type: 'qr', qrLabel: 'Escanea el código QR', badge: 'QR', color: 'rose' },
+        { id: 7, title: 'TABLETA PÚLPITO', subtitle: 'Pizarra & Telestrator', type: 'telestrator', badge: 'TELESTRATOR', color: 'amber' }
       ],
       4: [
         { id: 1, title: 'CAM 1', subtitle: 'Púlpito Principal', type: 'camera', channel: 1, badge: 'HDMI Ingest 1', color: 'red' },
@@ -12943,6 +12995,20 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       if (!loaded) {
         // Nueva institución o sucursal: plantilla completamente limpia y neutral
         loaded = JSON.parse(JSON.stringify(DEFAULT_SHOTS));
+      }
+
+      if (loaded && loaded[2]) {
+        const hasTelestrator = loaded[2].some(s => s.type === 'telestrator');
+        if (!hasTelestrator) {
+          loaded[2].push({
+            id: 7,
+            title: 'TABLETA PÚLPITO',
+            subtitle: 'Pizarra & Telestrator',
+            type: 'telestrator',
+            badge: 'TELESTRATOR',
+            color: 'amber'
+          });
+        }
       }
 
       // Asegurar que ninguna toma de cámara quede en modo PiP accidental sin borrar configuraciones de celular o video
@@ -18123,6 +18189,18 @@ Pues resucitaste, Rey`
         if (layer === 2 && shotId === 2) {
           lowerThirdConfig.activeSince = Date.now();
         }
+        if (layer === 2) {
+          const isPadActive = Boolean(shotId === 7 || (shotConfig && shotConfig[2] && shotConfig[2].find(s => s.id === shotId && s.type === 'telestrator')));
+          padLiveStream = isPadActive && Boolean(layerPower[2]);
+          updateCabinPadButtonsUI();
+          if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN) {
+            cabinPadWs.send(JSON.stringify({
+              type: 'toggle_stream',
+              churchId: getActiveChurchId(),
+              enabled: padLiveStream
+            }));
+          }
+        }
         updateWirecastRackUI();
         if (typeof renderCompositor === 'function') renderCompositor(true);
         return;
@@ -18301,6 +18379,20 @@ Pues resucitaste, Rey`
         const outgoing2 = wirecastState.program[2];
         wirecastState.program[2] = wirecastState.preview[2];
         wirecastState.preview[2] = outgoing2;
+      }
+
+      // Sincronizar estado Tally de la Tableta Púlpito
+      const isPadOnProgram = Boolean(layerPower[2] && (wirecastState.program[2] === 7 || (shotConfig && shotConfig[2] && shotConfig[2].find(s => s.id === wirecastState.program[2] && s.type === 'telestrator'))));
+      if (padLiveStream !== isPadOnProgram) {
+        padLiveStream = isPadOnProgram;
+        updateCabinPadButtonsUI();
+        if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN) {
+          cabinPadWs.send(JSON.stringify({
+            type: 'toggle_stream',
+            churchId: getActiveChurchId(),
+            enabled: padLiveStream
+          }));
+        }
       }
 
       // Al conmutar en el Switcher (CUT / AUTO), pausar cualquier video de pantalla completa de la pestaña Letras
@@ -18531,6 +18623,26 @@ Pues resucitaste, Rey`
       }
       ctx.drawImage(vidEl, drawX, drawY, drawW, drawH);
       return true;
+    }
+
+    // Helper profesional: Partición y dibujo multilínea con auto-wrap para streaming
+    function wrapTextLines(context, text, maxWidth) {
+      if (!text) return [];
+      const words = String(text).split(' ');
+      const lines = [];
+      let currentLine = words[0] || '';
+      for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const width = context.measureText(currentLine + ' ' + word).width;
+        if (width < maxWidth) {
+          currentLine += ' ' + word;
+        } else {
+          lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+      return lines;
     }
 
     function drawComposedFrame(ctx, state, isProgram, options = {}) {
@@ -19108,25 +19220,6 @@ Pues resucitaste, Rey`
             }
 
           } else {
-            // Helper profesional: Partición y dibujo multilínea con auto-wrap para streaming
-            function wrapTextLines(context, text, maxWidth) {
-              const words = text.split(' ');
-              const lines = [];
-              let currentLine = words[0] || '';
-              for (let i = 1; i < words.length; i++) {
-                const word = words[i];
-                const width = context.measureText(currentLine + ' ' + word).width;
-                if (width < maxWidth) {
-                  currentLine += ' ' + word;
-                } else {
-                  lines.push(currentLine);
-                  currentLine = word;
-                }
-              }
-              if (currentLine) lines.push(currentLine);
-              return lines;
-            }
-
             // Standard Song / Bible Text -> Configurable Broadcast Lower Third or Full Screen
             const themeAccent = {
               purple: '#a855f7',
@@ -19143,7 +19236,9 @@ Pues resucitaste, Rey`
               : (lyricsStyleConfig.fontFamily === 'Montserrat' ? 'Montserrat, sans-serif'
               : (lyricsStyleConfig.fontFamily === 'Caveat' ? 'Caveat, cursive' : 'Inter, sans-serif'));
 
-            const slideTxt = lyricsStyleConfig.isUppercase ? slide.text.toUpperCase() : slide.text;
+            const slideTxt = lyricsStyleConfig.isUppercase ? (slide.text || '').toUpperCase() : (slide.text || '');
+            const subTxt = slide.subText ? (lyricsStyleConfig.isUppercase ? slide.subText.toUpperCase() : slide.subText) : '';
+            const combinedTxt = subTxt ? (slideTxt + ' ' + subTxt) : slideTxt;
 
             // Si Capa 4 está reproduciendo un Video Clip activo, mantener Capa 2 como Lower Third transparente para no tapar el video
             const useFullScreenLyrics = (lyricsStyleConfig.streamLayout === 'fullScreen') && !(layerPower[4] && isVideoShot && currentShot && currentShot.videoUrl);
@@ -19166,24 +19261,26 @@ Pues resucitaste, Rey`
               ctx.textAlign = 'center';
               const maxFullWidth = 1600;
 
-              // Calcular tamaño de fuente según longitud
-              let fontSize = 60;
-              let lineHeight = 76;
-              if (slideTxt.length > 180) {
-                fontSize = 36;
-                lineHeight = 48;
-              } else if (slideTxt.length > 110) {
+              // Calcular tamaño de fuente según longitud combinada (ambas líneas con tipografía idéntica)
+              let fontSize = 56;
+              let lineHeight = 72;
+              if (combinedTxt.length > 150) {
+                fontSize = 38;
+                lineHeight = 52;
+              } else if (combinedTxt.length > 90) {
                 fontSize = 44;
                 lineHeight = 58;
-              } else if (slideTxt.length > 60) {
-                fontSize = 52;
-                lineHeight = 66;
+              } else if (combinedTxt.length > 50) {
+                fontSize = 50;
+                lineHeight = 64;
               }
 
               ctx.font = `bold ${fontSize}px ${fontName}`;
-              const lines = wrapTextLines(ctx, slideTxt, maxFullWidth);
+              const lines1 = wrapTextLines(ctx, slideTxt, maxFullWidth);
+              const lines2 = subTxt ? wrapTextLines(ctx, subTxt, maxFullWidth) : [];
+              const allLines = [...lines1, ...lines2];
 
-              const totalTextHeight = lines.length * lineHeight;
+              const totalTextHeight = allLines.length * lineHeight;
               let startY = 540 - (totalTextHeight / 2) + (fontSize / 2);
 
               if (slide.badge) {
@@ -19194,39 +19291,38 @@ Pues resucitaste, Rey`
 
               ctx.fillStyle = '#ffffff';
               ctx.font = `bold ${fontSize}px ${fontName}`;
-              lines.forEach((line, idx) => {
+              allLines.forEach((line, idx) => {
                 ctx.fillText(line, 960, startY + (idx * lineHeight));
               });
 
-              if (slide.subText) {
-                ctx.fillStyle = '#cbd5e1';
-                ctx.font = `28px ${fontName}`;
-                ctx.fillText(slide.subText, 960, startY + totalTextHeight + 45);
-              }
               ctx.restore();
             } else {
               // Mode B: Sleek Broadcast Lower Third Over Cameras (Alpha Friendly) con Auto-wrap
               ctx.save();
               const maxL3Width = 1580;
 
-              // Calcular tamaño dinámico y líneas
-              let l3FontSize = 40;
-              let l3LineHeight = 50;
-              if (slideTxt.length > 160) {
-                l3FontSize = 28;
-                l3LineHeight = 36;
-              } else if (slideTxt.length > 90) {
-                l3FontSize = 32;
-                l3LineHeight = 42;
+              // Calcular tamaño dinámico y líneas para ambas líneas con igual tamaño
+              let l3FontSize = 38;
+              let l3LineHeight = 48;
+              if (combinedTxt.length > 140) {
+                l3FontSize = 26;
+                l3LineHeight = 34;
+              } else if (combinedTxt.length > 80) {
+                l3FontSize = 30;
+                l3LineHeight = 40;
               }
 
               ctx.font = `bold ${l3FontSize}px ${fontName}`;
-              let l3Lines = wrapTextLines(ctx, slideTxt, maxL3Width);
+              let l3Lines1 = wrapTextLines(ctx, slideTxt, maxL3Width);
+              let l3Lines2 = subTxt ? wrapTextLines(ctx, subTxt, maxL3Width) : [];
+              let l3Lines = [...l3Lines1, ...l3Lines2];
               if (l3Lines.length > 3) {
-                l3FontSize = 26;
-                l3LineHeight = 34;
+                l3FontSize = 24;
+                l3LineHeight = 32;
                 ctx.font = `bold ${l3FontSize}px ${fontName}`;
-                l3Lines = wrapTextLines(ctx, slideTxt, maxL3Width);
+                l3Lines1 = wrapTextLines(ctx, slideTxt, maxL3Width);
+                l3Lines2 = subTxt ? wrapTextLines(ctx, subTxt, maxL3Width) : [];
+                l3Lines = [...l3Lines1, ...l3Lines2];
               }
 
               const headerHeight = 35;
@@ -19353,20 +19449,196 @@ Pues resucitaste, Rey`
           ctx.fillStyle = '#c084fc';
           ctx.font = '26px Inter, sans-serif';
           ctx.fillText('Reunión Dominical de Celebración', 160, 965);
+
+        } else if (overlayShot === 5) {
+          // Shot 5: Redes Sociales
+          ctx.save();
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.rect(120, 850, 780, 150);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 36px Inter, sans-serif';
+          ctx.fillText('Síguenos en Redes Sociales', 160, 915);
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = '26px Inter, sans-serif';
+          ctx.fillText('@comunidadcristiananacional • En Vivo', 160, 965);
+          ctx.restore();
+
+        } else if (overlayShot === 6) {
+          // Shot 6: QR Enlace
+          ctx.save();
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+          ctx.strokeStyle = '#f43f5e';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.rect(120, 830, 680, 170);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 34px Inter, sans-serif';
+          ctx.fillText('📱 Escanea el Código QR', 160, 895);
+          ctx.fillStyle = '#fb7185';
+          ctx.font = '24px Inter, sans-serif';
+          ctx.fillText('Peticiones, Estudios y Grupos de Conexión', 160, 950);
+          ctx.restore();
+
+        } else if (overlayShot === 7 || (shotConfig && shotConfig[2] && shotConfig[2].find(s => s.id === overlayShot && s.type === 'telestrator'))) {
+          // Shot 7: Tableta Púlpito (Pizarra y Telestrator controlado por Operador de Stream)
+          ctx.save();
+          if (padMode === 'blackboard') {
+            // Fondo de Pizarra interactiva
+            const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+            bgGrad.addColorStop(0, '#060911');
+            bgGrad.addColorStop(0.5, '#0b1220');
+            bgGrad.addColorStop(1, '#050810');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Cuadrícula sutil de pizarra
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
+            ctx.lineWidth = 1;
+            const step = 60;
+            for (let x = step; x < w; x += step) {
+              ctx.beginPath();
+              ctx.moveTo(x, 0);
+              ctx.lineTo(x, h);
+              ctx.stroke();
+            }
+            for (let y = step; y < h; y += step) {
+              ctx.beginPath();
+              ctx.moveTo(0, y);
+              ctx.lineTo(w, y);
+              ctx.stroke();
+            }
+
+            // Marca de agua si no hay trazos
+            if (!cabinPadStrokes || cabinPadStrokes.length === 0) {
+              ctx.fillStyle = 'rgba(148, 163, 184, 0.35)';
+              ctx.font = 'bold 36px Inter, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('✏️ PIZARRA DEL PÚLPITO', 960, 520);
+              ctx.font = '22px Inter, sans-serif';
+              ctx.fillStyle = 'rgba(148, 163, 184, 0.2)';
+              ctx.fillText('El predicador puede escribir o dibujar notas en tiempo real', 960, 565);
+            }
+          } else {
+            // Telestrator sobre la diapositiva activa
+            const item = (typeof libraryItems !== 'undefined' && currentItemIndex !== null && currentItemIndex >= 0) ? libraryItems[currentItemIndex] : null;
+            const slide = (item && item.slides && currentSlideIndex !== null && currentSlideIndex >= 0) ? item.slides[currentSlideIndex] : null;
+            if (slide) {
+              // Dibujar fondo elegante con ambas líneas en tamaño idéntico
+              const fGrad = ctx.createLinearGradient(0, 0, w, h);
+              fGrad.addColorStop(0, '#09081a');
+              fGrad.addColorStop(0.5, '#19102e');
+              fGrad.addColorStop(1, '#070b14');
+              ctx.fillStyle = fGrad;
+              ctx.fillRect(0, 0, w, h);
+
+              ctx.textAlign = 'center';
+              const sTxt = slide.text || '';
+              const subTxt = slide.subText || '';
+              const combined = subTxt ? (sTxt + ' ' + subTxt) : sTxt;
+
+              let fSize = 54;
+              let lHeight = 70;
+              if (combined.length > 120) {
+                fSize = 38;
+                lHeight = 52;
+              } else if (combined.length > 60) {
+                fSize = 46;
+                lHeight = 60;
+              }
+
+              ctx.font = `bold ${fSize}px Inter, sans-serif`;
+              const l1 = wrapTextLines(ctx, sTxt, 1600);
+              const l2 = subTxt ? wrapTextLines(ctx, subTxt, 1600) : [];
+              const allL = [...l1, ...l2];
+              const totalH = allL.length * lHeight;
+              const startY = 540 - (totalH / 2) + (fSize / 2);
+
+              if (slide.badge) {
+                ctx.fillStyle = '#f59e0b';
+                ctx.font = 'bold 26px Inter, sans-serif';
+                ctx.fillText(slide.badge.toUpperCase(), 960, Math.max(160, startY - 60));
+              }
+
+              ctx.fillStyle = '#ffffff';
+              ctx.font = `bold ${fSize}px Inter, sans-serif`;
+              allL.forEach((line, idx) => {
+                ctx.fillText(line, 960, startY + (idx * lHeight));
+              });
+            } else {
+              // Si no hay diapositiva activa seleccionada, renderizar marco de pizarra o fondo elegante
+              const fGrad = ctx.createLinearGradient(0, 0, w, h);
+              fGrad.addColorStop(0, '#060a14');
+              fGrad.addColorStop(0.5, '#0d1527');
+              fGrad.addColorStop(1, '#05070e');
+              ctx.fillStyle = fGrad;
+              ctx.fillRect(0, 0, w, h);
+
+              ctx.strokeStyle = 'rgba(56, 189, 248, 0.05)';
+              ctx.lineWidth = 1;
+              for (let x = 60; x < w; x += 60) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+              }
+              for (let y = 60; y < h; y += 60) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+              }
+
+              if (!cabinPadStrokes || cabinPadStrokes.length === 0) {
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.7)';
+                ctx.font = 'bold 36px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('✏️ TABLETA PÚLPITO EN VIVO', 960, 510);
+                ctx.font = '20px Inter, sans-serif';
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.4)';
+                ctx.fillText('Pizarra Digital y Telestrator sobre Notas y Diapositivas', 960, 555);
+              }
+            }
+          }
+
+          // Renderizar trazos del predicador
+          if (cabinPadStrokes && cabinPadStrokes.length > 0) {
+            renderTelestratorStrokesToCanvas(ctx, cabinPadStrokes, w, h);
+          }
+
+          // Indicador discreto en PREVIEW
+          if (!isProgram) {
+            ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
+            ctx.beginPath();
+            ctx.roundRect(1610, 30, 275, 42, 8);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 15px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('PREVIEW: TABLETA PÚLPITO', 1747, 57);
+          }
+          ctx.restore();
         }
       }
 
       // =======================================================================
-      // TELESTRATOR & PREACHER TABLET OVERLAY (STREAM BROADCAST OUTPUT)
+      // TELESTRATOR & PREACHER TABLET TALLY SYNC CON CAPA 2 EN PROGRAM
       // =======================================================================
-      if (padLiveStream && cabinPadStrokes && cabinPadStrokes.length > 0) {
-        if (padMode === 'blackboard') {
-          ctx.save();
-          ctx.fillStyle = '#07090e';
-          ctx.fillRect(0, 0, w, h);
-          ctx.restore();
+      if (isProgram) {
+        const isPadOnProgram = Boolean(layerPower[2] && (state[2] === 7 || (shotConfig && shotConfig[2] && shotConfig[2].find(s => s.id === state[2] && s.type === 'telestrator'))));
+        if (padLiveStream !== isPadOnProgram) {
+          padLiveStream = isPadOnProgram;
+          updateCabinPadButtonsUI();
+          if (cabinPadWs && cabinPadWs.readyState === WebSocket.OPEN) {
+            cabinPadWs.send(JSON.stringify({
+              type: 'toggle_stream',
+              churchId: getActiveChurchId(),
+              enabled: padLiveStream
+            }));
+          }
         }
-        renderTelestratorStrokesToCanvas(ctx, cabinPadStrokes, w, h);
       }
 
       // =======================================================================
