@@ -1219,6 +1219,15 @@ const requestHandler = (req, res) => {
   // CANONICAL BIBLE RVR1960 API ENDPOINTS
   // =========================================================================
 
+  // Endpoint: Raw Bible JSON dataset
+  if ((parsedUrl === '/data/bible_rvr1960.json' || parsedUrl === '/bible_rvr1960.json') && req.method === 'GET') {
+    if (fs.existsSync(BIBLE_FILE)) {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' });
+      fs.createReadStream(BIBLE_FILE).pipe(res);
+      return;
+    }
+  }
+
   // Endpoint: Get Complete Bible Chapter
   if (parsedUrl === '/api/bible/chapter' && req.method === 'GET') {
     const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);

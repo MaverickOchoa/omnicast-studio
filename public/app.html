@@ -5718,7 +5718,7 @@ Te adoraré, te adoraré..."
               <i data-lucide="info" class="w-4 h-4 text-sky-400 shrink-0 mt-0.5"></i>
               <div class="text-[11px] text-blue-200 leading-snug">
                 <span class="font-bold text-white block mb-0.5">💡 Para que tu clave de Facebook nunca caduque y se corte en automático:</span>
-                En Facebook Live Producer $\rightarrow$ columna izquierda $\rightarrow$ <strong>Configuración del stream</strong> $\rightarrow$ <strong>Configuración avanzada</strong>, activa <strong>"Clave de stream persistente"</strong> y <strong>"Finalizar el video en vivo cuando se detenga el stream"</strong>.
+                En Facebook Live Producer → columna izquierda → <strong>Configuración del stream</strong> → <strong>Configuración avanzada</strong>, activa <strong>"Clave de stream persistente"</strong> y <strong>"Finalizar el video en vivo cuando se detenga el stream"</strong>.
               </div>
             </div>
             <div class="flex items-center justify-between">
@@ -10617,7 +10617,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     let localBibleDatabase = null;
     async function initBibleEngine() {
       try {
-        const res = await fetch('/data/bible_rvr1960.json');
+        const res = await fetch('/bible_rvr1960.json').catch(() => fetch('/data/bible_rvr1960.json'));
         if (res.ok) {
           localBibleDatabase = await res.json();
           console.log('[Bible Engine] RVR1960 cargada localmente:', Object.keys(localBibleDatabase).length, 'libros');
