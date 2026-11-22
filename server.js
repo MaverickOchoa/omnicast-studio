@@ -80,6 +80,11 @@ let persistentDb = {
   layer3Videos: [],
   organizations: [],
   churches: [],
+  streamingConfig: {
+    youtube: { enabled: false, url: 'rtmp://a.rtmp.youtube.com/live2', key: '' },
+    facebook: { enabled: true, url: 'rtmps://rtmp-api.facebook.com:443/rtmp/', key: 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ' },
+    localTest: false
+  },
   updatedAt: null
 };
 
@@ -93,7 +98,20 @@ function loadPersistentDatabase() {
         if (Array.isArray(parsed.layer3Videos)) persistentDb.layer3Videos = parsed.layer3Videos;
         if (Array.isArray(parsed.organizations)) persistentDb.organizations = parsed.organizations;
         if (Array.isArray(parsed.churches)) persistentDb.churches = parsed.churches;
-        if (parsed.streamingConfig) persistentDb.streamingConfig = parsed.streamingConfig;
+        if (parsed.streamingConfig) {
+          persistentDb.streamingConfig = Object.assign({
+            youtube: { enabled: false, url: 'rtmp://a.rtmp.youtube.com/live2', key: '' },
+            facebook: { enabled: true, url: 'rtmps://rtmp-api.facebook.com:443/rtmp/', key: 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ' },
+            localTest: false
+          }, parsed.streamingConfig);
+          if (!persistentDb.streamingConfig.facebook || !persistentDb.streamingConfig.facebook.key || persistentDb.streamingConfig.facebook.key.startsWith('fb-test-key')) {
+            persistentDb.streamingConfig.facebook = {
+              enabled: true,
+              url: 'rtmps://rtmp-api.facebook.com:443/rtmp/',
+              key: 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ'
+            };
+          }
+        }
         if (Array.isArray(parsed.diskVideos)) persistentDb.diskVideos = parsed.diskVideos;
         persistentDb.updatedAt = parsed.updatedAt || new Date().toISOString();
       }
@@ -1144,14 +1162,21 @@ const requestHandler = (req, res) => {
         const yt = dest.youtube || {};
         const fb = dest.facebook || {};
         const targetNames = [];
-        if (fb.enabled && fb.key && fb.key.trim() && fb.key.trim() !== 'FB-1049284729184712-live') {
+        const resolvedFb = resolveLatestFacebookKey(fb.key);
+        if (fb.enabled && resolvedFb) {
           targetNames.push('Facebook Live');
+          if (!fb.key) fb.key = resolvedFb;
         }
-        if (!dest.localTest && yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni') {
+        const resolvedYt = resolveLatestYouTubeKey(yt.key);
+        if (!dest.localTest && yt.enabled && resolvedYt) {
           targetNames.push('YouTube Live');
+          if (!yt.key) yt.key = resolvedYt;
+        }
+        if (dest.localTest) {
+          targetNames.push('Prueba Local');
         }
         if (targetNames.length === 0) {
-          const errPayload = JSON.stringify({ error: 'No hay destinos de transmisión con clave válida configurada.' });
+          const errPayload = JSON.stringify({ error: 'No hay destinos de transmisión con clave válida configurada. Ingresa tu clave en Ajustes > Destinos.' });
           res.writeHead(400, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(errPayload) });
           res.end(errPayload);
           return;
@@ -2051,7 +2076,7 @@ function stopFfmpegStream(notifyClient = true) {
 
 function resolveLatestFacebookKey(rawKey) {
   const trimmed = (rawKey || '').trim();
-  // If key is empty or matches dummy test keys or expired session keys, check OBS profile for real key
+  // If key is empty or matches dummy test keys or expired session keys, check OBS profile or persistentDb for real key
   const isDummyOrExpired = !trimmed || 
     trimmed === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS' ||
     trimmed === 'FB-1049284729184712-live' ||
@@ -2066,8 +2091,34 @@ function resolveLatestFacebookKey(rawKey) {
         }
       }
     } catch (e) {}
+    try {
+      if (persistentDb && persistentDb.streamingConfig && persistentDb.streamingConfig.facebook && persistentDb.streamingConfig.facebook.key) {
+        const dbKey = persistentDb.streamingConfig.facebook.key.trim();
+        if (dbKey && dbKey.startsWith('FB-') && !dbKey.startsWith('fb-test-key')) {
+          return dbKey;
+        }
+      }
+    } catch (e) {}
+    return 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
   }
-  return isDummyOrExpired ? '' : trimmed;
+  return trimmed;
+}
+
+function resolveLatestYouTubeKey(rawKey) {
+  const trimmed = (rawKey || '').trim();
+  const isDummy = !trimmed || trimmed.startsWith('yt-test-key') || trimmed === 'yt-live-9382-7712-4412-omni';
+  if (isDummy) {
+    try {
+      if (persistentDb && persistentDb.streamingConfig && persistentDb.streamingConfig.youtube && persistentDb.streamingConfig.youtube.key) {
+        const dbKey = persistentDb.streamingConfig.youtube.key.trim();
+        if (dbKey && !dbKey.startsWith('yt-test-key') && dbKey !== 'yt-live-9382-7712-4412-omni') {
+          return dbKey;
+        }
+      }
+    } catch (e) {}
+    return '';
+  }
+  return trimmed;
 }
 
 function startFfmpegStream(dest, activeWs) {
@@ -2111,10 +2162,10 @@ function startFfmpegStream(dest, activeWs) {
     targets.push({ name: 'Facebook Live', url: targetUrl });
   }
 
-  if (!dest.localTest && yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni' && !yt.key.trim().startsWith('yt-test-key')) {
+  const resolvedYtKey = dest.localTest ? null : resolveLatestYouTubeKey(yt.key);
+  if (!dest.localTest && yt.enabled && resolvedYtKey) {
     const rawUrl = (yt.url || 'rtmp://a.rtmp.youtube.com/live2').trim();
-    const cleanKey = yt.key.trim();
-    const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;
+    const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${resolvedYtKey}` : `${rawUrl}/${resolvedYtKey}`;
     targets.push({ name: 'YouTube Live', url: targetUrl });
   }
 
@@ -2364,9 +2415,13 @@ function startFfmpegStream(dest, activeWs) {
   });
 
   if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+    let readyMsg = `Pipeline RTMP listo para ${activeTargetNames.join(' y ')}`;
+    if (yt.enabled && !resolvedYtKey && activeTargetNames.includes('Facebook Live')) {
+      readyMsg = 'Transmitiendo a Facebook Live (YouTube en espera de clave en Ajustes > Destinos)';
+    }
     activeWs.send(JSON.stringify({
       type: 'ready',
-      message: `Pipeline RTMP listo para ${activeTargetNames.join(' y ')}`,
+      message: readyMsg,
       destinations: activeTargetNames
     }));
   }

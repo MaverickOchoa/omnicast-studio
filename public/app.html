@@ -20975,8 +20975,16 @@ Pues resucitaste, Rey`
       const ytKey = document.getElementById('ytStreamKey')?.value.trim() || '';
 
       const fbEnable = document.getElementById('fbStreamEnable')?.checked ?? true;
-      const fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://live-api-s.facebook.com:443/rtmp/';
-      const fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
+      let fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://rtmp-api.facebook.com:443/rtmp/';
+      if (fbUrl.includes('live-api-s.facebook.com')) {
+        fbUrl = 'rtmps://rtmp-api.facebook.com:443/rtmp/';
+        if (document.getElementById('fbStreamUrl')) document.getElementById('fbStreamUrl').value = fbUrl;
+      }
+      let fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
+      if (!fbKey || fbKey.startsWith('fb-test-key') || fbKey === 'FB-1049284729184712-live' || fbKey === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS') {
+        fbKey = 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
+        if (document.getElementById('fbStreamKey')) document.getElementById('fbStreamKey').value = fbKey;
+      }
 
       const localTestEnable = document.getElementById('localTestStreamEnable')?.checked ?? false;
 
@@ -22120,11 +22128,11 @@ Pues resucitaste, Rey`
         const saved = localStorage.getItem('omnicast_streaming_config');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (!ytKey && parsed.youtube && parsed.youtube.key) {
+          if (!ytKey && parsed.youtube && parsed.youtube.key && !parsed.youtube.key.startsWith('yt-test-key')) {
             ytKey = parsed.youtube.key.trim();
             ytEnabled = parsed.youtube.enabled;
           }
-          if (!fbKey && parsed.facebook && parsed.facebook.key) {
+          if (!fbKey && parsed.facebook && parsed.facebook.key && !parsed.facebook.key.startsWith('fb-test-key')) {
             fbKey = parsed.facebook.key.trim();
             fbEnabled = parsed.facebook.enabled;
           }
@@ -22139,21 +22147,18 @@ Pues resucitaste, Rey`
         if (fbKeyInput) fbKeyInput.value = fbKey;
       }
 
-      let localTestEnabled = Boolean(document.getElementById('localTestStreamEnable')?.checked || window.omnicastLocalTestMode === true);
-      try {
-        const saved = localStorage.getItem('omnicast_streaming_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.localTest !== undefined) localTestEnabled = Boolean(parsed.localTest);
-        }
-      } catch (e) {}
+      // El modo de prueba local solo está activo si el checkbox en el modal está expresamente marcado
+      const testInputEl = document.getElementById('localTestStreamEnable');
+      const localTestEnabled = Boolean(testInputEl && testInputEl.checked);
 
       const isYtDummy = !ytKey || ytKey.startsWith('yt-test-key') || ytKey === 'yt-live-9382-7712-4412-omni';
       const hasYt = Boolean(ytEnabled && ytKey && !isYtDummy && !localTestEnabled);
       const hasFb = Boolean(fbEnabled && fbKey && !localTestEnabled);
       const hasLocalTest = Boolean(localTestEnabled);
 
-      if (ytEnabled && isYtDummy && hasFb) {
+      if (hasYt && hasFb) {
+        showToast('📡 Transmitiendo en vivo simultáneamente a Facebook Live y YouTube Live', '📡');
+      } else if (ytEnabled && isYtDummy && hasFb) {
         showToast('ℹ️ Transmitiendo a Facebook Live. (Para YouTube ingresa tu clave en Ajustes > Destinos)', 'ℹ️');
       }
 
@@ -23821,44 +23826,83 @@ Resucitaste en majestad`;
         if (streamRaw) {
           const cfg = JSON.parse(streamRaw);
           if (cfg.youtube) {
-            if (document.getElementById('ytStreamEnable')) document.getElementById('ytStreamEnable').checked = cfg.youtube.enabled;
-            if (document.getElementById('ytStreamUrl')) document.getElementById('ytStreamUrl').value = cfg.youtube.url;
-            if (document.getElementById('ytStreamKey')) document.getElementById('ytStreamKey').value = cfg.youtube.key;
+            if (cfg.youtube.key && (cfg.youtube.key.startsWith('yt-test-key') || cfg.youtube.key === 'yt-live-9382-7712-4412-omni')) {
+              cfg.youtube.key = '';
+            }
+            if (document.getElementById('ytStreamEnable')) document.getElementById('ytStreamEnable').checked = Boolean(cfg.youtube.enabled);
+            if (document.getElementById('ytStreamUrl')) document.getElementById('ytStreamUrl').value = cfg.youtube.url || 'rtmp://a.rtmp.youtube.com/live2';
+            if (document.getElementById('ytStreamKey')) document.getElementById('ytStreamKey').value = cfg.youtube.key || '';
           }
           if (cfg.facebook) {
-            if (cfg.facebook.key === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS' || !cfg.facebook.key) {
+            if (!cfg.facebook.key || cfg.facebook.key.startsWith('fb-test-key') || cfg.facebook.key === 'FB-1049284729184712-live' || cfg.facebook.key === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS') {
               cfg.facebook.key = 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
-              cfg.facebook.url = 'rtmps://rtmp-api.facebook.com:443/rtmp/';
-              localStorage.setItem('omnicast_streaming_config', JSON.stringify(cfg));
             }
-            if (document.getElementById('fbStreamEnable')) document.getElementById('fbStreamEnable').checked = cfg.facebook.enabled;
+            cfg.facebook.url = 'rtmps://rtmp-api.facebook.com:443/rtmp/';
+            if (document.getElementById('fbStreamEnable')) document.getElementById('fbStreamEnable').checked = (cfg.facebook.enabled !== false);
             if (document.getElementById('fbStreamUrl')) document.getElementById('fbStreamUrl').value = cfg.facebook.url;
             if (document.getElementById('fbStreamKey')) document.getElementById('fbStreamKey').value = cfg.facebook.key;
           }
-          if (cfg.localTest !== undefined && document.getElementById('localTestStreamEnable')) {
-            document.getElementById('localTestStreamEnable').checked = Boolean(cfg.localTest);
+          if (document.getElementById('localTestStreamEnable')) {
+            document.getElementById('localTestStreamEnable').checked = Boolean(cfg.localTest === true);
           }
           updateDestinationsLiveBadge();
         }
       } catch (e) {}
 
       // Sincronizar con la configuración persistente del servidor OmniCast
-      fetch('/api/stream/config').then(r => r.json()).then(serverCfg => {
+      fetch('/api/stream/config').then(r => r.json()).then(res => {
+        const serverCfg = (res && res.config) ? res.config : res;
         if (!serverCfg) return;
         const ytInput = document.getElementById('ytStreamKey');
         const fbInput = document.getElementById('fbStreamKey');
         const testInput = document.getElementById('localTestStreamEnable');
-        if (serverCfg.youtube && ytInput && !ytInput.value) {
-          ytInput.value = serverCfg.youtube.key || '';
-          if (document.getElementById('ytStreamEnable')) document.getElementById('ytStreamEnable').checked = serverCfg.youtube.enabled ?? true;
+
+        if (serverCfg.youtube && ytInput) {
+          if (!ytInput.value || ytInput.value.startsWith('yt-test-key') || ytInput.value === 'yt-live-9382-7712-4412-omni') {
+            ytInput.value = serverCfg.youtube.key || '';
+          }
+          if (document.getElementById('ytStreamEnable')) {
+            document.getElementById('ytStreamEnable').checked = Boolean(serverCfg.youtube.enabled && ytInput.value);
+          }
+          if (document.getElementById('ytStreamUrl') && serverCfg.youtube.url) {
+            document.getElementById('ytStreamUrl').value = serverCfg.youtube.url;
+          }
         }
-        if (serverCfg.facebook && fbInput && !fbInput.value) {
-          fbInput.value = serverCfg.facebook.key || '';
-          if (document.getElementById('fbStreamEnable')) document.getElementById('fbStreamEnable').checked = serverCfg.facebook.enabled ?? true;
+
+        if (serverCfg.facebook && fbInput) {
+          if (!fbInput.value || fbInput.value.startsWith('fb-test-key') || fbInput.value === 'FB-1049284729184712-live' || fbInput.value === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS') {
+            fbInput.value = serverCfg.facebook.key || 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
+          }
+          if (document.getElementById('fbStreamEnable')) {
+            document.getElementById('fbStreamEnable').checked = (serverCfg.facebook.enabled !== false);
+          }
+          if (document.getElementById('fbStreamUrl') && serverCfg.facebook.url) {
+            document.getElementById('fbStreamUrl').value = serverCfg.facebook.url;
+          }
         }
-        if (serverCfg.localTest !== undefined && testInput) {
-          testInput.checked = Boolean(serverCfg.localTest);
+
+        if (testInput) {
+          testInput.checked = Boolean(serverCfg.localTest === true);
         }
+
+        // Actualizar localStorage con la configuración limpia
+        try {
+          const cleanCfg = {
+            youtube: {
+              enabled: document.getElementById('ytStreamEnable')?.checked ?? false,
+              url: document.getElementById('ytStreamUrl')?.value || 'rtmp://a.rtmp.youtube.com/live2',
+              key: ytInput ? ytInput.value : ''
+            },
+            facebook: {
+              enabled: document.getElementById('fbStreamEnable')?.checked ?? true,
+              url: document.getElementById('fbStreamUrl')?.value || 'rtmps://rtmp-api.facebook.com:443/rtmp/',
+              key: fbInput ? fbInput.value : 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ'
+            },
+            localTest: Boolean(testInput && testInput.checked)
+          };
+          localStorage.setItem('omnicast_streaming_config', JSON.stringify(cleanCfg));
+        } catch (e) {}
+
         updateDestinationsLiveBadge();
       }).catch(() => {});
     }
