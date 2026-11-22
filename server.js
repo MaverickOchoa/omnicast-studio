@@ -187,6 +187,14 @@ function loadPersistentDatabase() {
     }
   }
 
+  if (!persistentDb.streamingConfig) {
+    persistentDb.streamingConfig = {
+      youtube: { enabled: true, url: 'rtmp://a.rtmp.youtube.com/live2', key: '' },
+      facebook: { enabled: true, url: 'rtmps://rtmp-api.facebook.com:443/rtmp/', key: '' },
+      localTest: false
+    };
+  }
+
   return persistentDb;
 }
 
@@ -200,6 +208,125 @@ function savePersistentDatabase() {
 }
 
 loadPersistentDatabase();
+
+// =========================================================================
+// REINA-VALERA 1960 OFFICIAL CANONICAL BIBLE ENGINE (66 BOOKS)
+// =========================================================================
+let bibleRvr1960 = null;
+const BIBLE_FILE = path.join(DATA_DIR, 'bible_rvr1960.json');
+try {
+  if (fs.existsSync(BIBLE_FILE)) {
+    bibleRvr1960 = JSON.parse(fs.readFileSync(BIBLE_FILE, 'utf8'));
+    console.log(`  📖 Base Bíblica RVR1960 cargada: ${Object.keys(bibleRvr1960).length} libros listos`);
+  }
+} catch (e) {
+  console.warn('[OmniCast Bible] Warning loading bible_rvr1960.json:', e.message);
+}
+
+const BIBLE_BOOK_ALIASES = {
+  'gen': 'genesis', 'genesis': 'genesis', 'génesis': 'genesis',
+  'exo': 'exodo', 'exodo': 'exodo', 'éxodo': 'exodo',
+  'lev': 'levitico', 'levitico': 'levitico', 'levítico': 'levitico',
+  'num': 'numeros', 'numeros': 'numeros', 'números': 'numeros',
+  'deu': 'deuteronomio', 'deuteronomio': 'deuteronomio', 'dt': 'deuteronomio',
+  'jos': 'josue', 'josue': 'josue', 'josué': 'josue',
+  'jue': 'jueces', 'jueces': 'jueces',
+  'rut': 'rut', 'ruth': 'rut',
+  '1sam': '1samuel', '1 sam': '1samuel', '1 samuel': '1samuel', '1samuel': '1samuel',
+  '2sam': '2samuel', '2 sam': '2samuel', '2 samuel': '2samuel', '2samuel': '2samuel',
+  '1rey': '1reyes', '1 rey': '1reyes', '1 reyes': '1reyes', '1reyes': '1reyes',
+  '2rey': '2reyes', '2 rey': '2reyes', '2 reyes': '2reyes', '2reyes': '2reyes',
+  '1cro': '1cronicas', '1 cro': '1cronicas', '1 cronicas': '1cronicas', '1crónicas': '1cronicas',
+  '2cro': '2cronicas', '2 cro': '2cronicas', '2 cronicas': '2cronicas', '2crónicas': '2cronicas',
+  'esd': 'esdras', 'esdras': 'esdras',
+  'neh': 'nehemias', 'nehemias': 'nehemias', 'nehemías': 'nehemias',
+  'est': 'ester', 'ester': 'ester',
+  'job': 'job',
+  'sal': 'salmos', 'salmo': 'salmos', 'salmos': 'salmos', 'ps': 'salmos', 'psalm': 'salmos', 'psalms': 'salmos',
+  'pro': 'proverbios', 'pr': 'proverbios', 'proverbios': 'proverbios', 'prov': 'proverbios',
+  'ecl': 'eclesiastes', 'eclesiastes': 'eclesiastes', 'eclesiastés': 'eclesiastes',
+  'cnt': 'cantares', 'cantar': 'cantares', 'cantares': 'cantares',
+  'isa': 'isaias', 'isaias': 'isaias', 'isaías': 'isaias',
+  'jer': 'jeremias', 'jeremias': 'jeremias', 'jeremías': 'jeremias',
+  'lam': 'lamentaciones', 'lamentaciones': 'lamentaciones',
+  'eze': 'ezequiel', 'ezequiel': 'ezequiel',
+  'dan': 'daniel', 'daniel': 'daniel',
+  'ose': 'oseas', 'oseas': 'oseas',
+  'joe': 'joel', 'joel': 'joel',
+  'amo': 'amos', 'amos': 'amos', 'amós': 'amos',
+  'abd': 'abdias', 'abdias': 'abdias', 'abdías': 'abdias',
+  'jon': 'jonas', 'jonas': 'jonas', 'jonás': 'jonas',
+  'miq': 'miqueas', 'miqueas': 'miqueas',
+  'nah': 'nahum', 'nahum': 'nahum', 'nahúm': 'nahum',
+  'hab': 'habacuc', 'habacuc': 'habacuc',
+  'sof': 'sofonias', 'sofonias': 'sofonias', 'sofonías': 'sofonias',
+  'hag': 'hageo', 'hageo': 'hageo',
+  'zac': 'zacarias', 'zacarias': 'zacarias', 'zacarías': 'zacarias',
+  'mal': 'malaquias', 'malaquias': 'malaquias', 'malaquías': 'malaquias',
+  'mat': 'mateo', 'mateo': 'mateo', 'mt': 'mateo',
+  'mar': 'marcos', 'marcos': 'marcos', 'mc': 'marcos',
+  'luc': 'lucas', 'lucas': 'lucas', 'lc': 'lucas',
+  'jua': 'juan', 'juan': 'juan', 'jn': 'juan',
+  'hec': 'hechos', 'hechos': 'hechos', 'hch': 'hechos',
+  'rom': 'romanos', 'romanos': 'romanos', 'ro': 'romanos',
+  '1cor': '1corintios', '1 cor': '1corintios', '1 corintios': '1corintios', '1 co': '1corintios', '1co': '1corintios',
+  '2cor': '2corintios', '2 cor': '2corintios', '2 corintios': '2corintios', '2 co': '2corintios', '2co': '2corintios',
+  'gal': 'galatas', 'galatas': 'galatas', 'gálatas': 'galatas',
+  'efe': 'efesios', 'efesios': 'efesios',
+  'fil': 'filipenses', 'filipenses': 'filipenses', 'flp': 'filipenses',
+  'col': 'colosenses', 'colosenses': 'colosenses',
+  '1tes': '1tesalonicenses', '1 tes': '1tesalonicenses', '1 tesalonicenses': '1tesalonicenses',
+  '2tes': '2tesalonicenses', '2 tes': '2tesalonicenses', '2 tesalonicenses': '2tesalonicenses',
+  '1tim': '1timoteo', '1 tim': '1timoteo', '1 timoteo': '1timoteo',
+  '2tim': '2timoteo', '2 tim': '2timoteo', '2 timoteo': '2timoteo',
+  'tit': 'tito', 'tito': 'tito',
+  'flm': 'filemon', 'filemon': 'filemon', 'filemón': 'filemon',
+  'heb': 'hebreos', 'hebreos': 'hebreos',
+  'stg': 'santiago', 'santiago': 'santiago', 'jac': 'santiago',
+  '1ped': '1pedro', '1 ped': '1pedro', '1 pedro': '1pedro', '1 pe': '1pedro', '1pe': '1pedro',
+  '2ped': '2pedro', '2 ped': '2pedro', '2 pedro': '2pedro', '2 pe': '2pedro', '2pe': '2pedro',
+  '1jua': '1juan', '1 jua': '1juan', '1 juan': '1juan', '1 jn': '1juan', '1jn': '1juan',
+  '2jua': '2juan', '2 jua': '2juan', '2 juan': '2juan', '2 jn': '2juan', '2jn': '2juan',
+  '3jua': '3juan', '3 jua': '3juan', '3 juan': '3juan', '3 jn': '3juan', '3jn': '3juan',
+  'jud': 'judas', 'judas': 'judas',
+  'apo': 'apocalipsis', 'apocalipsis': 'apocalipsis', 'apoc': 'apocalipsis', 'rev': 'apocalipsis'
+};
+
+const BIBLE_CANONICAL_NAMES = {
+  genesis: 'Génesis', exodo: 'Éxodo', levitico: 'Levítico', numeros: 'Números', deuteronomio: 'Deuteronomio',
+  josue: 'Josué', jueces: 'Jueces', rut: 'Rut', '1samuel': '1 Samuel', '2samuel': '2 Samuel',
+  '1reyes': '1 Reyes', '2reyes': '2 Reyes', '1cronicas': '1 Crónicas', '2cronicas': '2 Crónicas',
+  esdras: 'Esdras', nehemias: 'Nehemías', ester: 'Ester', job: 'Job', salmos: 'Salmos',
+  proverbios: 'Proverbios', eclesiastes: 'Eclesiastés', cantares: 'Cantares', isaias: 'Isaías',
+  jeremias: 'Jeremías', lamentaciones: 'Lamentaciones', ezequiel: 'Ezequiel', daniel: 'Daniel',
+  oseas: 'Oseas', joel: 'Joel', amos: 'Amós', abdias: 'Abdías', jonas: 'Jonás', miqueas: 'Miqueas',
+  nahum: 'Nahúm', habacuc: 'Habacuc', sofonias: 'Sofonías', hageo: 'Hageo', zacarias: 'Zacarías',
+  malaquias: 'Malaquías', mateo: 'Mateo', marcos: 'Marcos', lucas: 'Lucas', juan: 'Juan',
+  hechos: 'Hechos', romanos: 'Romanos', '1corintios': '1 Corintios', '2corintios': '2 Corintios',
+  galatas: 'Gálatas', efesios: 'Efesios', filipenses: 'Filipenses', colosenses: 'Colosenses',
+  '1tesalonicenses': '1 Tesalonicenses', '2tesalonicenses': '2 Tesalonicenses',
+  '1timoteo': '1 Timoteo', '2timoteo': '2 Timoteo', tito: 'Tito', filemon: 'Filemón',
+  hebreos: 'Hebreos', santiago: 'Santiago', '1pedro': '1 Pedro', '2pedro': '2 Pedro',
+  '1juan': '1 Juan', '2juan': '2 Juan', '3juan': '3 Juan', judas: 'Judas', apocalipsis: 'Apocalipsis'
+};
+
+function parseBibleCitation(query) {
+  if (!query || typeof query !== 'string') return null;
+  let q = query.trim().toLowerCase().replace(/[.,;]/g, ':').replace(/::+/g, ':');
+  const m = q.match(/^([1-3]?\s*[a-záéíóúñ]+)\s*(\d+)(?:\s*:\s*(\d+)(?:\s*-\s*(\d+))?)?$/i);
+  if (!m) return null;
+  const rawBook = m[1].replace(/\s+/g, ' ').trim();
+  const chapter = parseInt(m[2], 10);
+  const startVerse = m[3] ? parseInt(m[3], 10) : 1;
+  const endVerse = m[4] ? parseInt(m[4], 10) : startVerse;
+  
+  let bookKey = BIBLE_BOOK_ALIASES[rawBook] || BIBLE_BOOK_ALIASES[rawBook.replace(/\s+/g, '')];
+  if (!bookKey) {
+    const clean = rawBook.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
+    bookKey = BIBLE_BOOK_ALIASES[clean];
+  }
+  return { bookKey, chapter, startVerse, endVerse };
+}
 
 // Global Studio State per Church / Branch (Multi-Sede Signal & Room Isolation)
 const churchStates = new Map();
@@ -1057,6 +1184,129 @@ const requestHandler = (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(okPayload) });
       res.end(okPayload);
     });
+    return;
+  }
+
+  // Endpoint: Get Persistent Streaming Config (Shared across all connected devices)
+  if (parsedUrl === '/api/stream/config' && req.method === 'GET') {
+    loadPersistentDatabase();
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    res.end(JSON.stringify({ success: true, config: persistentDb.streamingConfig }));
+    return;
+  }
+
+  // Endpoint: Save Persistent Streaming Config (Shared across all connected devices)
+  if (parsedUrl === '/api/stream/config' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(body || '{}');
+        persistentDb.streamingConfig = payload;
+        savePersistentDatabase();
+        broadcastSSE('streaming_config_update', persistentDb.streamingConfig);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, config: persistentDb.streamingConfig }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  // =========================================================================
+  // CANONICAL BIBLE RVR1960 API ENDPOINTS
+  // =========================================================================
+
+  // Endpoint: Get Complete Bible Chapter
+  if (parsedUrl === '/api/bible/chapter' && req.method === 'GET') {
+    const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const rawBook = (fullUrl.searchParams.get('book') || 'juan').toLowerCase().trim();
+    const chapterNum = parseInt(fullUrl.searchParams.get('chapter') || '1', 10);
+    
+    let bookKey = BIBLE_BOOK_ALIASES[rawBook] || BIBLE_BOOK_ALIASES[rawBook.replace(/\s+/g, '')];
+    if (!bookKey) {
+      const clean = rawBook.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
+      bookKey = BIBLE_BOOK_ALIASES[clean] || 'juan';
+    }
+
+    const bookName = BIBLE_CANONICAL_NAMES[bookKey] || bookKey;
+    let verses = [];
+    if (bibleRvr1960 && bibleRvr1960[bookKey]) {
+      const chapIdx = Math.max(0, Math.min(bibleRvr1960[bookKey].length - 1, chapterNum - 1));
+      verses = bibleRvr1960[bookKey][chapIdx] || [];
+    }
+
+    const payload = JSON.stringify({
+      success: true,
+      bookKey,
+      bookName,
+      chapter: chapterNum,
+      totalChapters: (bibleRvr1960 && bibleRvr1960[bookKey]) ? bibleRvr1960[bookKey].length : 0,
+      verses: verses.map((text, idx) => ({ num: idx + 1, text }))
+    });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' });
+    res.end(payload);
+    return;
+  }
+
+  // Endpoint: Search / Parse Bible Verse by Citation (e.g., "Juan 3:16", "Salmos 23:1-3")
+  if (parsedUrl === '/api/bible/verse' && req.method === 'GET') {
+    const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const query = fullUrl.searchParams.get('query') || fullUrl.searchParams.get('q') || 'Juan 3:16';
+    
+    const parsed = parseBibleCitation(query);
+    if (!parsed || !bibleRvr1960 || !bibleRvr1960[parsed.bookKey]) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'Pasaje no encontrado', query }));
+      return;
+    }
+
+    const chapArr = bibleRvr1960[parsed.bookKey][parsed.chapter - 1];
+    if (!chapArr) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: `El capítulo ${parsed.chapter} no existe en ${parsed.bookKey}`, query }));
+      return;
+    }
+
+    const start = Math.max(1, parsed.startVerse);
+    const end = Math.min(chapArr.length, parsed.endVerse);
+    const selectedVerses = chapArr.slice(start - 1, end);
+    const bookName = BIBLE_CANONICAL_NAMES[parsed.bookKey] || parsed.bookKey;
+    const refStr = start === end ? `${bookName} ${parsed.chapter}:${start}` : `${bookName} ${parsed.chapter}:${start}-${end}`;
+
+    const text = selectedVerses.join(' ');
+    const payload = JSON.stringify({
+      success: true,
+      citation: refStr,
+      title: refStr.toUpperCase(),
+      text,
+      subText: `${refStr} (Reina-Valera 1960)`,
+      badge: refStr.toUpperCase(),
+      bookKey: parsed.bookKey,
+      chapter: parsed.chapter,
+      startVerse: start,
+      endVerse: end,
+      verses: selectedVerses.map((t, i) => ({ num: start + i, text: t }))
+    });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' });
+    res.end(payload);
+    return;
+  }
+
+  // Endpoint: Get All 66 Bible Books Metadata
+  if (parsedUrl === '/api/bible/books' && req.method === 'GET') {
+    const books = Object.keys(BIBLE_CANONICAL_NAMES).map(key => {
+      const chaps = (bibleRvr1960 && bibleRvr1960[key]) ? bibleRvr1960[key].length : 0;
+      return {
+        id: key,
+        name: BIBLE_CANONICAL_NAMES[key],
+        chapters: chaps
+      };
+    });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' });
+    res.end(JSON.stringify({ success: true, books }));
     return;
   }
 
@@ -1970,10 +2220,15 @@ function startFfmpegStream(dest, activeWs) {
       activeFfmpegProcess = null;
       liveStreamState.isStreaming = false;
       streamHasValidHeader = false;
+      const stopPayload = {
+        type: 'stopped',
+        code,
+        error: liveStreamState.stats.error || (code && code !== 0 ? `Servidor RTMP cerró la transmisión (código ${code})` : null)
+      };
       if (activeWs && activeWs.readyState === WebSocket.OPEN) {
-        activeWs.send(JSON.stringify({ type: 'stopped', code }));
+        activeWs.send(JSON.stringify(stopPayload));
       }
-      broadcastSSE('stream_status', { isStreaming: false, code });
+      broadcastSSE('stream_status', { isStreaming: false, code, error: stopPayload.error });
     }
   });
 

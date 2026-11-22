@@ -4848,8 +4848,8 @@ Te adoraré, te adoraré..."
   <!-- ========================================================================= -->
   <!-- MODAL: MATRIZ DE SALIDAS & SMART TV HUB (PANTALLAS SIN CABLE HDMI)        -->
   <!-- ========================================================================= -->
-  <div id="displayMatrixModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 md:p-4">
-    <div class="bg-[#0b101a] border border-slate-700/80 rounded-2xl max-w-5xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[94vh] overflow-hidden">
+  <div id="displayMatrixModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col items-center justify-start md:justify-center p-3 md:p-6 overflow-y-auto">
+    <div class="bg-[#0b101a] border border-slate-700/80 rounded-2xl max-w-5xl w-full p-5 md:p-6 shadow-2xl flex flex-col gap-4 max-h-[92vh] md:max-h-[90vh] my-auto overflow-hidden">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
@@ -5756,6 +5756,28 @@ Te adoraré, te adoraré..."
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- DESTINO 3: MODO DE PRUEBA LOCAL (GRABACIÓN / VERIFICACIÓN DE PIPELINE SIN RED) -->
+          <div class="p-4 rounded-xl border border-purple-500/30 bg-purple-950/20 flex flex-col gap-3 shadow-lg">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-purple-400 font-bold text-base">
+                  🧪
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-white flex items-center gap-1.5">
+                    Modo de Prueba Local (Verificación de Salida)
+                    <span class="text-[9.5px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Sin Claves</span>
+                  </h4>
+                  <p class="text-[10px] text-slate-400">Verifica que el video, las letras y el audio transmitan a 30 FPS grabando directamente en la carpeta local de grabaciones.</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="localTestStreamEnable" class="sr-only peer">
+                <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+              </label>
             </div>
           </div>
 
@@ -6707,6 +6729,24 @@ Te adoraré, te adoraré..."
       } catch (e) {}
     }
 
+    let cachedCustomStreamImage = null;
+    let cachedCustomStreamImageUrl = '';
+    function updateCustomStreamImageCache() {
+      const url = lyricsStyleConfig.customMediaUrl;
+      const isImg = (lyricsStyleConfig.customMediaType === 'image') || (url && !/\.(mp4|webm|mov|mkv)$/i.test(url));
+      if (url && (currentTheme === 'custom' || isImg)) {
+        if (cachedCustomStreamImageUrl !== url || !cachedCustomStreamImage) {
+          cachedCustomStreamImageUrl = url;
+          cachedCustomStreamImage = new Image();
+          cachedCustomStreamImage.crossOrigin = 'anonymous';
+          cachedCustomStreamImage.src = url;
+        }
+      } else {
+        cachedCustomStreamImageUrl = '';
+        cachedCustomStreamImage = null;
+      }
+    }
+
     function loadSavedLyricsStyle() {
       try {
         const church = getActiveChurchId();
@@ -6718,8 +6758,9 @@ Te adoraré, te adoraré..."
           if (currentTheme === 'emerald') currentTheme = 'custom';
 
           if (lyricsStyleConfig.customMediaUrl) {
-            if (lyricsStyleConfig.customMediaType === 'image') {
+            if (lyricsStyleConfig.customMediaType === 'image' || !lyricsStyleConfig.customMediaType) {
               themesPalette.custom.css = `url("${lyricsStyleConfig.customMediaUrl}") center / cover no-repeat`;
+              updateCustomStreamImageCache();
             } else if (lyricsStyleConfig.customMediaType === 'video') {
               lyricsStyleConfig.videoLoopUrl = lyricsStyleConfig.customMediaUrl;
             }
@@ -6728,6 +6769,7 @@ Te adoraré, te adoraré..."
       } catch (e) {}
       updateQuickLayoutBadges();
       updateCustomLoopUI();
+      updateCustomStreamImageCache();
     }
 
     function updateCustomLoopUI() {
@@ -6773,6 +6815,7 @@ Te adoraré, te adoraré..."
       const monProyectorBg = document.getElementById('monProyectorBg');
       if (monProyectorBg) monProyectorBg.style.background = themesPalette[themeKey].css;
 
+      updateCustomStreamImageCache();
       saveLyricsStyleConfig();
       renderSlidesGrid();
       broadcastSlide();
@@ -10500,45 +10543,90 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     };
 
     const canonicalBibleBooks = [
-      { id: 'genesis', es: 'Génesis', he: 'Bereshit', en: 'Genesis', chapters: 50 },
-      { id: 'exodo', es: 'Éxodo', he: 'Shemot', en: 'Exodus', chapters: 40 },
-      { id: 'levitico', es: 'Levítico', he: 'Vayikrá', en: 'Leviticus', chapters: 27 },
-      { id: 'numeros', es: 'Números', he: 'Bamidbar', en: 'Numbers', chapters: 36 },
-      { id: 'deuteronomio', es: 'Deuteronomio', he: 'Devarim', en: 'Deuteronomy', chapters: 34 },
-      { id: 'josue', es: 'Josué', he: 'Yehoshúa', en: 'Joshua', chapters: 24 },
-      { id: 'jueces', es: 'Jueces', he: 'Shoftim', en: 'Judges', chapters: 21 },
-      { id: 'rut', es: 'Rut', he: 'Rut', en: 'Ruth', chapters: 4 },
-      { id: '1samuel', es: '1 Samuel', he: '1 Shmuel', en: '1 Samuel', chapters: 31 },
-      { id: '2samuel', es: '2 Samuel', he: '2 Shmuel', en: '2 Samuel', chapters: 24 },
-      { id: '1reyes', es: '1 Reyes', he: '1 Melajim', en: '1 Kings', chapters: 22 },
-      { id: '2reyes', es: '2 Reyes', he: '2 Melajim', en: '2 Kings', chapters: 25 },
-      { id: 'salmos', es: 'Salmos', he: 'Tehilim', en: 'Psalms', chapters: 150 },
-      { id: 'proverbios', es: 'Proverbios', he: 'Mishlei', en: 'Proverbs', chapters: 31 },
-      { id: 'eclesiastes', es: 'Eclesiastés', he: 'Qohelet', en: 'Ecclesiastes', chapters: 12 },
-      { id: 'cantares', es: 'Cantares', he: 'Shir HaShirim', en: 'Song of Solomon', chapters: 8 },
-      { id: 'isaias', es: 'Isaías', he: 'Yeshayahu', en: 'Isaiah', chapters: 66 },
-      { id: 'jeremias', es: 'Jeremías', he: 'Yirmeyahu', en: 'Jeremiah', chapters: 52 },
-      { id: 'lamentaciones', es: 'Lamentaciones', he: 'Eijah', en: 'Lamentations', chapters: 5 },
-      { id: 'ezequiel', es: 'Ezequiel', he: 'Yejezqel', en: 'Ezekiel', chapters: 48 },
-      { id: 'daniel', es: 'Daniel', he: 'Daniye’l', en: 'Daniel', chapters: 12 },
-      { id: 'mateo', es: 'Mateo', he: 'Mattityahu', en: 'Matthew', chapters: 28 },
-      { id: 'marcos', es: 'Marcos', he: 'Marqos', en: 'Mark', chapters: 16 },
-      { id: 'lucas', es: 'Lucas', he: 'Luqas', en: 'Luke', chapters: 24 },
-      { id: 'juan', es: 'Juan', he: 'Yojanán', en: 'John', chapters: 21 },
-      { id: 'hechos', es: 'Hechos', he: 'Ma’asei HaShlujim', en: 'Acts', chapters: 28 },
-      { id: 'romanos', es: 'Romanos', he: 'Romiyim', en: 'Romans', chapters: 16 },
-      { id: '1corintios', es: '1 Corintios', he: '1 Qorintiyim', en: '1 Corinthians', chapters: 16 },
-      { id: '2corintios', es: '2 Corintios', he: '2 Qorintiyim', en: '2 Corinthians', chapters: 13 },
-      { id: 'galatas', es: 'Gálatas', he: 'Galatiyim', en: 'Galatians', chapters: 6 },
-      { id: 'efesios', es: 'Efesios', he: 'Efesiyim', en: 'Ephesians', chapters: 6 },
-      { id: 'filipenses', es: 'Filipenses', he: 'Filipiyim', en: 'Philippians', chapters: 4 },
-      { id: 'colosenses', es: 'Colosenses', he: 'Qolasiyim', en: 'Colossians', chapters: 4 },
-      { id: 'hebreos', es: 'Hebreos', he: 'Ivrim', en: 'Hebrews', chapters: 13 },
-      { id: 'santiago', es: 'Santiago', he: 'Ya’akov', en: 'James', chapters: 5 },
-      { id: '1pedro', es: '1 Pedro', he: '1 Kefa', en: '1 Peter', chapters: 5 },
-      { id: '1juan', es: '1 Juan', he: '1 Yojanán', en: '1 John', chapters: 5 },
-      { id: 'apocalipsis', es: 'Apocalipsis', he: 'Gilyana', en: 'Revelation', chapters: 22 }
+      // Antiguo Testamento (39 libros)
+      { id: 'genesis', es: 'Génesis', he: 'Bereshit', en: 'Genesis', chapters: 50, testament: 'AT' },
+      { id: 'exodo', es: 'Éxodo', he: 'Shemot', en: 'Exodus', chapters: 40, testament: 'AT' },
+      { id: 'levitico', es: 'Levítico', he: 'Vayikrá', en: 'Leviticus', chapters: 27, testament: 'AT' },
+      { id: 'numeros', es: 'Números', he: 'Bamidbar', en: 'Numbers', chapters: 36, testament: 'AT' },
+      { id: 'deuteronomio', es: 'Deuteronomio', he: 'Devarim', en: 'Deuteronomy', chapters: 34, testament: 'AT' },
+      { id: 'josue', es: 'Josué', he: 'Yehoshúa', en: 'Joshua', chapters: 24, testament: 'AT' },
+      { id: 'jueces', es: 'Jueces', he: 'Shoftim', en: 'Judges', chapters: 21, testament: 'AT' },
+      { id: 'rut', es: 'Rut', he: 'Rut', en: 'Ruth', chapters: 4, testament: 'AT' },
+      { id: '1samuel', es: '1 Samuel', he: '1 Shmuel', en: '1 Samuel', chapters: 31, testament: 'AT' },
+      { id: '2samuel', es: '2 Samuel', he: '2 Shmuel', en: '2 Samuel', chapters: 24, testament: 'AT' },
+      { id: '1reyes', es: '1 Reyes', he: '1 Melajim', en: '1 Kings', chapters: 22, testament: 'AT' },
+      { id: '2reyes', es: '2 Reyes', he: '2 Melajim', en: '2 Kings', chapters: 25, testament: 'AT' },
+      { id: '1cronicas', es: '1 Crónicas', he: '1 Divrei Hayamim', en: '1 Chronicles', chapters: 29, testament: 'AT' },
+      { id: '2cronicas', es: '2 Crónicas', he: '2 Divrei Hayamim', en: '2 Chronicles', chapters: 36, testament: 'AT' },
+      { id: 'esdras', es: 'Esdras', he: 'Ezra', en: 'Ezra', chapters: 10, testament: 'AT' },
+      { id: 'nehemias', es: 'Nehemías', he: 'Nejemyah', en: 'Nehemiah', chapters: 13, testament: 'AT' },
+      { id: 'ester', es: 'Ester', he: 'Ester', en: 'Esther', chapters: 10, testament: 'AT' },
+      { id: 'job', es: 'Job', he: 'Iyov', en: 'Job', chapters: 42, testament: 'AT' },
+      { id: 'salmos', es: 'Salmos', he: 'Tehilim', en: 'Psalms', chapters: 150, testament: 'AT' },
+      { id: 'proverbios', es: 'Proverbios', he: 'Mishlei', en: 'Proverbs', chapters: 31, testament: 'AT' },
+      { id: 'eclesiastes', es: 'Eclesiastés', he: 'Qohelet', en: 'Ecclesiastes', chapters: 12, testament: 'AT' },
+      { id: 'cantares', es: 'Cantares', he: 'Shir HaShirim', en: 'Song of Solomon', chapters: 8, testament: 'AT' },
+      { id: 'isaias', es: 'Isaías', he: 'Yeshayahu', en: 'Isaiah', chapters: 66, testament: 'AT' },
+      { id: 'jeremias', es: 'Jeremías', he: 'Yirmeyahu', en: 'Jeremiah', chapters: 52, testament: 'AT' },
+      { id: 'lamentaciones', es: 'Lamentaciones', he: 'Eijah', en: 'Lamentations', chapters: 5, testament: 'AT' },
+      { id: 'ezequiel', es: 'Ezequiel', he: 'Yejezqel', en: 'Ezekiel', chapters: 48, testament: 'AT' },
+      { id: 'daniel', es: 'Daniel', he: 'Daniye’l', en: 'Daniel', chapters: 12, testament: 'AT' },
+      { id: 'oseas', es: 'Oseas', he: 'Hoshea', en: 'Hosea', chapters: 14, testament: 'AT' },
+      { id: 'joel', es: 'Joel', he: 'Yoel', en: 'Joel', chapters: 3, testament: 'AT' },
+      { id: 'amos', es: 'Amós', he: 'Amos', en: 'Amos', chapters: 9, testament: 'AT' },
+      { id: 'abdias', es: 'Abdías', he: 'Ovadyah', en: 'Obadiah', chapters: 1, testament: 'AT' },
+      { id: 'jonas', es: 'Jonás', he: 'Yonah', en: 'Jonah', chapters: 4, testament: 'AT' },
+      { id: 'miqueas', es: 'Miqueas', he: 'Mijah', en: 'Micah', chapters: 7, testament: 'AT' },
+      { id: 'nahum', es: 'Nahúm', he: 'Najum', en: 'Nahum', chapters: 3, testament: 'AT' },
+      { id: 'habacuc', es: 'Habacuc', he: 'Javaquq', en: 'Habakkuk', chapters: 3, testament: 'AT' },
+      { id: 'sofonias', es: 'Sofonías', he: 'Tzefanyah', en: 'Zephaniah', chapters: 3, testament: 'AT' },
+      { id: 'hageo', es: 'Hageo', he: 'Jagai', en: 'Haggai', chapters: 2, testament: 'AT' },
+      { id: 'zacarias', es: 'Zacarías', he: 'Zejaryah', en: 'Zechariah', chapters: 14, testament: 'AT' },
+      { id: 'malaquias', es: 'Malaquías', he: 'Malaji', en: 'Malachi', chapters: 4, testament: 'AT' },
+
+      // Nuevo Testamento (27 libros)
+      { id: 'mateo', es: 'Mateo', he: 'Mattityahu', en: 'Matthew', chapters: 28, testament: 'NT' },
+      { id: 'marcos', es: 'Marcos', he: 'Marqos', en: 'Mark', chapters: 16, testament: 'NT' },
+      { id: 'lucas', es: 'Lucas', he: 'Luqas', en: 'Luke', chapters: 24, testament: 'NT' },
+      { id: 'juan', es: 'Juan', he: 'Yojanán', en: 'John', chapters: 21, testament: 'NT' },
+      { id: 'hechos', es: 'Hechos', he: 'Ma’asei HaShlujim', en: 'Acts', chapters: 28, testament: 'NT' },
+      { id: 'romanos', es: 'Romanos', he: 'Romiyim', en: 'Romans', chapters: 16, testament: 'NT' },
+      { id: '1corintios', es: '1 Corintios', he: '1 Qorintiyim', en: '1 Corinthians', chapters: 16, testament: 'NT' },
+      { id: '2corintios', es: '2 Corintios', he: '2 Qorintiyim', en: '2 Corinthians', chapters: 13, testament: 'NT' },
+      { id: 'galatas', es: 'Gálatas', he: 'Galatiyim', en: 'Galatians', chapters: 6, testament: 'NT' },
+      { id: 'efesios', es: 'Efesios', he: 'Efesiyim', en: 'Ephesians', chapters: 6, testament: 'NT' },
+      { id: 'filipenses', es: 'Filipenses', he: 'Filipiyim', en: 'Philippians', chapters: 4, testament: 'NT' },
+      { id: 'colosenses', es: 'Colosenses', he: 'Qolasiyim', en: 'Colossians', chapters: 4, testament: 'NT' },
+      { id: '1tesalonicenses', es: '1 Tesalonicenses', he: '1 Tesaloniqiyim', en: '1 Thessalonians', chapters: 5, testament: 'NT' },
+      { id: '2tesalonicenses', es: '2 Tesalonicenses', he: '2 Tesaloniqiyim', en: '2 Thessalonians', chapters: 3, testament: 'NT' },
+      { id: '1timoteo', es: '1 Timoteo', he: '1 Timotiyos', en: '1 Timothy', chapters: 6, testament: 'NT' },
+      { id: '2timoteo', es: '2 Timoteo', he: '2 Timotiyos', en: '2 Timothy', chapters: 4, testament: 'NT' },
+      { id: 'tito', es: 'Tito', he: 'Titos', en: 'Titus', chapters: 3, testament: 'NT' },
+      { id: 'filemon', es: 'Filemón', he: 'Filemon', en: 'Philemon', chapters: 1, testament: 'NT' },
+      { id: 'hebreos', es: 'Hebreos', he: 'Ivrim', en: 'Hebrews', chapters: 13, testament: 'NT' },
+      { id: 'santiago', es: 'Santiago', he: 'Ya’akov', en: 'James', chapters: 5, testament: 'NT' },
+      { id: '1pedro', es: '1 Pedro', he: '1 Kefa', en: '1 Peter', chapters: 5, testament: 'NT' },
+      { id: '2pedro', es: '2 Pedro', he: '2 Kefa', en: '2 Peter', chapters: 3, testament: 'NT' },
+      { id: '1juan', es: '1 Juan', he: '1 Yojanán', en: '1 John', chapters: 5, testament: 'NT' },
+      { id: '2juan', es: '2 Juan', he: '2 Yojanán', en: '2 John', chapters: 1, testament: 'NT' },
+      { id: '3juan', es: '3 Juan', he: '3 Yojanán', en: '3 John', chapters: 1, testament: 'NT' },
+      { id: 'judas', es: 'Judas', he: 'Yehudah', en: 'Jude', chapters: 1, testament: 'NT' },
+      { id: 'apocalipsis', es: 'Apocalipsis', he: 'Gilyana', en: 'Revelation', chapters: 22, testament: 'NT' }
     ];
+
+    let localBibleDatabase = null;
+    async function initBibleEngine() {
+      try {
+        const res = await fetch('/data/bible_rvr1960.json');
+        if (res.ok) {
+          localBibleDatabase = await res.json();
+          console.log('[Bible Engine] RVR1960 cargada localmente:', Object.keys(localBibleDatabase).length, 'libros');
+        }
+      } catch (e) {
+        console.warn('[Bible Engine] Modo offline local listo');
+      }
+    }
+    setTimeout(initBibleEngine, 100);
 
     // Capítulos completos reales offline en las 4 versiones oficiales
     const fullBibleChaptersDatabase = {
@@ -11056,37 +11144,39 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         return fullBibleChaptersDatabase[dbKey][ver];
       }
 
-      // Si no está en el mapa directo, generamos los versículos del capítulo canónico con textos coherentes
-      const bookObj = canonicalBibleBooks.find(b => b.id === bookId) || { es: 'Escrituras', en: 'Scripture', he: 'Ketuvim' };
-      const bookName = ver === 'kadosh' ? bookObj.he : (ver === 'kjv' ? bookObj.en : bookObj.es);
-      
-      const count = (bookId === 'salmos' && chapterNum === 119) ? 24 : 10;
-      const generated = [];
-
-      for (let i = 1; i <= count; i++) {
-        if (ver === 'kjv') {
-          generated.push({
-            num: i,
-            text: `And the LORD spoke concerning ${bookName}, chapter ${chapterNum}, verse ${i}: Blessed are they that keep his testimonies, and seek him with the whole heart.`
-          });
-        } else if (ver === 'kadosh') {
-          generated.push({
-            num: i,
-            text: `Así dice YAHWEH en el libro de ${bookName}, capítulo ${chapterNum}, versículo ${i}: Dichosos los que guardan Su Toráh y le buscan con todo el corazón.`
-          });
-        } else if (ver === 'rva1909') {
-          generated.push({
-            num: i,
-            text: `Palabra de Jehová en ${bookName}, capítulo ${chapterNum}, versículo ${i}: Bienaventurados los que guardan sus testimonios, y con todo el corazón le buscan.`
-          });
-        } else {
-          generated.push({
-            num: i,
-            text: `Palabra de Dios en ${bookName}, capítulo ${chapterNum}, versículo ${i}: Bienaventurados los íntegros de camino, los que andan en la ley de Jehová y guardan sus mandamientos.`
-          });
+      // 1. Consultar base de datos local RVR1960 en memoria (66 libros completos)
+      if (localBibleDatabase && localBibleDatabase[bookId]) {
+        const chapIdx = chapterNum - 1;
+        if (localBibleDatabase[bookId][chapIdx]) {
+          const list = localBibleDatabase[bookId][chapIdx].map((txt, idx) => ({
+            num: idx + 1,
+            text: txt
+          }));
+          if (!fullBibleChaptersDatabase[dbKey]) fullBibleChaptersDatabase[dbKey] = {};
+          fullBibleChaptersDatabase[dbKey][ver] = list;
+          return list;
         }
       }
-      return generated;
+
+      // 2. Consulta síncrona a endpoint /api/bible/chapter si aún no cargó el JSON local
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', `/api/bible/chapter?book=${encodeURIComponent(bookId)}&chapter=${chapterNum}`, false);
+        xhr.send();
+        if (xhr.status === 200) {
+          const res = JSON.parse(xhr.responseText);
+          if (res.success && Array.isArray(res.verses) && res.verses.length > 0) {
+            if (!fullBibleChaptersDatabase[dbKey]) fullBibleChaptersDatabase[dbKey] = {};
+            fullBibleChaptersDatabase[dbKey][ver] = res.verses;
+            return res.verses;
+          }
+        }
+      } catch (e) {}
+
+      // 3. Fallback canónico con metadatos reales
+      const bookObj = canonicalBibleBooks.find(b => b.id === bookId) || { es: 'Escrituras', en: 'Scripture', he: 'Ketuvim' };
+      const bookName = ver === 'kadosh' ? bookObj.he : (ver === 'kjv' ? bookObj.en : bookObj.es);
+      return [{ num: 1, text: `Palabra de Dios en ${bookName}, capítulo ${chapterNum}` }];
     }
 
     // Modal Catálogo: Control de pestañas limpias
@@ -12465,7 +12555,9 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         overlayDarkness: (lyricsStyleConfig.overlayDimmer || 40) / 100,
         backgroundBlur: lyricsStyleConfig.backgroundBlur || 0,
         videoLoopUrl: lyricsStyleConfig.videoLoopUrl || '',
-        customBgUrl: ((currentTheme === 'custom' || currentTheme === 'emerald') && lyricsStyleConfig.customMediaType === 'image') ? (lyricsStyleConfig.customMediaUrl || '') : '',
+        customBgUrl: (currentTheme === 'custom' && lyricsStyleConfig.customMediaUrl && lyricsStyleConfig.customMediaType !== 'video') 
+          ? lyricsStyleConfig.customMediaUrl 
+          : (((currentTheme === 'custom' || currentTheme === 'emerald') && lyricsStyleConfig.customMediaType === 'image') ? (lyricsStyleConfig.customMediaUrl || '') : ''),
         campusName: resolvedCampusName,
         timestamp: Date.now()
       };
@@ -12770,7 +12862,13 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           try {
             const data = JSON.parse(e.data);
             if (data && !data.isStreaming && isLiveStreaming) {
-              stopMasterLiveStream();
+              stopMasterLiveStream(false);
+              if (data.error) {
+                showToast('⚠️ Transmisión detenida por el servidor: ' + data.error, '⚠️');
+              }
+            } else if (data && data.isStreaming && !isLiveStreaming) {
+              isLiveStreaming = true;
+              setStreamUIState('live', ['Transmisión Activa']);
             }
           } catch (err) {}
         });
@@ -19362,7 +19460,7 @@ Pues resucitaste, Rey`
       // =======================================================================
       // STEP 2: CAPA 3 - MEDIOS Y VIDEOS (Solo si existe rack activo de Capa 3)
       // =======================================================================
-      const hasLayer3Rack = Boolean(document.getElementById('rackLayer3'));
+      const hasLayer3Rack = Boolean(document.getElementById('rack-layer-3') || document.getElementById('rackLayer3'));
       if (hasLayer3Rack && layerPower[3] && state[3]) {
         const pb = isProgram ? videoPlayback.program : videoPlayback.preview;
         const customVid = getLayer3VideoForShot(state[3]);
@@ -19534,7 +19632,7 @@ Pues resucitaste, Rey`
             const progVid = document.getElementById('programMediaVideo');
             const isLetrasVideoActivelyPlaying = Boolean(
               isProgram &&
-              studioVideoIntendedPlay &&
+              (studioVideoIntendedPlay || (progVid && !progVid.paused && !progVid.ended)) &&
               (!item.videoUrl || (progVid && !progVid.ended))
             );
 
@@ -19658,14 +19756,36 @@ Pues resucitaste, Rey`
               fGrad.addColorStop(0, '#09081a');
               fGrad.addColorStop(0.5, '#19102e');
               fGrad.addColorStop(1, '#070b14');
-              ctx.fillStyle = fGrad;
-              ctx.fillRect(0, 0, w, h);
 
-              // Soft ambient light
-              ctx.fillStyle = themeAccent + '1a';
-              ctx.beginPath();
-              ctx.arc(960, 540, 360 + Math.sin(time * 1.5) * 40, 0, Math.PI * 2);
-              ctx.fill();
+              const isCustomImg = (currentTheme === 'custom' || lyricsStyleConfig.customMediaType === 'image') && lyricsStyleConfig.customMediaUrl && lyricsStyleConfig.customMediaType !== 'video';
+              if (isCustomImg) {
+                if (!cachedCustomStreamImage || cachedCustomStreamImageUrl !== lyricsStyleConfig.customMediaUrl) {
+                  updateCustomStreamImageCache();
+                }
+                if (cachedCustomStreamImage && cachedCustomStreamImage.complete && cachedCustomStreamImage.naturalWidth > 0) {
+                  try {
+                    ctx.drawImage(cachedCustomStreamImage, 0, 0, w, h);
+                    const dimmer = (lyricsStyleConfig.overlayDimmer || 40) / 100;
+                    ctx.fillStyle = `rgba(0, 0, 0, ${dimmer})`;
+                    ctx.fillRect(0, 0, w, h);
+                  } catch (e) {
+                    ctx.fillStyle = fGrad;
+                    ctx.fillRect(0, 0, w, h);
+                  }
+                } else {
+                  ctx.fillStyle = fGrad;
+                  ctx.fillRect(0, 0, w, h);
+                }
+              } else {
+                ctx.fillStyle = fGrad;
+                ctx.fillRect(0, 0, w, h);
+
+                // Soft ambient light
+                ctx.fillStyle = themeAccent + '1a';
+                ctx.beginPath();
+                ctx.arc(960, 540, 360 + Math.sin(time * 1.5) * 40, 0, Math.PI * 2);
+                ctx.fill();
+              }
 
               ctx.textAlign = 'center';
               const maxFullWidth = 1600;
@@ -20811,30 +20931,44 @@ Pues resucitaste, Rey`
       const fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://live-api-s.facebook.com:443/rtmp/';
       const fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
 
+      const localTestEnable = document.getElementById('localTestStreamEnable')?.checked ?? false;
+
       const config = {
         youtube: { enabled: ytEnable, url: ytUrl, key: ytKey },
-        facebook: { enabled: fbEnable, url: fbUrl, key: fbKey }
+        facebook: { enabled: fbEnable, url: fbUrl, key: fbKey },
+        localTest: localTestEnable
       };
 
       try {
         localStorage.setItem('omnicast_streaming_config', JSON.stringify(config));
       } catch (e) {}
 
+      // Sincronizar persistentemente con el servidor OmniCast (para que persista en todas las tabletas)
+      try {
+        fetch('/api/stream/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        }).catch(() => {});
+      } catch (e) {}
+
       updateDestinationsLiveBadge();
       if (showAlert) {
-        showToast('✓ Destinos de transmisión guardados (YouTube y Facebook)');
+        showToast('✓ Destinos de transmisión sincronizados y guardados');
       }
     }
 
     function updateDestinationsLiveBadge() {
-      const ytEnabled = document.getElementById('ytStreamEnable').checked;
-      const fbEnabled = document.getElementById('fbStreamEnable').checked;
+      const ytEnabled = document.getElementById('ytStreamEnable')?.checked ?? false;
+      const fbEnabled = document.getElementById('fbStreamEnable')?.checked ?? false;
+      const localTestEnabled = document.getElementById('localTestStreamEnable')?.checked ?? false;
       const badge = document.getElementById('destinationsLiveBadge');
 
       if (badge) {
         badge.innerHTML = `
           ${ytEnabled ? '<span class="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold">YouTube</span>' : ''}
           ${fbEnabled ? '<span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold">Facebook</span>' : ''}
+          ${localTestEnabled ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">Prueba Local</span>' : ''}
         `;
       }
     }
@@ -21197,7 +21331,7 @@ Pues resucitaste, Rey`
       executeQuickBibleLaunch(true);
     }
 
-    function executeQuickBibleLaunch(andProjectNow = true) {
+    async function executeQuickBibleLaunch(andProjectNow = true) {
       const input = document.getElementById('quickBibleInput');
       let query = (input && input.value) ? input.value.trim() : 'Juan 3:16';
       if (!query) query = 'Juan 3:16';
@@ -21209,14 +21343,37 @@ Pues resucitaste, Rey`
         const foundKey = Object.keys(bibleDictionary).find(k => k.includes(norm) || norm.includes(k));
         if (foundKey) {
           passage = bibleDictionary[foundKey];
-        } else {
-          passage = {
-            title: query.toUpperCase(),
-            text: `Lectura bíblica: ${query} (Reina Valera 1960)`,
-            subText: `${query} • Pasaje de la predicación`,
-            badge: query.toUpperCase()
-          };
         }
+      }
+
+      // Consulta al endpoint oficial de la Biblia RVR1960 para cualquier cita de los 66 libros
+      if (!passage) {
+        try {
+          const res = await fetch(`/api/bible/verse?query=${encodeURIComponent(query)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+              passage = {
+                title: data.citation,
+                text: data.text,
+                subText: data.subText,
+                badge: data.badge,
+                verses: data.verses
+              };
+            }
+          }
+        } catch (e) {
+          console.warn('[QuickBible] Error consultando versículo:', e);
+        }
+      }
+
+      if (!passage) {
+        passage = {
+          title: query.toUpperCase(),
+          text: `Lectura bíblica: ${query} (Reina Valera 1960)`,
+          subText: `${query} • Pasaje de la predicación`,
+          badge: query.toUpperCase()
+        };
       }
 
       let existingIndex = libraryItems.findIndex(it => it.title.toLowerCase() === passage.title.toLowerCase());
@@ -21227,9 +21384,15 @@ Pues resucitaste, Rey`
           title: passage.title,
           author: 'Reina Valera 1960',
           scope: 'BIBLIA EN VIVO',
-          slides: [
-            { text: passage.text, subText: passage.subText, badge: passage.badge }
-          ]
+          slides: (passage.verses && passage.verses.length > 1)
+            ? passage.verses.map(v => ({
+                text: `"${v.text}"`,
+                subText: `${passage.title}:${v.num} (Reina-Valera 1960)`,
+                badge: `${passage.badge}:${v.num}`
+              }))
+            : [
+                { text: `"${passage.text}"`, subText: passage.subText, badge: passage.badge }
+              ]
         };
         libraryItems.unshift(newItem);
         existingIndex = 0;
@@ -21250,9 +21413,10 @@ Pues resucitaste, Rey`
           updateLayerPowerUI(2);
           updateWirecastRackUI();
         }
-        showToast(`⚡ Cita bíblica proyectada: ${passage.title}`, '📖');
+        triggerSlide(0);
+        showToast(`📖 "${passage.title}" proyectada en vivo`, '✝️');
       } else {
-        showToast(`📖 Pasaje ${passage.title} agregado a la biblioteca`, '✓');
+        showToast(`💾 "${passage.title}" agregada al servicio`, '✓');
       }
 
       if (input) input.value = '';
@@ -21733,6 +21897,9 @@ Pues resucitaste, Rey`
               showToast('⚠️ RTMP: ' + data.message, '⚠️');
             } else if (data.type === 'stopped') {
               stopMasterLiveStream(false);
+              if (data.error) {
+                showToast('⚠️ Transmisión finalizada: ' + data.error, '⚠️');
+              }
             } else if (data.type === 'health') {
               window.__lastStreamHealth = data;
               if (data.browserFps < 20) {
@@ -21873,11 +22040,21 @@ Pues resucitaste, Rey`
         if (fbKeyInput) fbKeyInput.value = fbKey;
       }
 
+      let localTestEnabled = Boolean(document.getElementById('localTestStreamEnable')?.checked || window.omnicastLocalTestMode === true);
+      try {
+        const saved = localStorage.getItem('omnicast_streaming_config');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.localTest !== undefined) localTestEnabled = Boolean(parsed.localTest);
+        }
+      } catch (e) {}
+
       const hasYt = Boolean(ytEnabled && ytKey && ytKey !== 'yt-live-9382-7712-4412-omni');
       const hasFb = Boolean(fbEnabled && fbKey && fbKey !== 'FB-1049284729184712-live');
+      const hasLocalTest = Boolean(localTestEnabled);
 
-      if (!hasYt && !hasFb) {
-        showToast('⚠️ Configura tu clave de transmisión en Ajustes > Destinos', '⚠️');
+      if (!hasYt && !hasFb && !hasLocalTest) {
+        showToast('⚠️ Configura tu clave de transmisión en Ajustes > Destinos o activa Modo de Prueba Local', '⚠️');
         openCampusSettingsModal();
         switchSettingsTab('destinos');
         setStreamUIState('idle');
@@ -21888,12 +22065,13 @@ Pues resucitaste, Rey`
         youtube: { enabled: hasYt, url: ytUrl, key: ytKey },
         facebook: { enabled: hasFb, url: fbUrl, key: fbKey },
         audioMuted: Boolean(isStreamAudioMuted),
-        localTest: window.omnicastLocalTestMode === true
+        localTest: hasLocalTest
       };
 
       const initialDestNames = [];
       if (hasFb) initialDestNames.push('Facebook Live');
       if (hasYt) initialDestNames.push('YouTube Live');
+      if (hasLocalTest) initialDestNames.push('Grabación de Prueba MP4');
 
       isLiveStreaming = true;
       isEncodingStreamFrame = false;
@@ -23549,9 +23727,32 @@ Resucitaste en majestad`;
             if (document.getElementById('fbStreamUrl')) document.getElementById('fbStreamUrl').value = cfg.facebook.url;
             if (document.getElementById('fbStreamKey')) document.getElementById('fbStreamKey').value = cfg.facebook.key;
           }
+          if (cfg.localTest !== undefined && document.getElementById('localTestStreamEnable')) {
+            document.getElementById('localTestStreamEnable').checked = Boolean(cfg.localTest);
+          }
           updateDestinationsLiveBadge();
         }
       } catch (e) {}
+
+      // Sincronizar con la configuración persistente del servidor OmniCast
+      fetch('/api/stream/config').then(r => r.json()).then(serverCfg => {
+        if (!serverCfg) return;
+        const ytInput = document.getElementById('ytStreamKey');
+        const fbInput = document.getElementById('fbStreamKey');
+        const testInput = document.getElementById('localTestStreamEnable');
+        if (serverCfg.youtube && ytInput && !ytInput.value) {
+          ytInput.value = serverCfg.youtube.key || '';
+          if (document.getElementById('ytStreamEnable')) document.getElementById('ytStreamEnable').checked = serverCfg.youtube.enabled ?? true;
+        }
+        if (serverCfg.facebook && fbInput && !fbInput.value) {
+          fbInput.value = serverCfg.facebook.key || '';
+          if (document.getElementById('fbStreamEnable')) document.getElementById('fbStreamEnable').checked = serverCfg.facebook.enabled ?? true;
+        }
+        if (serverCfg.localTest !== undefined && testInput) {
+          testInput.checked = Boolean(serverCfg.localTest);
+        }
+        updateDestinationsLiveBadge();
+      }).catch(() => {});
     }
 
     function exportCampusBackup() {

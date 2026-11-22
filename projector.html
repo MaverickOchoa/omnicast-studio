@@ -81,24 +81,30 @@
   </div>
 
   <!-- Main Lyric / Scripture Wrapper (Center vs Lower Third Layout) -->
-  <div id="lyricsWrapper" class="absolute inset-0 z-20 flex items-center justify-center p-6 md:p-12 transition-all duration-500">
-    <div id="lyricsBox" class="w-full max-w-5xl text-center flex flex-col items-center justify-center transition-all duration-500">
+  <div id="lyricsWrapper" class="absolute inset-0 z-20 flex items-center justify-center p-[4cqw] transition-all duration-500 [container-type:size]">
+    <div id="lyricsBox" class="w-[94%] max-w-6xl text-center flex flex-col items-center justify-center transition-all duration-500">
       
       <!-- Section / Verse Badge -->
-      <div id="referenceBadge" class="hidden mb-4 px-6 py-1.5 rounded-full bg-amber-500/25 border border-amber-400/50 text-amber-300 font-extrabold text-xl tracking-widest uppercase shadow-lg">
+      <div id="referenceBadge" class="hidden mb-[1.5cqw] px-[2.2cqw] py-[0.5cqw] rounded-full bg-amber-500/25 border border-amber-400/50 text-amber-300 font-extrabold text-[1.4cqw] tracking-widest uppercase shadow-lg">
         VERSO 1
       </div>
       
       <!-- Main Slide Lyric Text -->
-      <h1 id="mainText" class="slide-text-broadcast text-white font-black text-5xl md:text-7xl leading-tight tracking-wide fade-transition">
+      <h1 id="mainText" class="slide-text-broadcast text-white font-black text-[3.8cqw] leading-tight tracking-wide fade-transition">
         OmniCast Studio
       </h1>
 
       <!-- Secondary Subtext / Chords / Scripture Reference -->
-      <p id="subText" class="mt-4 text-slate-200 text-2xl font-medium slide-text-broadcast fade-transition">
+      <p id="subText" class="mt-[1.2cqw] text-white font-black text-[3.8cqw] leading-tight tracking-wide slide-text-broadcast fade-transition">
         Esperando señal del operador de presentación...
       </p>
     </div>
+  </div>
+
+  <!-- Telestrator / Preacher Tablet Drawing Overlay Layer -->
+  <div id="telestratorContainer" class="absolute inset-0 pointer-events-none z-30 hidden">
+    <div id="telestratorBlackboardCover" class="absolute inset-0 bg-[#07090e] hidden transition-opacity duration-300"></div>
+    <canvas id="telestratorCanvas" class="absolute inset-0 w-full h-full"></canvas>
   </div>
 
   <!-- Bottom Tally Indicator -->
@@ -139,6 +145,175 @@
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
+
+    // =========================================================================
+    // TELESTRATOR & PREACHER TABLET OVERLAY ENGINE (HDMI SALA AUDITORIO)
+    // =========================================================================
+    const telestratorContainer = document.getElementById('telestratorContainer');
+    const telestratorCanvas = document.getElementById('telestratorCanvas');
+    const telestratorBlackboardCover = document.getElementById('telestratorBlackboardCover');
+    const telCtx = telestratorCanvas ? telestratorCanvas.getContext('2d') : null;
+
+    let padStrokes = [];
+    let padLiveProjector = false;
+    let padMode = 'telestrator';
+
+    function resizeTelestratorCanvas() {
+      if (!telestratorCanvas) return;
+      telestratorCanvas.width = window.innerWidth;
+      telestratorCanvas.height = window.innerHeight;
+      redrawTelestrator();
+    }
+    window.addEventListener('resize', resizeTelestratorCanvas);
+
+    function redrawTelestrator() {
+      if (!telCtx || !telestratorCanvas) return;
+      telCtx.clearRect(0, 0, telestratorCanvas.width, telestratorCanvas.height);
+      if (!padLiveProjector) {
+        if (telestratorContainer) telestratorContainer.classList.add('hidden');
+        return;
+      }
+
+      if (telestratorContainer) telestratorContainer.classList.remove('hidden');
+
+      if (telestratorBlackboardCover) {
+        if (padMode === 'blackboard') {
+          telestratorBlackboardCover.classList.remove('hidden');
+        } else {
+          telestratorBlackboardCover.classList.add('hidden');
+        }
+      }
+
+      renderTelestratorStrokes(telCtx, padStrokes, telestratorCanvas.width, telestratorCanvas.height);
+    }
+
+    function renderTelestratorStrokes(targetCtx, strokes, width, height) {
+      if (!strokes || strokes.length === 0) return;
+      strokes.forEach(stroke => {
+        if (!stroke.points || stroke.points.length === 0) return;
+        targetCtx.save();
+        targetCtx.lineCap = 'round';
+        targetCtx.lineJoin = 'round';
+
+        const scale = width / 1920;
+        if (stroke.tool === 'highlighter') {
+          targetCtx.globalAlpha = 0.28;
+          targetCtx.globalCompositeOperation = 'screen';
+          targetCtx.strokeStyle = stroke.color || '#facc15';
+          targetCtx.fillStyle = stroke.color || '#facc15';
+          targetCtx.lineWidth = (stroke.size || 6) * scale * 2.5;
+        } else if (stroke.tool === 'eraser') {
+          targetCtx.globalCompositeOperation = 'destination-out';
+          targetCtx.lineWidth = (stroke.size || 6) * scale * 3.8;
+        } else {
+          targetCtx.globalAlpha = 1.0;
+          targetCtx.globalCompositeOperation = 'source-over';
+          targetCtx.strokeStyle = stroke.color || '#facc15';
+          targetCtx.fillStyle = stroke.color || '#facc15';
+          targetCtx.lineWidth = Math.max(2, (stroke.size || 6) * scale * 1.6);
+        }
+
+        if (stroke.points.length === 1) {
+          const pt = stroke.points[0];
+          targetCtx.beginPath();
+          targetCtx.arc(pt.x * width, pt.y * height, targetCtx.lineWidth / 2, 0, Math.PI * 2);
+          targetCtx.fill();
+        } else {
+          targetCtx.beginPath();
+          targetCtx.moveTo(stroke.points[0].x * width, stroke.points[0].y * height);
+          for (let i = 1; i < stroke.points.length; i++) {
+            const p = stroke.points[i];
+            targetCtx.lineTo(p.x * width, p.y * height);
+          }
+          targetCtx.stroke();
+        }
+        targetCtx.restore();
+      });
+    }
+
+    function drawSingleTelestratorSegment(targetCtx, stroke, width, height) {
+      if (!stroke || stroke.points.length < 2) return;
+      const p1 = stroke.points[stroke.points.length - 2];
+      const p2 = stroke.points[stroke.points.length - 1];
+      const scale = width / 1920;
+
+      targetCtx.save();
+      targetCtx.lineCap = 'round';
+      targetCtx.lineJoin = 'round';
+      if (stroke.tool === 'highlighter') {
+        targetCtx.globalAlpha = 0.28;
+        targetCtx.globalCompositeOperation = 'screen';
+        targetCtx.strokeStyle = stroke.color || '#facc15';
+        targetCtx.lineWidth = (stroke.size || 6) * scale * 2.5;
+      } else if (stroke.tool === 'eraser') {
+        targetCtx.globalCompositeOperation = 'destination-out';
+        targetCtx.lineWidth = (stroke.size || 6) * scale * 3.8;
+      } else {
+        targetCtx.globalAlpha = 1.0;
+        targetCtx.globalCompositeOperation = 'source-over';
+        targetCtx.strokeStyle = stroke.color || '#facc15';
+        targetCtx.lineWidth = Math.max(2, (stroke.size || 6) * scale * 1.6);
+      }
+      targetCtx.beginPath();
+      targetCtx.moveTo(p1.x * width, p1.y * height);
+      targetCtx.lineTo(p2.x * width, p2.y * height);
+      targetCtx.stroke();
+      targetCtx.restore();
+    }
+
+    // Connect to Telestrator WebSocket
+    let padWs = null;
+    function connectPadWs() {
+      const pProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const cTarget = activeChurch || 'church-hebron';
+      const pUrl = `${pProto}//${window.location.host}/api/pad-ws?church=${encodeURIComponent(cTarget)}`;
+      try {
+        padWs = new WebSocket(pUrl);
+        padWs.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data);
+            if (msg.type === 'init') {
+              padStrokes = msg.strokes || [];
+              padLiveProjector = Boolean(msg.liveProjector);
+              if (msg.mode) padMode = msg.mode;
+              redrawTelestrator();
+            } else if (msg.type === 'stroke_start') {
+              padStrokes.push(msg.stroke);
+              redrawTelestrator();
+            } else if (msg.type === 'stroke_move') {
+              const s = padStrokes.find(st => st.id === msg.strokeId);
+              if (s && msg.point) {
+                s.points.push(msg.point);
+                if (padLiveProjector && telCtx && telestratorCanvas) {
+                  drawSingleTelestratorSegment(telCtx, s, telestratorCanvas.width, telestratorCanvas.height);
+                }
+              }
+            } else if (msg.type === 'stroke_end') {
+              redrawTelestrator();
+            } else if (msg.type === 'clear') {
+              padStrokes = [];
+              redrawTelestrator();
+            } else if (msg.type === 'undo') {
+              padStrokes.pop();
+              redrawTelestrator();
+            } else if (msg.type === 'mode') {
+              padMode = msg.mode || 'telestrator';
+              redrawTelestrator();
+            } else if (msg.type === 'toggle_projector') {
+              padLiveProjector = Boolean(msg.enabled);
+              redrawTelestrator();
+            }
+          } catch (e) {}
+        };
+        padWs.onclose = () => setTimeout(connectPadWs, 3000);
+      } catch (err) {
+        setTimeout(connectPadWs, 3000);
+      }
+    }
+    setTimeout(() => {
+      resizeTelestratorCanvas();
+      connectPadWs();
+    }, 200);
 
     // -------------------------------------------------------------------------
     // PROCEDURAL MOTION LOOPS SHADER ENGINE (60 FPS GPU ANIMATED)
@@ -347,6 +522,7 @@
       mainText.style.fontFamily = fontStack;
       subText.style.fontFamily = fontStack;
       mainText.style.textTransform = isUppercase ? 'uppercase' : 'none';
+      subText.style.textTransform = isUppercase ? 'uppercase' : 'none';
 
       // Text Shadow Class
       mainText.classList.remove('slide-text-broadcast', 'slide-text-glow', 'slide-text-none');
@@ -380,10 +556,16 @@
           }
           customImgEl.classList.remove('hidden');
         }
-      } else if (customImgEl) {
-        customImgEl.classList.add('hidden');
-        customImgEl.removeAttribute('src');
-        customImgEl.removeAttribute('data-src');
+        if (motionCanvas) motionCanvas.classList.add('hidden');
+      } else {
+        if (customImgEl) {
+          customImgEl.classList.add('hidden');
+          customImgEl.removeAttribute('src');
+          customImgEl.removeAttribute('data-src');
+        }
+        if (motionCanvas && !data.videoLoopUrl) {
+          motionCanvas.classList.remove('hidden');
+        }
       }
 
       // Video Loop Handler
@@ -394,6 +576,7 @@
         videoLoopPlayer.loop = true;
         videoLoopPlayer.classList.remove('hidden');
         if (customImgEl) customImgEl.classList.add('hidden');
+        if (motionCanvas) motionCanvas.classList.add('hidden');
         const p = videoLoopPlayer.play();
         if (p && typeof p.catch === 'function') p.catch(() => {});
         videoLoopPlayer.oncanplay = () => {
@@ -404,6 +587,9 @@
         videoLoopPlayer.pause();
         videoLoopPlayer.src = '';
         videoLoopPlayer.classList.add('hidden');
+        if (!data.customBgUrl && motionCanvas) {
+          motionCanvas.classList.remove('hidden');
+        }
       }
     }
 
@@ -599,24 +785,33 @@
           mainText.textContent = txt;
           subText.textContent = data.subText || '';
 
-          // Responsive dynamic font sizing
+          // Responsive dynamic font sizing (ambas líneas en tamaño y peso idéntico)
+          if (typeof data.isUppercase === 'boolean') isUppercase = data.isUppercase;
+          mainText.style.textTransform = isUppercase ? 'uppercase' : 'none';
+          subText.style.textTransform = isUppercase ? 'uppercase' : 'none';
+
           if (currentLayoutMode === 'lowerThird') {
             mainText.className = 'slide-text-broadcast text-white font-black text-2xl md:text-3xl lg:text-4xl leading-tight tracking-wide fade-transition';
+            subText.className = 'slide-text-broadcast text-white font-black text-2xl md:text-3xl lg:text-4xl leading-tight tracking-wide fade-transition mt-1';
           } else {
-            if (txt.length > 120) {
-              mainText.className = 'slide-text-broadcast text-white font-black text-3xl md:text-4xl lg:text-5xl leading-snug tracking-wide fade-transition';
-            } else if (txt.length > 60) {
-              mainText.className = 'slide-text-broadcast text-white font-black text-4xl md:text-5xl lg:text-6xl leading-tight tracking-wide fade-transition';
+            const combinedLength = txt.length + (data.subText ? data.subText.length : 0);
+            if (combinedLength > 120) {
+              mainText.className = 'slide-text-broadcast text-white font-black text-[2.4cqw] leading-tight tracking-wide fade-transition';
+              subText.className = 'slide-text-broadcast text-white font-black text-[2.4cqw] leading-tight tracking-wide fade-transition mt-[0.8cqw]';
+            } else if (combinedLength > 55) {
+              mainText.className = 'slide-text-broadcast text-white font-black text-[3.0cqw] leading-tight tracking-wide fade-transition';
+              subText.className = 'slide-text-broadcast text-white font-black text-[3.0cqw] leading-tight tracking-wide fade-transition mt-[1.0cqw]';
             } else {
-              mainText.className = 'slide-text-broadcast text-white font-black text-5xl md:text-7xl leading-tight tracking-wide fade-transition';
+              mainText.className = 'slide-text-broadcast text-white font-black text-[3.6cqw] leading-tight tracking-wide fade-transition';
+              subText.className = 'slide-text-broadcast text-white font-black text-[3.6cqw] leading-tight tracking-wide fade-transition mt-[1.2cqw]';
             }
           }
 
           if (data.badge) {
             refBadge.textContent = data.badge;
             refBadge.className = data.isVideo
-              ? 'mb-4 px-6 py-1.5 rounded-full bg-red-600/30 border border-red-400 text-red-200 font-extrabold text-xl tracking-widest uppercase shadow-lg animate-pulse'
-              : 'mb-4 px-6 py-1.5 rounded-full bg-amber-500/25 border border-amber-400/50 text-amber-300 font-extrabold text-xl tracking-widest uppercase shadow-lg';
+              ? 'mb-[1.5cqw] px-[2.2cqw] py-[0.5cqw] rounded-full bg-red-600/30 border border-red-400 text-red-200 font-extrabold text-[1.4cqw] tracking-widest uppercase shadow-lg animate-pulse'
+              : 'mb-[1.5cqw] px-[2.2cqw] py-[0.5cqw] rounded-full bg-amber-500/25 border border-amber-400/50 text-amber-300 font-extrabold text-[1.4cqw] tracking-widest uppercase shadow-lg';
             refBadge.classList.remove('hidden');
           } else {
             refBadge.classList.add('hidden');

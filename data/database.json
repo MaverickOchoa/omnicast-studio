@@ -1,6 +1,25 @@
 {
   "libraryItems": [
     {
+      "id": "media-1795349162149",
+      "category": "medios",
+      "isImage": true,
+      "imageUrl": "/uploads/images/1795349162147_custom-bg.png",
+      "filename": "1795349162147_custom-bg.png",
+      "title": "custom bg",
+      "author": "Fondo Personalizado • Imagen HD",
+      "scope": "📍 SEDE LOCAL",
+      "targetOrgId": "org-imec",
+      "targetChurchId": "church-hebron",
+      "slides": [
+        {
+          "text": "custom bg",
+          "subText": "Fondo / Imagen HD • Listo para Proyectar",
+          "badge": "🖼️ IMAGEN HD"
+        }
+      ]
+    },
+    {
       "id": "song-1795087990068",
       "category": "alabanza",
       "title": "Cuando Pienso",
@@ -956,25 +975,18 @@
       "status": "active"
     }
   ],
-  "diskVideos": [
-    {
-      "filename": "1792843165679_hebron_logo.mp4",
-      "url": "/uploads/videos/1792843165679_hebron_logo.mp4",
-      "sizeBytes": 1334031,
-      "createdAt": "2026-11-19T04:30:44.000Z"
+  "updatedAt": "2026-11-22T12:06:02.151Z",
+  "streamingConfig": {
+    "youtube": {
+      "enabled": true,
+      "url": "rtmp://a.rtmp.youtube.com/live2",
+      "key": "yt-test-key-123"
     },
-    {
-      "filename": "1792857708345_Count_down_hebron.mp4",
-      "url": "/uploads/videos/1792857708345_Count_down_hebron.mp4",
-      "sizeBytes": 11959720,
-      "createdAt": "2026-11-19T04:30:44.000Z"
+    "facebook": {
+      "enabled": true,
+      "url": "rtmps://live-api-s.facebook.com:443/rtmp/",
+      "key": "fb-test-key-456"
     },
-    {
-      "filename": "1793012843212_Tour_Nueva_Plataforma_IMEC.mp4",
-      "url": "/uploads/videos/1793012843212_Tour_Nueva_Plataforma_IMEC.mp4",
-      "sizeBytes": 12880818,
-      "createdAt": "2026-11-19T04:30:44.000Z"
-    }
-  ],
-  "updatedAt": "2026-11-19T11:33:11.604Z"
+    "localTest": true
+  }
 }

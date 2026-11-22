@@ -556,10 +556,16 @@
           }
           customImgEl.classList.remove('hidden');
         }
-      } else if (customImgEl) {
-        customImgEl.classList.add('hidden');
-        customImgEl.removeAttribute('src');
-        customImgEl.removeAttribute('data-src');
+        if (motionCanvas) motionCanvas.classList.add('hidden');
+      } else {
+        if (customImgEl) {
+          customImgEl.classList.add('hidden');
+          customImgEl.removeAttribute('src');
+          customImgEl.removeAttribute('data-src');
+        }
+        if (motionCanvas && !data.videoLoopUrl) {
+          motionCanvas.classList.remove('hidden');
+        }
       }
 
       // Video Loop Handler
@@ -570,6 +576,7 @@
         videoLoopPlayer.loop = true;
         videoLoopPlayer.classList.remove('hidden');
         if (customImgEl) customImgEl.classList.add('hidden');
+        if (motionCanvas) motionCanvas.classList.add('hidden');
         const p = videoLoopPlayer.play();
         if (p && typeof p.catch === 'function') p.catch(() => {});
         videoLoopPlayer.oncanplay = () => {
@@ -580,6 +587,9 @@
         videoLoopPlayer.pause();
         videoLoopPlayer.src = '';
         videoLoopPlayer.classList.add('hidden');
+        if (!data.customBgUrl && motionCanvas) {
+          motionCanvas.classList.remove('hidden');
+        }
       }
     }
 
