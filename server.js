@@ -3,6 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const zlib = require('zlib');
 const { spawn, spawnSync } = require('child_process');
 const WebSocket = require('ws');
 
@@ -1807,6 +1808,35 @@ function dequeueTvPcmBytes(bytesNeeded) {
 let standbyJpegBuffer = null;
 let currentFrameJpeg = null;
 
+function ensureLinuxFfmpegBinary() {
+  const linuxPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg');
+  if (fs.existsSync(linuxPath)) {
+    try {
+      fs.chmodSync(linuxPath, 0o755);
+      return linuxPath;
+    } catch (e) {}
+  }
+
+  const isArm64 = process.arch === 'arm64';
+  const gzName = isArm64 ? 'ffmpeg-linux-arm64.gz' : 'ffmpeg-linux-x64.gz';
+  const gzPath = path.join(__dirname, 'bin', 'ffmpeg', gzName);
+
+  if (fs.existsSync(gzPath)) {
+    try {
+      console.log(`[OmniCast Stream] Desempaquetando binario estático de FFmpeg para Linux (${isArm64 ? 'arm64' : 'x64'})...`);
+      const gzBuffer = fs.readFileSync(gzPath);
+      const elfBuffer = zlib.gunzipSync(gzBuffer);
+      fs.writeFileSync(linuxPath, elfBuffer);
+      fs.chmodSync(linuxPath, 0o755);
+      console.log('[OmniCast Stream] Binario FFmpeg para Linux listo y ejecutable.');
+      return linuxPath;
+    } catch (err) {
+      console.warn('[OmniCast Stream] Error desempaquetando binario Linux FFmpeg:', err.message);
+    }
+  }
+  return null;
+}
+
 function getFfmpegPath() {
   if (process.platform === 'win32') {
     const winPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
@@ -1847,14 +1877,10 @@ function getFfmpegPath() {
     }
   }
 
-  // 3. Check bundled ELF binary (strictly without .exe)
-  const linuxPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg');
-  if (fs.existsSync(linuxPath) && !linuxPath.endsWith('.exe')) {
-    try {
-      fs.chmodSync(linuxPath, 0o755);
-      const testRes = spawnSync(linuxPath, ['-version']);
-      if (testRes.status === 0) return linuxPath;
-    } catch (e) {}
+  // 3. Auto-unpack and use bundled standalone static Linux binary
+  const bundledLinux = ensureLinuxFfmpegBinary();
+  if (bundledLinux) {
+    return bundledLinux;
   }
 
   return 'ffmpeg';

@@ -3,6 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const zlib = require('zlib');
 const { spawn, spawnSync } = require('child_process');
 const WebSocket = require('ws');
 
@@ -840,6 +841,35 @@ let ffmpegFramePumpTimer = null;
 let standbyJpegBuffer = null;
 let currentFrameJpeg = null;
 
+function ensureLinuxFfmpegBinary() {
+  const linuxPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg');
+  if (fs.existsSync(linuxPath)) {
+    try {
+      fs.chmodSync(linuxPath, 0o755);
+      return linuxPath;
+    } catch (e) {}
+  }
+
+  const isArm64 = process.arch === 'arm64';
+  const gzName = isArm64 ? 'ffmpeg-linux-arm64.gz' : 'ffmpeg-linux-x64.gz';
+  const gzPath = path.join(__dirname, 'bin', 'ffmpeg', gzName);
+
+  if (fs.existsSync(gzPath)) {
+    try {
+      console.log(`[OmniCast Stream] Desempaquetando binario estático de FFmpeg para Linux (${isArm64 ? 'arm64' : 'x64'})...`);
+      const gzBuffer = fs.readFileSync(gzPath);
+      const elfBuffer = zlib.gunzipSync(gzBuffer);
+      fs.writeFileSync(linuxPath, elfBuffer);
+      fs.chmodSync(linuxPath, 0o755);
+      console.log('[OmniCast Stream] Binario FFmpeg para Linux listo y ejecutable.');
+      return linuxPath;
+    } catch (err) {
+      console.warn('[OmniCast Stream] Error desempaquetando binario Linux FFmpeg:', err.message);
+    }
+  }
+  return null;
+}
+
 function getFfmpegPath() {
   if (process.platform === 'win32') {
     const winPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
@@ -851,14 +881,41 @@ function getFfmpegPath() {
     return 'ffmpeg';
   }
 
+  // Non-Windows: Linux, Docker, Railway, Render, VPS, macOS
+  // NEVER execute a Windows .exe binary on Linux (which triggers spawn EACCES error)
+
+  // 1. Check system PATH first via 'which ffmpeg'
   try {
     const check = spawnSync('which', ['ffmpeg']);
-    if (check.status === 0) return (check.stdout ? check.stdout.toString().trim() : '') || 'ffmpeg';
+    if (check.status === 0) {
+      const detected = (check.stdout ? check.stdout.toString().trim() : '') || 'ffmpeg';
+      return detected;
+    }
   } catch (e) {}
 
-  for (const p of ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg', '/bin/ffmpeg', '/root/.nix-profile/bin/ffmpeg']) {
-    if (fs.existsSync(p)) return p;
+  // 2. Check standard Linux/Unix installation locations
+  const commonLinuxPaths = [
+    '/usr/bin/ffmpeg',
+    '/usr/local/bin/ffmpeg',
+    '/bin/ffmpeg',
+    '/root/.nix-profile/bin/ffmpeg',
+    '/nix/var/nix/profiles/default/bin/ffmpeg'
+  ];
+  for (const p of commonLinuxPaths) {
+    if (fs.existsSync(p)) {
+      try {
+        const testRes = spawnSync(p, ['-version']);
+        if (testRes.status === 0) return p;
+      } catch (e) {}
+    }
   }
+
+  // 3. Auto-unpack and use bundled standalone static Linux binary
+  const bundledLinux = ensureLinuxFfmpegBinary();
+  if (bundledLinux) {
+    return bundledLinux;
+  }
+
   return 'ffmpeg';
 }
 

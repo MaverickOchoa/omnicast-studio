@@ -10,3 +10,8 @@ scratch/
 !public/uploads/**
 data/public_tunnel.json
 public/tv-hls/
+
+bin/ffmpeg/ffmpeg
+!bin/ffmpeg/*.gz
+!bin/ffmpeg/ffmpeg.exe
+!bin/ffmpeg/*.dll
