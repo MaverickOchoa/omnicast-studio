@@ -57,6 +57,8 @@ function loadPersistentDatabase() {
       if (parsed && typeof parsed === 'object') {
         if (Array.isArray(parsed.libraryItems)) persistentDb.libraryItems = parsed.libraryItems;
         if (Array.isArray(parsed.layer3Videos)) persistentDb.layer3Videos = parsed.layer3Videos;
+        if (parsed.streamingConfig) persistentDb.streamingConfig = parsed.streamingConfig;
+        if (Array.isArray(parsed.diskVideos)) persistentDb.diskVideos = parsed.diskVideos;
         persistentDb.updatedAt = parsed.updatedAt || new Date().toISOString();
       }
     }
@@ -1035,7 +1037,7 @@ function startFfmpegStream(dest, activeWs) {
 
   const targets = [];
   const resolvedFbKey = resolveLatestFacebookKey(fb.key);
-  if (fb.enabled && resolvedFbKey && resolvedFbKey !== 'FB-1049284729184712-live') {
+  if (fb.enabled && resolvedFbKey && resolvedFbKey !== 'FB-1049284729184712-live' && !resolvedFbKey.startsWith('fb-test-key')) {
     // Use OBS Studio's exact RTMPS endpoint for Facebook Live
     let rawUrl = (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').trim();
     if (rawUrl.includes('live-api-s.facebook.com')) {
@@ -1045,7 +1047,7 @@ function startFfmpegStream(dest, activeWs) {
     targets.push({ name: 'Facebook Live', url: targetUrl });
   }
 
-  if (yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni') {
+  if (yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni' && !yt.key.trim().startsWith('yt-test-key')) {
     const rawUrl = (yt.url || 'rtmp://a.rtmp.youtube.com/live2').trim();
     const cleanKey = yt.key.trim();
     const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;

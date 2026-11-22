@@ -3516,11 +3516,11 @@ Te adoraré, te adoraré..."
   </div>
 
   <!-- Decodificadores maestros de video en raíz de body (con CORS anónimo habilitado para ruteo Web Audio y decodificación GPU continua) -->
-  <video id="programMediaVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; top: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 1; pointer-events: none;"></video>
-  <video id="layer3ProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; top: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 1; pointer-events: none;"></video>
-  <video id="previewMediaVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; top: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 1; pointer-events: none;"></video>
-  <video id="wirecastProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; top: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 1; pointer-events: none;"></video>
-  <video id="wirecastPreviewVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; top: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 1; pointer-events: none;"></video>
+  <video id="programMediaVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 0; right: 0; width: 4px; height: 4px; opacity: 0.001; pointer-events: none; z-index: -10;"></video>
+  <video id="layer3ProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 0; right: 0; width: 4px; height: 4px; opacity: 0.001; pointer-events: none; z-index: -10;"></video>
+  <video id="previewMediaVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 0; right: 0; width: 4px; height: 4px; opacity: 0.001; pointer-events: none; z-index: -10;"></video>
+  <video id="wirecastProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 0; right: 0; width: 4px; height: 4px; opacity: 0.001; pointer-events: none; z-index: -10;"></video>
+  <video id="wirecastPreviewVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 0; right: 0; width: 4px; height: 4px; opacity: 0.001; pointer-events: none; z-index: -10;"></video>
   <audio id="layer5AudioPlayer" crossorigin="anonymous" loop playsinline preload="auto" style="display: none;"></audio>
 
   <!-- ========================================================================= -->
@@ -10617,16 +10617,17 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     let localBibleDatabase = null;
     async function initBibleEngine() {
       try {
-        const res = await fetch('/bible_rvr1960.json').catch(() => fetch('/data/bible_rvr1960.json'));
+        let res = await fetch('/bible_rvr1960.json');
+        if (!res.ok) res = await fetch('/data/bible_rvr1960.json');
         if (res.ok) {
           localBibleDatabase = await res.json();
           console.log('[Bible Engine] RVR1960 cargada localmente:', Object.keys(localBibleDatabase).length, 'libros');
         }
       } catch (e) {
-        console.warn('[Bible Engine] Modo offline local listo');
+        console.warn('[Bible Engine] Error cargando RVR1960 local:', e.message);
       }
     }
-    setTimeout(initBibleEngine, 100);
+    setTimeout(initBibleEngine, 50);
 
     // Capítulos completos reales offline en las 4 versiones oficiales
     const fullBibleChaptersDatabase = {
@@ -11752,6 +11753,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       renderSongsList();
       selectItem(0);
+      triggerSlide(0);
 
       if (!layerPower[2]) {
         layerPower[2] = true;
@@ -12500,12 +12502,13 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     function broadcastSlide(isClear = false, sendServerSync = true, explicitVideoAction = null) {
       const item = libraryItems[currentItemIndex];
       if (!item) return;
-      const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
+      const isImage = Boolean(item.isImage || (item.imageUrl && !item.videoUrl));
+      const isVideo = !isImage && (Boolean(item.isVideo) || Boolean(item.videoUrl) || (item.category === 'medios' && !item.imageUrl));
       if (!item.slides || !item.slides.length) {
         item.slides = [{
-          text: item.title || '',
-          subText: item.author || '',
-          badge: isVideo ? 'VIDEO' : 'PARTE 1'
+          text: isImage ? '' : (item.title || ''),
+          subText: isImage ? '' : (item.author || ''),
+          badge: isVideo ? 'VIDEO' : (isImage ? '🖼️ IMAGEN HD' : 'PARTE 1')
         }];
       }
       const slide = item.slides[currentSlideIndex] || item.slides[0];
@@ -12524,14 +12527,24 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         || (currentAccount && currentAccount.name)
         || 'Sede Local';
 
+      const isImageOnly = Boolean(isImage && (slide.badge === '🖼️ IMAGEN HD' || slide.text === item.title || !slide.text));
+      const activeCustomBg = (item.imageUrl) 
+        ? item.imageUrl 
+        : ((currentTheme === 'custom' && lyricsStyleConfig.customMediaUrl && lyricsStyleConfig.customMediaType !== 'video') 
+          ? lyricsStyleConfig.customMediaUrl 
+          : (((currentTheme === 'custom' || currentTheme === 'emerald') && lyricsStyleConfig.customMediaType === 'image') ? (lyricsStyleConfig.customMediaUrl || '') : ''));
+
       const payload = {
         isClear: isClear,
-        text: isClear ? '' : slide.text,
-        subText: isClear ? '' : slide.subText,
-        badge: isClear ? '' : slide.badge,
+        text: (isClear || isImageOnly) ? '' : slide.text,
+        subText: (isClear || isImageOnly) ? '' : slide.subText,
+        badge: (isClear || isImageOnly) ? '' : slide.badge,
         nextText: nextSlide ? nextSlide.text : '--- Fin de la sección ---',
         songTitle: item.title,
         isVideo: isVideo,
+        isImage: isImage,
+        isImageOnly: isImageOnly,
+        imageUrl: item.imageUrl || '',
         videoUrl: item.videoUrl || '',
         videoAction: explicitVideoAction || (() => {
           const progVid = document.getElementById('programMediaVideo');
@@ -12555,9 +12568,7 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         overlayDarkness: (lyricsStyleConfig.overlayDimmer || 40) / 100,
         backgroundBlur: lyricsStyleConfig.backgroundBlur || 0,
         videoLoopUrl: lyricsStyleConfig.videoLoopUrl || '',
-        customBgUrl: (currentTheme === 'custom' && lyricsStyleConfig.customMediaUrl && lyricsStyleConfig.customMediaType !== 'video') 
-          ? lyricsStyleConfig.customMediaUrl 
-          : (((currentTheme === 'custom' || currentTheme === 'emerald') && lyricsStyleConfig.customMediaType === 'image') ? (lyricsStyleConfig.customMediaUrl || '') : ''),
+        customBgUrl: activeCustomBg,
         campusName: resolvedCampusName,
         timestamp: Date.now()
       };
@@ -19621,9 +19632,45 @@ Pues resucitaste, Rey`
           // Shot 1: Live Lyrics or Full-Screen Video from Letras Section
           const item = libraryItems[currentItemIndex];
           const slide = item.slides[currentSlideIndex];
-          const isVideo = item.category === 'medios' || Boolean(item.isVideo) || Boolean(item.videoUrl);
+          const isImage = Boolean(item.isImage || (item.imageUrl && !item.videoUrl));
+          const isVideo = !isImage && (Boolean(item.isVideo) || Boolean(item.videoUrl) || (item.category === 'medios' && !item.imageUrl));
 
-          if (isVideo) {
+          if (isImage && item.imageUrl) {
+            // =================================================================
+            // REQUERIMIENTO: IMAGEN DE FONDO HD EN PANTALLA COMPLETA DE TRANSMISIÓN
+            // =================================================================
+            if (isProgram) {
+              ctx.save();
+              ctx.fillStyle = '#000000';
+              ctx.fillRect(0, 0, w, h);
+              if (!item._cachedImg || item._cachedImgUrl !== item.imageUrl) {
+                item._cachedImgUrl = item.imageUrl;
+                item._cachedImg = new Image();
+                item._cachedImg.crossOrigin = 'anonymous';
+                item._cachedImg.src = item.imageUrl;
+              }
+              if (item._cachedImg.complete && item._cachedImg.naturalWidth > 0) {
+                try {
+                  ctx.drawImage(item._cachedImg, 0, 0, w, h);
+                } catch (e) {}
+              }
+              // Enviar a monitores laterales si la pestaña de Letras está visible
+              const isLetrasTabVisible = document.getElementById('viewLetras') && !document.getElementById('viewLetras').classList.contains('hidden');
+              if (isLetrasTabVisible) {
+                const mpCanvas = document.getElementById('monProyectorVideoCanvas');
+                if (mpCanvas && !mpCanvas.classList.contains('hidden')) {
+                  const mpCtx = mpCanvas.getContext('2d');
+                  if (mpCtx && item._cachedImg.complete) mpCtx.drawImage(item._cachedImg, 0, 0, mpCanvas.width, mpCanvas.height);
+                }
+                const msCanvas = document.getElementById('monStreamVideoCanvas');
+                if (msCanvas && !msCanvas.classList.contains('hidden')) {
+                  const msCtx = msCanvas.getContext('2d');
+                  if (msCtx && item._cachedImg.complete) msCtx.drawImage(item._cachedImg, 0, 0, msCanvas.width, msCanvas.height);
+                }
+              }
+              ctx.restore();
+            }
+          } else if (isVideo) {
             // =================================================================
             // REQUERIMIENTO DEL USUARIO: VIDEO EN PANTALLA COMPLETA DE TRANSMISIÓN
             // =================================================================
@@ -21337,16 +21384,59 @@ Pues resucitaste, Rey`
       if (!query) query = 'Juan 3:16';
 
       const norm = normalizeBibleQuery(query);
-      let passage = bibleDictionary[norm];
+      let passage = null;
 
-      if (!passage) {
-        const foundKey = Object.keys(bibleDictionary).find(k => k.includes(norm) || norm.includes(k));
-        if (foundKey) {
-          passage = bibleDictionary[foundKey];
+      // 1. Coincidencia exacta en diccionario rápido
+      if (bibleDictionary[norm]) {
+        passage = bibleDictionary[norm];
+      }
+
+      // 2. Consulta a la base completa local de 66 libros RVR1960 si ya está cargada
+      if (!passage && localBibleDatabase) {
+        try {
+          let q = query.trim().toLowerCase().replace(/[.,;]/g, ':').replace(/::+/g, ':');
+          const m = q.match(/^([1-3]?\s*[a-záéíóúñ]+)\s*(\d+)(?:\s*:\s*(\d+)(?:\s*-\s*(\d+))?)?$/i);
+          if (m) {
+            const rawBook = m[1].replace(/\s+/g, ' ').trim();
+            const chapter = parseInt(m[2], 10);
+            const startVerse = m[3] ? parseInt(m[3], 10) : 1;
+            const endVerse = m[4] ? parseInt(m[4], 10) : startVerse;
+            
+            // Buscar id canónico del libro
+            let matchedBook = canonicalBibleBooks.find(b => 
+              b.id === rawBook || 
+              b.es.toLowerCase() === rawBook || 
+              b.id === rawBook.replace(/\s+/g, '') ||
+              b.es.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === rawBook.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            );
+            if (!matchedBook) {
+              const normBook = normalizeBibleQuery(rawBook);
+              matchedBook = canonicalBibleBooks.find(b => b.id === normBook || b.es.toLowerCase() === normBook);
+            }
+
+            if (matchedBook && localBibleDatabase[matchedBook.id]) {
+              const chapArr = localBibleDatabase[matchedBook.id][chapter - 1];
+              if (chapArr && chapArr.length > 0) {
+                const s = Math.max(1, startVerse);
+                const e = Math.min(chapArr.length, endVerse);
+                const verses = chapArr.slice(s - 1, e).map((txt, idx) => ({ num: s + idx, text: txt }));
+                const refStr = s === e ? `${matchedBook.es} ${chapter}:${s}` : `${matchedBook.es} ${chapter}:${s}-${e}`;
+                passage = {
+                  title: refStr,
+                  text: verses.map(v => v.text).join(' '),
+                  subText: `${refStr} (Reina-Valera 1960)`,
+                  badge: refStr.toUpperCase(),
+                  verses: verses
+                };
+              }
+            }
+          }
+        } catch (localErr) {
+          console.warn('[QuickBible] Error parsing local bible citation:', localErr);
         }
       }
 
-      // Consulta al endpoint oficial de la Biblia RVR1960 para cualquier cita de los 66 libros
+      // 3. Consulta al endpoint oficial del servidor para cualquier cita de los 66 libros
       if (!passage) {
         try {
           const res = await fetch(`/api/bible/verse?query=${encodeURIComponent(query)}`);
@@ -21363,7 +21453,7 @@ Pues resucitaste, Rey`
             }
           }
         } catch (e) {
-          console.warn('[QuickBible] Error consultando versículo:', e);
+          console.warn('[QuickBible] Error consultando versículo en servidor:', e);
         }
       }
 
@@ -21377,6 +21467,16 @@ Pues resucitaste, Rey`
       }
 
       let existingIndex = libraryItems.findIndex(it => it.title.toLowerCase() === passage.title.toLowerCase());
+      const slides = (passage.verses && passage.verses.length > 1)
+        ? passage.verses.map(v => ({
+            text: `"${v.text}"`,
+            subText: `${passage.title} • Versículo ${v.num}`,
+            badge: `${passage.badge}:${v.num}`
+          }))
+        : [
+            { text: `"${passage.text}"`, subText: passage.subText, badge: passage.badge }
+          ];
+
       if (existingIndex === -1) {
         const newItem = {
           id: 'verse-quick-' + Date.now(),
@@ -21384,18 +21484,14 @@ Pues resucitaste, Rey`
           title: passage.title,
           author: 'Reina Valera 1960',
           scope: 'BIBLIA EN VIVO',
-          slides: (passage.verses && passage.verses.length > 1)
-            ? passage.verses.map(v => ({
-                text: `"${v.text}"`,
-                subText: `${passage.title}:${v.num} (Reina-Valera 1960)`,
-                badge: `${passage.badge}:${v.num}`
-              }))
-            : [
-                { text: `"${passage.text}"`, subText: passage.subText, badge: passage.badge }
-              ]
+          slides: slides
         };
         libraryItems.unshift(newItem);
         existingIndex = 0;
+      } else {
+        // Refrescar las diapositivas si ya existía para que no se quede estancado
+        libraryItems[existingIndex].slides = slides;
+        libraryItems[existingIndex].author = 'Reina Valera 1960';
       }
 
       const targetItem = libraryItems[existingIndex];
@@ -21414,7 +21510,7 @@ Pues resucitaste, Rey`
           updateWirecastRackUI();
         }
         triggerSlide(0);
-        showToast(`📖 "${passage.title}" proyectada en vivo`, '✝️');
+        showToast(`📖 "${passage.title}" proyectada en pantallas`, '✝️');
       } else {
         showToast(`💾 "${passage.title}" agregada al servicio`, '✓');
       }
@@ -21891,6 +21987,8 @@ Pues resucitaste, Rey`
                 const bitrateVal = document.getElementById('liveBitrateVal');
                 if (bitrateVal) bitrateVal.textContent = `${data.stats.bitrate} kbps (${data.stats.fps || 30} fps)`;
               }
+            } else if (data.type === 'warning') {
+              showToast(data.message, '⚠️');
             } else if (data.type === 'error') {
               logStreamClientEvent('ws_server_error', { message: data.message });
               stopMasterLiveStream(false);
@@ -22033,8 +22131,9 @@ Pues resucitaste, Rey`
         }
       } catch (e) {}
 
-      // Auto-upgrade expired Facebook Live session key to the active OBS key if present
-      if (fbKey === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS' || !fbKey) {
+      // Auto-upgrade empty, dummy or expired Facebook keys to verified OBS key
+      const isFbDummy = !fbKey || fbKey.startsWith('fb-test-key') || fbKey === 'FB-1049284729184712-live' || fbKey === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS';
+      if (isFbDummy) {
         fbKey = 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
         const fbKeyInput = document.getElementById('fbStreamKey');
         if (fbKeyInput) fbKeyInput.value = fbKey;
@@ -22049,9 +22148,14 @@ Pues resucitaste, Rey`
         }
       } catch (e) {}
 
-      const hasYt = Boolean(ytEnabled && ytKey && ytKey !== 'yt-live-9382-7712-4412-omni');
-      const hasFb = Boolean(fbEnabled && fbKey && fbKey !== 'FB-1049284729184712-live');
+      const isYtDummy = !ytKey || ytKey.startsWith('yt-test-key') || ytKey === 'yt-live-9382-7712-4412-omni';
+      const hasYt = Boolean(ytEnabled && ytKey && !isYtDummy && !localTestEnabled);
+      const hasFb = Boolean(fbEnabled && fbKey && !localTestEnabled);
       const hasLocalTest = Boolean(localTestEnabled);
+
+      if (ytEnabled && isYtDummy && hasFb) {
+        showToast('ℹ️ Transmitiendo a Facebook Live. (Para YouTube ingresa tu clave en Ajustes > Destinos)', 'ℹ️');
+      }
 
       if (!hasYt && !hasFb && !hasLocalTest) {
         showToast('⚠️ Configura tu clave de transmisión en Ajustes > Destinos o activa Modo de Prueba Local', '⚠️');
@@ -22062,8 +22166,8 @@ Pues resucitaste, Rey`
       }
 
       const streamConfig = {
-        youtube: { enabled: hasYt, url: ytUrl, key: ytKey },
-        facebook: { enabled: hasFb, url: fbUrl, key: fbKey },
+        youtube: { enabled: hasYt, url: ytUrl, key: hasYt ? ytKey : '' },
+        facebook: { enabled: hasFb, url: fbUrl, key: hasFb ? fbKey : '' },
         audioMuted: Boolean(isStreamAudioMuted),
         localTest: hasLocalTest
       };
@@ -22083,7 +22187,11 @@ Pues resucitaste, Rey`
       }
       setStreamUIState('live', liveDestinationsSummary);
       updateTvServiceBroadcastUI();
-      showToast(`📡 Transmisión Full HD en vivo a ${liveDestinationsSummary.join(' y ')}`, '📡');
+      if (hasLocalTest) {
+        showToast('💾 MODO PRUEBA LOCAL: Grabando en disco duro del servidor', '💾');
+      } else {
+        showToast(`📡 Transmisión Full HD en vivo a ${liveDestinationsSummary.join(' y ')}`, '📡');
+      }
 
       // Reuse active uplink if already open for REC/Salas, or launch Dedicated Encoder & WebSocket Thread
       try {

@@ -548,11 +548,12 @@
 
       // Custom Background Image Handler
       const customImgEl = document.getElementById('customImageLoopPlayer');
-      if (data.customBgUrl) {
+      const activeImg = data.customBgUrl || data.imageUrl;
+      if (activeImg) {
         if (customImgEl) {
-          if (customImgEl.getAttribute('data-src') !== data.customBgUrl) {
-            customImgEl.src = data.customBgUrl;
-            customImgEl.setAttribute('data-src', data.customBgUrl);
+          if (customImgEl.getAttribute('data-src') !== activeImg) {
+            customImgEl.src = activeImg;
+            customImgEl.setAttribute('data-src', activeImg);
           }
           customImgEl.classList.remove('hidden');
         }
@@ -776,7 +777,7 @@
       subText.style.opacity = '0';
 
       setTimeout(() => {
-        if (data.isClear) {
+        if (data.isClear || data.isImageOnly) {
           mainText.textContent = '';
           subText.textContent = '';
           refBadge.classList.add('hidden');

@@ -93,6 +93,8 @@ function loadPersistentDatabase() {
         if (Array.isArray(parsed.layer3Videos)) persistentDb.layer3Videos = parsed.layer3Videos;
         if (Array.isArray(parsed.organizations)) persistentDb.organizations = parsed.organizations;
         if (Array.isArray(parsed.churches)) persistentDb.churches = parsed.churches;
+        if (parsed.streamingConfig) persistentDb.streamingConfig = parsed.streamingConfig;
+        if (Array.isArray(parsed.diskVideos)) persistentDb.diskVideos = parsed.diskVideos;
         persistentDb.updatedAt = parsed.updatedAt || new Date().toISOString();
       }
     }
@@ -2049,8 +2051,12 @@ function stopFfmpegStream(notifyClient = true) {
 
 function resolveLatestFacebookKey(rawKey) {
   const trimmed = (rawKey || '').trim();
-  // If key is empty or matches the expired session key from earlier today, check OBS profile for newer key
-  if (!trimmed || trimmed === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS') {
+  // If key is empty or matches dummy test keys or expired session keys, check OBS profile for real key
+  const isDummyOrExpired = !trimmed || 
+    trimmed === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS' ||
+    trimmed === 'FB-1049284729184712-live' ||
+    trimmed.startsWith('fb-test-key');
+  if (isDummyOrExpired) {
     try {
       const obsProfilePath = path.join(process.env.APPDATA || '', 'obs-studio', 'basic', 'profiles', 'OPEN', 'service.json');
       if (fs.existsSync(obsProfilePath)) {
@@ -2061,7 +2067,7 @@ function resolveLatestFacebookKey(rawKey) {
       }
     } catch (e) {}
   }
-  return trimmed;
+  return isDummyOrExpired ? '' : trimmed;
 }
 
 function startFfmpegStream(dest, activeWs) {
@@ -2095,7 +2101,7 @@ function startFfmpegStream(dest, activeWs) {
   }
 
   const resolvedFbKey = dest.localTest ? null : resolveLatestFacebookKey(fb.key);
-  if (fb.enabled && resolvedFbKey && resolvedFbKey !== 'FB-1049284729184712-live') {
+  if (fb.enabled && resolvedFbKey && resolvedFbKey !== 'FB-1049284729184712-live' && !resolvedFbKey.startsWith('fb-test-key')) {
     // Use OBS Studio's exact RTMPS endpoint for Facebook Live
     let rawUrl = (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').trim();
     if (rawUrl.includes('live-api-s.facebook.com')) {
@@ -2105,7 +2111,7 @@ function startFfmpegStream(dest, activeWs) {
     targets.push({ name: 'Facebook Live', url: targetUrl });
   }
 
-  if (!dest.localTest && yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni') {
+  if (!dest.localTest && yt.enabled && yt.key && yt.key.trim() && yt.key.trim() !== 'yt-live-9382-7712-4412-omni' && !yt.key.trim().startsWith('yt-test-key')) {
     const rawUrl = (yt.url || 'rtmp://a.rtmp.youtube.com/live2').trim();
     const cleanKey = yt.key.trim();
     const targetUrl = rawUrl.endsWith('/') ? `${rawUrl}${cleanKey}` : `${rawUrl}/${cleanKey}`;
@@ -2284,14 +2290,34 @@ function startFfmpegStream(dest, activeWs) {
       broadcastSSE('stream_telemetry', liveStreamState.stats);
     }
 
-    if (/error in the pull function|connection refused|handshake failed|i\/o error|invalid session|session has been invalidated/i.test(text)) {
-      console.warn('[FFmpeg RTMP Warning]:', text.trim());
-      const errMsg = 'La plataforma rechazó la conexión RTMP (clave caducada o no válida). Verifica tu clave en Facebook Live Producer o activa "Clave de stream persistente".';
+    if (/all tee outputs failed/i.test(text)) {
+      console.error('[FFmpeg RTMP Fatal]:', text.trim());
+      const errMsg = 'Todos los destinos RTMP fallaron. Verifica tus claves en Ajustes > Destinos.';
       liveStreamState.stats.error = errMsg;
       if (activeWs && activeWs.readyState === WebSocket.OPEN) {
         activeWs.send(JSON.stringify({ type: 'error', message: errMsg }));
       }
       broadcastSSE('stream_error', { error: errMsg });
+    } else if (/slave muxer #\d+ failed|error opening: i\/o error|handshake failed|connection refused|session has been invalidated/i.test(text)) {
+      console.warn('[FFmpeg RTMP Warning]:', text.trim());
+      let failedTarget = 'la plataforma';
+      if (/youtube/i.test(text)) failedTarget = 'YouTube Live';
+      else if (/facebook|rtmp-api\.facebook|fb/i.test(text)) failedTarget = 'Facebook Live';
+
+      if (targets.length === 1) {
+        const errMsg = `La plataforma (${failedTarget}) rechazó la conexión RTMP (clave caducada o no válida). Verifica tu clave en Ajustes > Destinos.`;
+        liveStreamState.stats.error = errMsg;
+        if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+          activeWs.send(JSON.stringify({ type: 'error', message: errMsg }));
+        }
+        broadcastSSE('stream_error', { error: errMsg });
+      } else {
+        const warnMsg = `⚠️ Advertencia: ${failedTarget} rechazó la clave RTMP, pero la transmisión continúa en el otro destino activo.`;
+        if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+          activeWs.send(JSON.stringify({ type: 'warning', message: warnMsg }));
+        }
+        broadcastSSE('stream_warning', { warning: warnMsg });
+      }
     }
   });
 

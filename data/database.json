@@ -17,7 +17,8 @@
           "subText": "Fondo / Imagen HD • Listo para Proyectar",
           "badge": "🖼️ IMAGEN HD"
         }
-      ]
+      ],
+      "isVideo": false
     },
     {
       "id": "song-1795087990068",
@@ -978,15 +979,35 @@
   "updatedAt": "2026-11-22T12:06:02.151Z",
   "streamingConfig": {
     "youtube": {
-      "enabled": true,
+      "enabled": false,
       "url": "rtmp://a.rtmp.youtube.com/live2",
-      "key": "yt-test-key-123"
+      "key": ""
     },
     "facebook": {
       "enabled": true,
-      "url": "rtmps://live-api-s.facebook.com:443/rtmp/",
-      "key": "fb-test-key-456"
+      "url": "rtmps://rtmp-api.facebook.com:443/rtmp/",
+      "key": "FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ"
     },
-    "localTest": true
-  }
+    "localTest": false
+  },
+  "diskVideos": [
+    {
+      "filename": "1792843165679_hebron_logo.mp4",
+      "url": "/uploads/videos/1792843165679_hebron_logo.mp4",
+      "sizeBytes": 1334031,
+      "createdAt": "2026-10-24T11:59:25.000Z"
+    },
+    {
+      "filename": "1792857708345_Count_down_hebron.mp4",
+      "url": "/uploads/videos/1792857708345_Count_down_hebron.mp4",
+      "sizeBytes": 11959720,
+      "createdAt": "2026-10-24T16:01:48.000Z"
+    },
+    {
+      "filename": "1793012843212_Tour_Nueva_Plataforma_IMEC.mp4",
+      "url": "/uploads/videos/1793012843212_Tour_Nueva_Plataforma_IMEC.mp4",
+      "sizeBytes": 12880818,
+      "createdAt": "2026-11-14T15:26:01.000Z"
+    }
+  ]
 }
