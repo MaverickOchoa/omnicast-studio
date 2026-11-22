@@ -1808,28 +1808,66 @@ let standbyJpegBuffer = null;
 let currentFrameJpeg = null;
 
 function getFfmpegPath() {
-  const winPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
-  if (fs.existsSync(winPath)) return winPath;
-  const linuxPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg');
-  if (fs.existsSync(linuxPath)) return linuxPath;
+  if (process.platform === 'win32') {
+    const winPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
+    if (fs.existsSync(winPath)) return winPath;
+    try {
+      const check = spawnSync('where', ['ffmpeg']);
+      if (check.status === 0) return 'ffmpeg';
+    } catch (e) {}
+    return 'ffmpeg';
+  }
+
+  // Non-Windows: Linux, Docker, Railway, Render, VPS, macOS
+  // NEVER execute a Windows .exe binary on Linux (which triggers spawn EACCES error)
+
+  // 1. Check system PATH first via 'which ffmpeg'
   try {
-    const check = spawnSync(process.platform === 'win32' ? 'where' : 'which', ['ffmpeg']);
-    if (check.status === 0) return 'ffmpeg';
+    const check = spawnSync('which', ['ffmpeg']);
+    if (check.status === 0) {
+      const detected = (check.stdout ? check.stdout.toString().trim() : '') || 'ffmpeg';
+      return detected;
+    }
   } catch (e) {}
+
+  // 2. Check standard Linux/Unix installation locations
+  const commonLinuxPaths = [
+    '/usr/bin/ffmpeg',
+    '/usr/local/bin/ffmpeg',
+    '/bin/ffmpeg',
+    '/root/.nix-profile/bin/ffmpeg',
+    '/nix/var/nix/profiles/default/bin/ffmpeg'
+  ];
+  for (const p of commonLinuxPaths) {
+    if (fs.existsSync(p)) {
+      try {
+        const testRes = spawnSync(p, ['-version']);
+        if (testRes.status === 0) return p;
+      } catch (e) {}
+    }
+  }
+
+  // 3. Check bundled ELF binary (strictly without .exe)
+  const linuxPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg');
+  if (fs.existsSync(linuxPath) && !linuxPath.endsWith('.exe')) {
+    try {
+      fs.chmodSync(linuxPath, 0o755);
+      const testRes = spawnSync(linuxPath, ['-version']);
+      if (testRes.status === 0) return linuxPath;
+    } catch (e) {}
+  }
+
   return 'ffmpeg';
 }
 
 function hasFfmpeg() {
   const p = getFfmpegPath();
-  if (p === 'ffmpeg') {
-    try {
-      const res = spawnSync('ffmpeg', ['-version']);
-      return res.status === 0;
-    } catch (e) {
-      return false;
-    }
+  try {
+    const res = spawnSync(p, ['-version']);
+    return res.status === 0;
+  } catch (e) {
+    return false;
   }
-  return fs.existsSync(p);
 }
 
 function getStandbyJpegBuffer() {

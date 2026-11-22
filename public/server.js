@@ -840,10 +840,32 @@ let ffmpegFramePumpTimer = null;
 let standbyJpegBuffer = null;
 let currentFrameJpeg = null;
 
+function getFfmpegPath() {
+  if (process.platform === 'win32') {
+    const winPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
+    if (fs.existsSync(winPath)) return winPath;
+    try {
+      const check = spawnSync('where', ['ffmpeg']);
+      if (check.status === 0) return 'ffmpeg';
+    } catch (e) {}
+    return 'ffmpeg';
+  }
+
+  try {
+    const check = spawnSync('which', ['ffmpeg']);
+    if (check.status === 0) return (check.stdout ? check.stdout.toString().trim() : '') || 'ffmpeg';
+  } catch (e) {}
+
+  for (const p of ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg', '/bin/ffmpeg', '/root/.nix-profile/bin/ffmpeg']) {
+    if (fs.existsSync(p)) return p;
+  }
+  return 'ffmpeg';
+}
+
 function getStandbyJpegBuffer() {
   if (standbyJpegBuffer && standbyJpegBuffer.length > 100) return standbyJpegBuffer;
   try {
-    const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
+    const ffmpegPath = getFfmpegPath();
     if (fs.existsSync(ffmpegPath)) {
       const res = spawnSync(ffmpegPath, [
         '-f', 'lavfi',
@@ -985,7 +1007,7 @@ function startFfmpegStream(dest, activeWs) {
   // Clean up any existing stream process without sending 'stopped' to new client
   stopFfmpegStream(false);
 
-  const ffmpegPath = path.join(__dirname, 'bin', 'ffmpeg', 'ffmpeg.exe');
+  const ffmpegPath = getFfmpegPath();
   if (!fs.existsSync(ffmpegPath)) {
     const err = `Binario FFmpeg no encontrado en ${ffmpegPath}`;
     if (activeWs && activeWs.readyState === WebSocket.OPEN) {
