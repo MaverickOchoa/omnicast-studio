@@ -26,6 +26,24 @@ try {
   console.warn('Warning creating data/uploads dirs:', dirErr.message);
 }
 
+// On Linux/Docker/Railway, expand PATH and pre-unpack standalone static FFmpeg binary at startup
+if (process.platform !== 'win32') {
+  const extraPaths = [
+    path.join(__dirname, 'bin', 'ffmpeg'),
+    '/root/.nix-profile/bin',
+    '/nix/var/nix/profiles/default/bin',
+    '/usr/local/bin',
+    '/usr/bin',
+    '/bin'
+  ];
+  process.env.PATH = `${extraPaths.join(':')}:${process.env.PATH || ''}`;
+  try {
+    ensureLinuxFfmpegBinary();
+  } catch (e) {
+    console.warn('[OmniCast Setup] Linux FFmpeg pre-unpack warning:', e.message);
+  }
+}
+
 process.on('uncaughtException', (err) => {
   console.error('[OmniCast Server UncaughtException]:', err);
 });
@@ -2919,6 +2937,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`\n  ► OmniCast Mobile Cam (Cámaras de Celular):`);
     console.log(`     http://${localIps[0]}:${PORT}/cam.html?id=1`);
   }
+    console.log(`  🎬 Motor FFmpeg: ${hasFfmpeg() ? 'DISPONIBLE (' + getFfmpegPath() + ')' : 'NO DISPONIBLE'}`);
   console.log('\n========================================================\n');
 });
 

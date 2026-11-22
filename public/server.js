@@ -1335,6 +1335,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`\n  ► OmniCast Mobile Cam (Cámaras de Celular):`);
     console.log(`     http://${localIps[0]}:${PORT}/cam.html?id=1`);
   }
+    console.log(`  🎬 Motor FFmpeg: ${hasFfmpeg() ? 'DISPONIBLE (' + getFfmpegPath() + ')' : 'NO DISPONIBLE'}`);
   console.log('\n========================================================\n');
 });
 
