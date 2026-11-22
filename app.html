@@ -3516,11 +3516,11 @@ Te adoraré, te adoraré..."
   </div>
 
   <!-- Decodificadores maestros de video en raíz de body (con CORS anónimo habilitado para ruteo Web Audio y decodificación GPU continua) -->
-  <video id="programMediaVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 42px; right: 12px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
-  <video id="layer3ProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 42px; right: 20px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
-  <video id="previewMediaVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 42px; right: 4px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
-  <video id="wirecastProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 42px; right: 28px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
-  <video id="wirecastPreviewVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 42px; right: 36px; width: 4px; height: 4px; z-index: 35; opacity: 0.15; pointer-events: none;"></video>
+  <video id="programMediaVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; top: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 1; pointer-events: none;"></video>
+  <video id="layer3ProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; top: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 1; pointer-events: none;"></video>
+  <video id="previewMediaVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; top: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 1; pointer-events: none;"></video>
+  <video id="wirecastProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; top: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 1; pointer-events: none;"></video>
+  <video id="wirecastPreviewVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; top: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 1; pointer-events: none;"></video>
   <audio id="layer5AudioPlayer" crossorigin="anonymous" loop playsinline preload="auto" style="display: none;"></audio>
 
   <!-- ========================================================================= -->
@@ -11802,8 +11802,25 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         if (p !== undefined) {
           p.catch(err => {
             console.warn('[OmniCast Video Engine] Autoplay protegido por navegador:', err);
+            vidEl._autoplayMutedFallback = true;
             vidEl.muted = true;
             vidEl.play().catch(e => console.warn('[OmniCast Video Engine] Muted retry error:', e));
+            if (isProgramDecoder && !activeVideoMuted) {
+              const unmuteOnNextTouch = () => {
+                window.removeEventListener('pointerdown', unmuteOnNextTouch);
+                window.removeEventListener('touchstart', unmuteOnNextTouch);
+                window.removeEventListener('click', unmuteOnNextTouch);
+                vidEl._autoplayMutedFallback = false;
+                vidEl.muted = Boolean(activeVideoMuted);
+                if (typeof omniAudio !== 'undefined') {
+                  omniAudio.resume();
+                  omniAudio.syncDspParameters();
+                }
+              };
+              window.addEventListener('pointerdown', unmuteOnNextTouch, { passive: true, once: true });
+              window.addEventListener('touchstart', unmuteOnNextTouch, { passive: true, once: true });
+              window.addEventListener('click', unmuteOnNextTouch, { passive: true, once: true });
+            }
           });
         }
       };
@@ -12342,10 +12359,27 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             }).catch(err => {
               if (err && err.name === 'AbortError') return;
               console.warn('[OmniCast Studio Video] Autoplay audio restringido, modo silenciado seguro:', err);
+              progVid._autoplayMutedFallback = true;
               progVid.muted = true;
               progVid.play().then(() => updateActiveVideoTransportUI()).catch(e => {
                 if (e && e.name !== 'AbortError') console.error('[OmniCast Studio Video] Error:', e);
               });
+              if (!activeVideoMuted) {
+                const unmuteOnNextTouch = () => {
+                  window.removeEventListener('pointerdown', unmuteOnNextTouch);
+                  window.removeEventListener('touchstart', unmuteOnNextTouch);
+                  window.removeEventListener('click', unmuteOnNextTouch);
+                  progVid._autoplayMutedFallback = false;
+                  progVid.muted = Boolean(activeVideoMuted);
+                  if (typeof omniAudio !== 'undefined') {
+                    omniAudio.resume();
+                    omniAudio.syncDspParameters();
+                  }
+                };
+                window.addEventListener('pointerdown', unmuteOnNextTouch, { passive: true, once: true });
+                window.addEventListener('touchstart', unmuteOnNextTouch, { passive: true, once: true });
+                window.addEventListener('click', unmuteOnNextTouch, { passive: true, once: true });
+              }
             });
           } else {
             updateActiveVideoTransportUI();
@@ -15887,8 +15921,25 @@ Pues resucitaste, Rey`
       if (p !== undefined) {
         return p.catch(err => {
           console.warn('[OmniCast Video Engine] Autoplay protegido por navegador. Reproduciendo en modo seguro:', err);
+          vidEl._autoplayMutedFallback = true;
           vidEl.muted = true;
           updateActiveVideoTransportUI();
+          if (isProgramDecoder && !activeVideoMuted) {
+            const unmuteOnNextTouch = () => {
+              window.removeEventListener('pointerdown', unmuteOnNextTouch);
+              window.removeEventListener('touchstart', unmuteOnNextTouch);
+              window.removeEventListener('click', unmuteOnNextTouch);
+              vidEl._autoplayMutedFallback = false;
+              vidEl.muted = Boolean(activeVideoMuted);
+              if (typeof omniAudio !== 'undefined') {
+                omniAudio.resume();
+                omniAudio.syncDspParameters();
+              }
+            };
+            window.addEventListener('pointerdown', unmuteOnNextTouch, { passive: true, once: true });
+            window.addEventListener('touchstart', unmuteOnNextTouch, { passive: true, once: true });
+            window.addEventListener('click', unmuteOnNextTouch, { passive: true, once: true });
+          }
           return vidEl.play().catch(e => {
             console.error('[OmniCast Video Engine] Error crítico de reproducción:', e);
           });
@@ -16124,12 +16175,29 @@ Pues resucitaste, Rey`
           renderSlidesGrid();
         }).catch(err => {
           console.warn('Audio play restricted, trying safe mode:', err);
+          progVid._autoplayMutedFallback = true;
           progVid.muted = true;
           progVid.play().then(() => {
             sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime, loop: Boolean(activeVideoLoopEnabled) });
             broadcastSlide(false, true, 'play');
             renderSlidesGrid();
           }).catch(e => console.error('Play failed completely:', e));
+          if (!activeVideoMuted) {
+            const unmuteOnNextTouch = () => {
+              window.removeEventListener('pointerdown', unmuteOnNextTouch);
+              window.removeEventListener('touchstart', unmuteOnNextTouch);
+              window.removeEventListener('click', unmuteOnNextTouch);
+              progVid._autoplayMutedFallback = false;
+              progVid.muted = Boolean(activeVideoMuted);
+              if (typeof omniAudio !== 'undefined') {
+                omniAudio.resume();
+                omniAudio.syncDspParameters();
+              }
+            };
+            window.addEventListener('pointerdown', unmuteOnNextTouch, { passive: true, once: true });
+            window.addEventListener('touchstart', unmuteOnNextTouch, { passive: true, once: true });
+            window.addEventListener('click', unmuteOnNextTouch, { passive: true, once: true });
+          }
         });
       } else {
         studioVideoIntendedPlay = false;
@@ -16171,9 +16239,17 @@ Pues resucitaste, Rey`
         event.stopPropagation();
       }
       activeVideoMuted = !activeVideoMuted;
+      if (typeof omniAudio !== 'undefined') {
+        omniAudio.init();
+        omniAudio.resume();
+        omniAudio.syncDspParameters();
+      }
       ['programMediaVideo', 'layer3ProgramVideo', 'wirecastProgramVideo'].forEach(id => {
         const vEl = document.getElementById(id);
-        if (vEl) vEl.muted = Boolean(activeVideoMuted);
+        if (vEl) {
+          vEl._autoplayMutedFallback = false;
+          vEl.muted = Boolean(activeVideoMuted);
+        }
       });
       const progVid = document.getElementById('programMediaVideo');
       sendProjectorVideoCommand({ action: 'mute', muted: activeVideoMuted });
@@ -16661,7 +16737,8 @@ Pues resucitaste, Rey`
         const n = this.nodes;
         const chs = fairlightState.channels;
         const hasSolo = Object.values(chs).some(c => c.solo);
-        const masterActive = (typeof layerPower === 'undefined' ? true : Boolean(layerPower[5])) && !fairlightState.master.mute;
+        const isLayer5On = (typeof layerPower !== 'undefined' && layerPower && layerPower[5] !== undefined) ? Boolean(layerPower[5]) : true;
+        const masterActive = isLayer5On && !fairlightState.master.mute;
 
         // EQ CH 1
         this._setParam(n.ch1EqLo.gain, Number(chs[1].eqLo || 0));
@@ -16694,7 +16771,7 @@ Pues resucitaste, Rey`
         // Master Fader + Mute + Monitor Mute + RTMP Send Mute
         const mGain = masterActive ? this.faderToGain(fairlightState.master.fader, 85) : 0;
         this._setParam(n.masterFaderGain.gain, mGain);
-        this._setParam(n.monitorMasterMuteGain.gain, masterActive ? 1 : 0);
+        this._setParam(n.monitorMasterMuteGain.gain, mGain);
         this._setParam(n.ch1MonitorGain.gain, fairlightState.monitorMic ? 1 : 0);
         this._setParam(n.ch2MonitorGain.gain, fairlightState.monitorMic ? 1 : 0);
         const rtmpUnmuted = typeof isStreamAudioMuted === 'undefined' ? true : !isStreamAudioMuted;
@@ -17035,6 +17112,9 @@ Pues resucitaste, Rey`
       }
 
       measureFrame() {
+        if (this.ctx && this.ctx.state === 'suspended' && this.hasAnySignalSource()) {
+          this.resume();
+        }
         if (!this.built || !this.ctx || this.ctx.state !== 'running' || !this.hasAnySignalSource()) {
           if (this.isDuckingActive) {
             this.isDuckingActive = false;
@@ -23820,15 +23900,36 @@ Resucitaste en majestad`;
     updateDestinationsLiveBadge();
     broadcastSlide(false, false);
     window.addEventListener('load', () => {
+      if (typeof omniAudio !== 'undefined') {
+        try { omniAudio.init(); } catch (e) {}
+      }
       initStudioRemoteEvents();
       setTimeout(syncLayer1ToProjector, 500);
     });
     const resumeRealAudioCtxOnGesture = () => {
-      if (typeof audioContext !== 'undefined' && audioContext && audioContext.state === 'suspended') {
-        audioContext.resume().catch(() => {});
-      }
+      try {
+        if (typeof omniAudio !== 'undefined') {
+          omniAudio.init();
+          omniAudio.resume();
+        }
+        if (typeof audioContext !== 'undefined' && audioContext && audioContext.state === 'suspended') {
+          audioContext.resume().catch(() => {});
+        }
+        if (typeof activeVideoMuted !== 'undefined' && !activeVideoMuted) {
+          ['programMediaVideo', 'layer3ProgramVideo', 'wirecastProgramVideo'].forEach(id => {
+            const v = document.getElementById(id);
+            if (v && (v.muted || v._autoplayMutedFallback)) {
+              v._autoplayMutedFallback = false;
+              v.muted = false;
+            }
+          });
+        }
+      } catch (e) {}
     };
     window.addEventListener('pointerdown', resumeRealAudioCtxOnGesture, { passive: true });
+    window.addEventListener('touchstart', resumeRealAudioCtxOnGesture, { passive: true });
+    window.addEventListener('touchend', resumeRealAudioCtxOnGesture, { passive: true });
+    window.addEventListener('click', resumeRealAudioCtxOnGesture, { passive: true });
     window.addEventListener('keydown', resumeRealAudioCtxOnGesture, { passive: true });
     startFairlightVuMeterEngine();
     startArenaStageCanvasEngine();
