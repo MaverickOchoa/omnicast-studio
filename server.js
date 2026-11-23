@@ -1233,6 +1233,42 @@ const requestHandler = (req, res) => {
     return;
   }
 
+  // Endpoint: Verify RTMP Targets Health (Diagnostic Tool for Facebook & YouTube)
+  if (parsedUrl === '/api/stream/verify-targets' && req.method === 'GET') {
+    loadPersistentDatabase();
+    const cfg = persistentDb.streamingConfig || {};
+    const fb = cfg.facebook || {};
+    const yt = cfg.youtube || {};
+    const resolvedFb = resolveLatestFacebookKey(fb.key);
+    const resolvedYt = resolveLatestYouTubeKey(yt.key);
+
+    const report = {
+      success: true,
+      ffmpeg: {
+        available: hasFfmpeg(),
+        path: getFfmpegPath(),
+        platform: process.platform
+      },
+      facebook: {
+        enabled: Boolean(fb.enabled),
+        configured: Boolean(resolvedFb),
+        keyMasked: resolvedFb ? `${resolvedFb.substring(0, 7)}...${resolvedFb.substring(resolvedFb.length - 4)}` : null,
+        url: (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').trim(),
+        status: resolvedFb ? 'Listo para transmitir' : 'Falta ingresar la clave de Facebook Live'
+      },
+      youtube: {
+        enabled: Boolean(yt.enabled),
+        configured: Boolean(resolvedYt),
+        keyMasked: resolvedYt ? `${resolvedYt.substring(0, 4)}...${resolvedYt.substring(resolvedYt.length - 4)}` : null,
+        url: (yt.url || 'rtmp://a.rtmp.youtube.com/live2').trim(),
+        status: resolvedYt ? 'Listo para transmitir' : 'Falta ingresar la clave de YouTube Live en Ajustes > Destinos'
+      }
+    };
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    res.end(JSON.stringify(report));
+    return;
+  }
+
   // Endpoint: Get Persistent Streaming Config (Shared across all connected devices)
   if (parsedUrl === '/api/stream/config' && req.method === 'GET') {
     loadPersistentDatabase();

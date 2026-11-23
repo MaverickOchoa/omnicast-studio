@@ -5687,7 +5687,7 @@ Te adoraré, te adoraré..."
                 </div>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="ytStreamEnable" checked onchange="updateDestinationsLiveBadge()" class="sr-only peer">
+                <input type="checkbox" id="ytStreamEnable" checked onchange="saveStreamingConfig(false); updateDestinationsLiveBadge(); onStreamingKeyInput();" class="sr-only peer">
                 <div class="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
               </label>
             </div>
@@ -5695,17 +5695,21 @@ Te adoraré, te adoraré..."
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
               <div>
                 <label class="text-[10px] text-slate-300 font-semibold block mb-1">URL del Servidor Ingest:</label>
-                <input type="text" id="ytStreamUrl" value="rtmp://a.rtmp.youtube.com/live2" 
+                <input type="text" id="ytStreamUrl" value="rtmp://a.rtmp.youtube.com/live2" onchange="saveStreamingConfig(false)"
                        class="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none shadow-inner">
               </div>
               <div>
                 <label class="text-[10px] text-slate-300 font-semibold block mb-1">Clave de Transmisión (Stream Key):</label>
                 <div class="relative">
                   <input type="password" id="ytStreamKey" placeholder="Pega aquí tu clave de YouTube Live" 
+                         oninput="onStreamingKeyInput()"
                          class="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none pr-9 shadow-inner">
                   <button type="button" onclick="togglePasswordVisibility('ytStreamKey')" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition">
                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                   </button>
+                </div>
+                <div id="ytKeyStatusBadge" class="text-[10px] mt-1 font-semibold flex items-center gap-1 text-amber-400">
+                  ⚠️ Clave de YouTube no ingresada (Pega la clave de tu YouTube Studio)
                 </div>
               </div>
             </div>
@@ -5735,7 +5739,7 @@ Te adoraré, te adoraré..."
                 </div>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="fbStreamEnable" checked onchange="updateDestinationsLiveBadge()" class="sr-only peer">
+                <input type="checkbox" id="fbStreamEnable" checked onchange="saveStreamingConfig(false); updateDestinationsLiveBadge(); onStreamingKeyInput();" class="sr-only peer">
                 <div class="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
             </div>
@@ -5743,17 +5747,21 @@ Te adoraré, te adoraré..."
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs pt-1">
               <div>
                 <label class="text-[10px] text-slate-300 font-semibold block mb-1">URL del Servidor Ingest:</label>
-                <input type="text" id="fbStreamUrl" value="rtmps://rtmp-api.facebook.com:443/rtmp/" 
+                <input type="text" id="fbStreamUrl" value="rtmps://rtmp-api.facebook.com:443/rtmp/" onchange="saveStreamingConfig(false)"
                        class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none shadow-inner">
               </div>
               <div>
                 <label class="text-[10px] text-slate-300 font-semibold block mb-1">Clave de Transmisión (Stream Key):</label>
                 <div class="relative">
                   <input type="password" id="fbStreamKey" value="FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ" placeholder="Pega aquí tu clave de Facebook Live" 
+                         oninput="onStreamingKeyInput()"
                          class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none pr-9 shadow-inner">
                   <button type="button" onclick="togglePasswordVisibility('fbStreamKey')" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition">
                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                   </button>
+                </div>
+                <div id="fbKeyStatusBadge" class="text-[10px] mt-1 font-semibold flex items-center gap-1 text-emerald-400">
+                  ✓ Clave de Facebook Live lista
                 </div>
               </div>
             </div>
@@ -5775,10 +5783,24 @@ Te adoraré, te adoraré..."
                 </div>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="localTestStreamEnable" class="sr-only peer">
+                <input type="checkbox" id="localTestStreamEnable" onchange="saveStreamingConfig(false); updateDestinationsLiveBadge();" class="sr-only peer">
                 <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
               </label>
             </div>
+          </div>
+
+          <!-- Barra de Acciones Directas: Guardar y Diagnóstico de Destinos -->
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex flex-wrap items-center justify-between gap-3 shadow">
+            <button type="button" onclick="testStreamingTargetsConnection()" id="btnTestTargets"
+                    class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold text-xs border border-slate-700 flex items-center gap-2 transition active:scale-95">
+              <i data-lucide="activity" class="w-4 h-4 text-sky-400"></i>
+              <span>Verificar Conexión de Claves</span>
+            </button>
+            <button type="button" onclick="saveStreamingConfig(true)" id="btnSaveDestinos"
+                    class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-950/40 flex items-center gap-2 transition active:scale-95">
+              <i data-lucide="check" class="w-4 h-4"></i>
+              <span>Guardar y Sincronizar Claves</span>
+            </button>
           </div>
 
           <!-- Multi-Destino Status Banner -->
@@ -21026,6 +21048,63 @@ Pues resucitaste, Rey`
           ${localTestEnabled ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">Prueba Local</span>' : ''}
         `;
       }
+      onStreamingKeyInput();
+    }
+
+    function onStreamingKeyInput() {
+      const ytVal = document.getElementById('ytStreamKey')?.value.trim() || '';
+      const fbVal = document.getElementById('fbStreamKey')?.value.trim() || '';
+      const ytBadge = document.getElementById('ytKeyStatusBadge');
+      const fbBadge = document.getElementById('fbKeyStatusBadge');
+
+      if (ytBadge) {
+        if (!ytVal || ytVal.startsWith('yt-test-key') || ytVal === 'yt-live-9382-7712-4412-omni') {
+          ytBadge.className = 'text-[10px] mt-1 font-semibold flex items-center gap-1 text-amber-400';
+          ytBadge.innerHTML = '⚠️ Clave de YouTube no ingresada (Pega la clave de tu YouTube Studio)';
+        } else {
+          ytBadge.className = 'text-[10px] mt-1 font-semibold flex items-center gap-1 text-emerald-400';
+          ytBadge.innerHTML = `✓ Clave de YouTube Live lista (${ytVal.length} caracteres)`;
+        }
+      }
+
+      if (fbBadge) {
+        if (!fbVal || fbVal.startsWith('fb-test-key')) {
+          fbBadge.className = 'text-[10px] mt-1 font-semibold flex items-center gap-1 text-amber-400';
+          fbBadge.innerHTML = '⚠️ Clave de Facebook no ingresada (Pega la clave de Facebook Live)';
+        } else {
+          fbBadge.className = 'text-[10px] mt-1 font-semibold flex items-center gap-1 text-emerald-400';
+          fbBadge.innerHTML = '✓ Clave de Facebook Live lista';
+        }
+      }
+    }
+
+    async function testStreamingTargetsConnection() {
+      const btn = document.getElementById('btnTestTargets');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-sky-400"></i> Verificando...';
+      }
+      try {
+        saveStreamingConfig(false);
+        const res = await fetch('/api/stream/verify-targets').then(r => r.json());
+        if (res && res.success) {
+          let reportMsg = '🔍 Diagnóstico de Destinos:\n\n';
+          reportMsg += `• Motor FFmpeg: ${res.ffmpeg.available ? '✓ DISPONIBLE (' + res.ffmpeg.path + ')' : '✗ NO DISPONIBLE'}\n`;
+          reportMsg += `• Facebook Live: ${res.facebook.configured ? '✓ ' + res.facebook.status + ' (' + res.facebook.keyMasked + ')' : '⚠️ ' + res.facebook.status}\n`;
+          reportMsg += `• YouTube Live: ${res.youtube.configured ? '✓ ' + res.youtube.status + ' (' + res.youtube.keyMasked + ')' : '⚠️ ' + res.youtube.status}\n`;
+          alert(reportMsg);
+        } else {
+          showToast('⚠️ No se pudo obtener diagnóstico del servidor', '⚠️');
+        }
+      } catch (e) {
+        showToast('Error conectando con el servidor de diagnóstico', '⚠️');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="activity" class="w-3.5 h-3.5 text-sky-400"></i> Verificar Conexión de Claves';
+          if (window.lucide) lucide.createIcons();
+        }
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -22159,7 +22238,19 @@ Pues resucitaste, Rey`
       if (hasYt && hasFb) {
         showToast('📡 Transmitiendo en vivo simultáneamente a Facebook Live y YouTube Live', '📡');
       } else if (ytEnabled && isYtDummy && hasFb) {
-        showToast('ℹ️ Transmitiendo a Facebook Live. (Para YouTube ingresa tu clave en Ajustes > Destinos)', 'ℹ️');
+        const proceed = confirm(
+          "⚠️ AVISO DE YOUTUBE LIVE:\n\n" +
+          "YouTube Live está activado pero falta ingresar tu Clave de Transmisión en Ajustes > Destinos.\n\n" +
+          "• Presiona [Aceptar] para transmitir AHORA a Facebook Live.\n" +
+          "• Presiona [Cancelar] para ir a Ajustes > Destinos y pegar tu clave de YouTube."
+        );
+        if (!proceed) {
+          openCampusSettingsModal();
+          switchSettingsTab('destinos');
+          setStreamUIState('idle');
+          return;
+        }
+        showToast('ℹ️ Transmitiendo a Facebook Live. (Para YouTube pega tu clave en Ajustes > Destinos)', 'ℹ️');
       }
 
       if (!hasYt && !hasFb && !hasLocalTest) {
