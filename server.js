@@ -2223,21 +2223,42 @@ function createLocalTlsRtmpRelay(targetUrl) {
       const remoteHost = colonIdx !== -1 ? hostPart.substring(0, colonIdx) : hostPart;
       const remotePort = colonIdx !== -1 ? parseInt(hostPart.substring(colonIdx + 1), 10) : 443;
 
-      const server = net.createServer((clientSocket) => {
-        const tlsSocket = tls.connect({
-          host: remoteHost,
-          port: remotePort,
-          servername: remoteHost,
-          rejectUnauthorized: false
-        }, () => {
-          clientSocket.pipe(tlsSocket);
-          tlsSocket.pipe(clientSocket);
-        });
+      let clientSocketWaiting = null;
+      let tlsSocketReady = null;
+      let tlsConnected = false;
 
-        tlsSocket.on('error', (err) => {
-          addFfmpegLog(`[TLS Relay ${remoteHost}] Socket error: ${err.message}`);
-          try { clientSocket.destroy(); } catch (e) {}
-        });
+      const tlsSocket = tls.connect({
+        host: remoteHost,
+        port: remotePort,
+        servername: remoteHost,
+        rejectUnauthorized: false
+      }, () => {
+        tlsConnected = true;
+        tlsSocketReady = tlsSocket;
+        if (clientSocketWaiting) {
+          clientSocketWaiting.pipe(tlsSocket);
+          tlsSocket.pipe(clientSocketWaiting);
+          clientSocketWaiting.resume();
+          clientSocketWaiting = null;
+        }
+      });
+
+      tlsSocket.on('error', (err) => {
+        addFfmpegLog(`[TLS Relay ${remoteHost}] Socket error: ${err.message}`);
+        if (clientSocketWaiting) {
+          try { clientSocketWaiting.destroy(); } catch (e) {}
+          clientSocketWaiting = null;
+        }
+      });
+
+      const server = net.createServer((clientSocket) => {
+        if (tlsConnected && tlsSocketReady && !tlsSocketReady.destroyed) {
+          clientSocket.pipe(tlsSocketReady);
+          tlsSocketReady.pipe(clientSocket);
+        } else {
+          clientSocket.pause();
+          clientSocketWaiting = clientSocket;
+        }
 
         clientSocket.on('error', () => {
           try { tlsSocket.destroy(); } catch (e) {}
@@ -2261,6 +2282,7 @@ function createLocalTlsRtmpRelay(targetUrl) {
         resolve({
           url: localUrl,
           close: () => {
+            try { tlsSocket.destroy(); } catch (e) {}
             try { server.close(); } catch (e) {}
           }
         });
@@ -2470,11 +2492,15 @@ async function startFfmpegStream(dest, activeWs) {
   console.log(`[FFmpeg Audio] Ingesting live Fairlight WebAudio mix via pipe:3 (initial mute: ${liveAudioMutedFlag})`);
 
   const ffmpegArgs = [
+    '-probesize', '262144',
+    '-analyzeduration', '200000',
     '-thread_queue_size', '4096',
     '-f', 'image2pipe',
     '-vcodec', 'mjpeg',
     '-framerate', '30',
     '-i', 'pipe:0',
+    '-probesize', '65536',
+    '-analyzeduration', '200000',
     '-thread_queue_size', '4096',
     '-f', 's16le',
     '-ar', String(PCM_SAMPLE_RATE),
@@ -2490,12 +2516,12 @@ async function startFfmpegStream(dest, activeWs) {
     '-c:v', 'libx264',
     '-preset', 'ultrafast',
     '-tune', 'zerolatency',
-    '-threads', '3',
+    '-threads', '2',
     '-profile:v', 'main',
-    '-b:v', '3500k',
-    '-minrate', '3500k',
-    '-maxrate', '3500k',
-    '-bufsize', '3500k',
+    '-b:v', '3000k',
+    '-minrate', '3000k',
+    '-maxrate', '3000k',
+    '-bufsize', '3000k',
     '-x264-params', 'nal-hrd=cbr:force-cfr=1',
     '-pix_fmt', 'yuv420p',
     '-r', '30',
