@@ -2113,12 +2113,16 @@ function getFfmpegPath() {
   return 'ffmpeg';
 }
 
+let cachedHasFfmpeg = null;
 function hasFfmpeg() {
+  if (cachedHasFfmpeg !== null) return cachedHasFfmpeg;
   const p = getFfmpegPath();
   try {
     const res = spawnSync(p, ['-version']);
-    return res.status === 0;
+    cachedHasFfmpeg = (res.status === 0);
+    return cachedHasFfmpeg;
   } catch (e) {
+    cachedHasFfmpeg = false;
     return false;
   }
 }
@@ -2223,48 +2227,42 @@ function createLocalTlsRtmpRelay(targetUrl) {
       const remoteHost = colonIdx !== -1 ? hostPart.substring(0, colonIdx) : hostPart;
       const remotePort = colonIdx !== -1 ? parseInt(hostPart.substring(colonIdx + 1), 10) : 443;
 
-      let clientSocketWaiting = null;
-      let tlsSocketReady = null;
-      let tlsConnected = false;
-
-      const tlsSocket = tls.connect({
-        host: remoteHost,
-        port: remotePort,
-        servername: remoteHost,
-        rejectUnauthorized: false
-      }, () => {
-        tlsConnected = true;
-        tlsSocketReady = tlsSocket;
-        if (clientSocketWaiting) {
-          clientSocketWaiting.pipe(tlsSocket);
-          tlsSocket.pipe(clientSocketWaiting);
-          clientSocketWaiting.resume();
-          clientSocketWaiting = null;
-        }
-      });
-
-      tlsSocket.on('error', (err) => {
-        addFfmpegLog(`[TLS Relay ${remoteHost}] Socket error: ${err.message}`);
-        if (clientSocketWaiting) {
-          try { clientSocketWaiting.destroy(); } catch (e) {}
-          clientSocketWaiting = null;
-        }
-      });
+      const activeSockets = new Set();
 
       const server = net.createServer((clientSocket) => {
-        if (tlsConnected && tlsSocketReady && !tlsSocketReady.destroyed) {
-          clientSocket.pipe(tlsSocketReady);
-          tlsSocketReady.pipe(clientSocket);
-        } else {
-          clientSocket.pause();
-          clientSocketWaiting = clientSocket;
-        }
+        clientSocket.pause();
+        activeSockets.add(clientSocket);
 
-        clientSocket.on('error', () => {
+        const tlsSocket = tls.connect({
+          host: remoteHost,
+          port: remotePort,
+          servername: remoteHost,
+          rejectUnauthorized: false
+        }, () => {
+          clientSocket.pipe(tlsSocket);
+          tlsSocket.pipe(clientSocket);
+          clientSocket.resume();
+        });
+
+        activeSockets.add(tlsSocket);
+
+        tlsSocket.on('error', (err) => {
+          addFfmpegLog(`[TLS Relay ${remoteHost}] Socket error: ${err.message}`);
+          try { clientSocket.destroy(); } catch (e) {}
+        });
+
+        tlsSocket.on('close', () => {
+          activeSockets.delete(tlsSocket);
+          try { clientSocket.destroy(); } catch (e) {}
+        });
+
+        clientSocket.on('error', (err) => {
+          addFfmpegLog(`[TLS Relay ${remoteHost}] Client error: ${err.message}`);
           try { tlsSocket.destroy(); } catch (e) {}
         });
 
         clientSocket.on('close', () => {
+          activeSockets.delete(clientSocket);
           try { tlsSocket.destroy(); } catch (e) {}
         });
       });
@@ -2282,7 +2280,9 @@ function createLocalTlsRtmpRelay(targetUrl) {
         resolve({
           url: localUrl,
           close: () => {
-            try { tlsSocket.destroy(); } catch (e) {}
+            for (const s of activeSockets) {
+              try { s.destroy(); } catch (e) {}
+            }
             try { server.close(); } catch (e) {}
           }
         });
@@ -2601,13 +2601,17 @@ async function startFfmpegStream(dest, activeWs) {
   }, 20);
 
   proc.stdin.on('error', (err) => {
-    console.warn('[FFmpeg stdin error]:', err.message);
-    addFfmpegLog(`[FFmpeg stdin error]: ${err.message}`);
+    if (err.code !== 'EPIPE') {
+      console.warn('[FFmpeg stdin error]:', err.message);
+      addFfmpegLog(`[FFmpeg stdin error]: ${err.message}`);
+    }
   });
   if (proc.stdio && proc.stdio[3]) {
     proc.stdio[3].on('error', (err) => {
-      console.warn('[FFmpeg audio pipe error]:', err.message);
-      addFfmpegLog(`[FFmpeg audio pipe error]: ${err.message}`);
+      if (err.code !== 'ECONNRESET' && err.code !== 'EPIPE') {
+        console.warn('[FFmpeg audio pipe error]:', err.message);
+        addFfmpegLog(`[FFmpeg audio pipe error]: ${err.message}`);
+      }
     });
   }
 
@@ -2701,7 +2705,7 @@ async function startFfmpegStream(dest, activeWs) {
       if (!detectedError && (code !== 0 || signal)) {
         const meaningfulLogs = recentFfmpegLogs
           .map(l => l.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, ''))
-          .filter(l => !l.startsWith('[FFmpeg Frame]') && !l.includes('frame=') && !l.includes('speed=') && !l.includes('Stream ended'));
+          .filter(l => !l.startsWith('[FFmpeg Frame]') && !l.includes('frame=') && !l.includes('speed=') && !l.includes('Stream ended') && !l.includes('EPIPE') && !l.includes('ECONNRESET'));
         const lastErr = meaningfulLogs.slice(-2).join(' | ');
         detectedError = lastErr || (signal ? `Proceso terminado por señal ${signal}` : `Servidor RTMP cerró la transmisión (código ${code})`);
       }

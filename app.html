@@ -21051,6 +21051,7 @@ Pues resucitaste, Rey`
       onStreamingKeyInput();
     }
 
+    let streamingKeyDebounceTimer = null;
     function onStreamingKeyInput() {
       const ytVal = document.getElementById('ytStreamKey')?.value.trim() || '';
       const fbVal = document.getElementById('fbStreamKey')?.value.trim() || '';
@@ -21076,6 +21077,11 @@ Pues resucitaste, Rey`
           fbBadge.innerHTML = '✓ Clave de Facebook Live lista';
         }
       }
+
+      clearTimeout(streamingKeyDebounceTimer);
+      streamingKeyDebounceTimer = setTimeout(() => {
+        saveStreamingConfig(false);
+      }, 350);
     }
 
     async function testStreamingTargetsConnection() {
