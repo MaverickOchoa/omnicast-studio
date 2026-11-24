@@ -1,3 +1,5 @@
+# Nixpacks configuration for OmniCast Studio on Railway
 [phases.setup]
-nixPkgs = ["...", "ffmpeg"]
-aptPkgs = ["...", "ffmpeg"]
+nixPkgs = ["ffmpeg"]
+pkgs = ["ffmpeg"]
+aptPkgs = ["ffmpeg"]

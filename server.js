@@ -1281,9 +1281,11 @@ const requestHandler = (req, res) => {
     return;
   }
 
-  // Endpoint: Test FFmpeg Live Pipeline (Diagnostic 3-second test to verify RTMP handshake)
+  // Endpoint: Test FFmpeg Live Pipeline (Diagnostic test to verify RTMP handshake or null encoding)
   if (parsedUrl === '/api/stream/test-pipeline' && req.method === 'GET') {
     loadPersistentDatabase();
+    const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const mode = fullUrl.searchParams.get('mode') || 'live';
     const cfg = persistentDb.streamingConfig || {};
     const fb = cfg.facebook || {};
     const yt = cfg.youtube || {};
@@ -1297,26 +1299,38 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    const testTarget = (resolvedFb && !resolvedFb.startsWith('fb-test-key') && resolvedFb !== 'FB-1049284729184712-live')
-      ? {
-          name: 'Facebook Live',
-          url: (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').endsWith('/')
-            ? `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}${resolvedFb}`
-            : `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}/${resolvedFb}`
-        }
-      : (resolvedYt && !resolvedYt.startsWith('yt-test-key') && resolvedYt !== 'yt-live-9382-7712-4412-omni')
-        ? {
-            name: 'YouTube Live',
-            url: (yt.url || 'rtmp://a.rtmp.youtube.com/live2').endsWith('/')
-              ? `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}${resolvedYt}`
-              : `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}/${resolvedYt}`
-          }
-        : null;
+    let outFormat = ['-f', 'flv'];
+    let targetUrl = '';
+    let targetName = 'Facebook Live';
 
-    if (!testTarget) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'No hay ninguna clave válida configurada para Facebook ni YouTube.', logs: [] }));
-      return;
+    if (mode === 'null') {
+      outFormat = ['-f', 'null', '-'];
+      targetUrl = '';
+      targetName = 'Codificador x264/AAC Local (Sin red)';
+    } else {
+      const testTarget = (resolvedFb && !resolvedFb.startsWith('fb-test-key') && resolvedFb !== 'FB-1049284729184712-live')
+        ? {
+            name: 'Facebook Live',
+            url: (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').endsWith('/')
+              ? `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}${resolvedFb}`
+              : `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}/${resolvedFb}`
+          }
+        : (resolvedYt && !resolvedYt.startsWith('yt-test-key') && resolvedYt !== 'yt-live-9382-7712-4412-omni')
+          ? {
+              name: 'YouTube Live',
+              url: (yt.url || 'rtmp://a.rtmp.youtube.com/live2').endsWith('/')
+                ? `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}${resolvedYt}`
+                : `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}/${resolvedYt}`
+            }
+          : null;
+
+      if (!testTarget) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: 'No hay ninguna clave válida configurada para Facebook ni YouTube.', logs: [] }));
+        return;
+      }
+      targetName = testTarget.name;
+      targetUrl = testTarget.url;
     }
 
     const testArgs = [
@@ -1336,12 +1350,12 @@ const requestHandler = (req, res) => {
       '-b:a', '128k',
       '-ar', '44100',
       '-t', '3',
-      '-f', 'flv',
-      testTarget.url
+      ...outFormat
     ];
+    if (targetUrl) testArgs.push(targetUrl);
 
     const testLogs = [];
-    console.log(`[Diagnostic Pipeline] Testing 3s live stream to ${testTarget.name}...`);
+    console.log(`[Diagnostic Pipeline] Testing 3s live stream (${targetName})...`);
     const proc = spawn(ffmpegPath, testArgs);
     proc.stderr.on('data', d => {
       const lines = d.toString().split(/\r?\n/).filter(Boolean);
@@ -1351,14 +1365,14 @@ const requestHandler = (req, res) => {
       }
     });
     proc.on('close', (code, signal) => {
-      const connected = testLogs.some(l => l.includes('Output #0') || l.includes('frame='));
+      const connected = code === 0 || testLogs.some(l => l.includes('Output #0') || l.includes('frame='));
       console.log(`[Diagnostic Pipeline] Test ended: code=${code}, signal=${signal}, connected=${connected}`);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: connected,
         code,
         signal,
-        target: testTarget.name,
+        target: targetName,
         logs: testLogs
       }));
     });
