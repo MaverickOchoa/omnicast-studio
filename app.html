@@ -21082,7 +21082,7 @@ Pues resucitaste, Rey`
       const btn = document.getElementById('btnTestTargets');
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-sky-400"></i> Verificando...';
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-sky-400"></i> Verificando conexión...';
       }
       try {
         saveStreamingConfig(false);
@@ -21091,7 +21091,18 @@ Pues resucitaste, Rey`
           let reportMsg = '🔍 Diagnóstico de Destinos:\n\n';
           reportMsg += `• Motor FFmpeg: ${res.ffmpeg.available ? '✓ DISPONIBLE (' + res.ffmpeg.path + ')' : '✗ NO DISPONIBLE'}\n`;
           reportMsg += `• Facebook Live: ${res.facebook.configured ? '✓ ' + res.facebook.status + ' (' + res.facebook.keyMasked + ')' : '⚠️ ' + res.facebook.status}\n`;
-          reportMsg += `• YouTube Live: ${res.youtube.configured ? '✓ ' + res.youtube.status + ' (' + res.youtube.keyMasked + ')' : '⚠️ ' + res.youtube.status}\n`;
+          reportMsg += `• YouTube Live: ${res.youtube.configured ? '✓ ' + res.youtube.status + ' (' + res.youtube.keyMasked + ')' : '⚠️ ' + res.youtube.status}\n\n`;
+
+          if (res.facebook.configured || res.youtube.configured) {
+            try {
+              const testRes = await fetch('/api/stream/test-pipeline').then(r => r.json());
+              if (testRes && testRes.success) {
+                reportMsg += `📡 Prueba RTMP en Vivo (3s):\n✓ Conexión exitosa a ${testRes.target}! Handshake validado y cuadros transmitidos.`;
+              } else if (testRes) {
+                reportMsg += `📡 Prueba RTMP en Vivo:\n⚠️ Error conectando a ${testRes.target || 'plataforma'}: ${testRes.error || (testRes.logs && testRes.logs.slice(-2).join(' ')) || 'Handshake rechazado'}`;
+              }
+            } catch (pipeErr) {}
+          }
           alert(reportMsg);
         } else {
           showToast('⚠️ No se pudo obtener diagnóstico del servidor', '⚠️');
@@ -22081,9 +22092,12 @@ Pues resucitaste, Rey`
               stopMasterLiveStream(false);
               showToast('⚠️ RTMP: ' + data.message, '⚠️');
             } else if (data.type === 'stopped') {
+              logStreamClientEvent('ws_stream_stopped', { code: data.code, signal: data.signal, error: data.error });
               stopMasterLiveStream(false);
               if (data.error) {
                 showToast('⚠️ Transmisión finalizada: ' + data.error, '⚠️');
+              } else {
+                showToast('ℹ️ Transmisión detenida por el servidor.', 'ℹ️');
               }
             } else if (data.type === 'health') {
               window.__lastStreamHealth = data;

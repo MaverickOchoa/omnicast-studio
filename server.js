@@ -1269,6 +1269,107 @@ const requestHandler = (req, res) => {
     return;
   }
 
+  // Endpoint: Get Recent FFmpeg Streaming Logs
+  if (parsedUrl === '/api/stream/logs' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    res.end(JSON.stringify({
+      success: true,
+      isStreaming: liveStreamState.isStreaming,
+      stats: liveStreamState.stats,
+      logs: recentFfmpegLogs
+    }));
+    return;
+  }
+
+  // Endpoint: Test FFmpeg Live Pipeline (Diagnostic 3-second test to verify RTMP handshake)
+  if (parsedUrl === '/api/stream/test-pipeline' && req.method === 'GET') {
+    loadPersistentDatabase();
+    const cfg = persistentDb.streamingConfig || {};
+    const fb = cfg.facebook || {};
+    const yt = cfg.youtube || {};
+    const resolvedFb = resolveLatestFacebookKey(fb.key);
+    const resolvedYt = resolveLatestYouTubeKey(yt.key);
+    const ffmpegPath = getFfmpegPath();
+
+    if (!hasFfmpeg()) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'FFmpeg no disponible en este servidor', logs: [] }));
+      return;
+    }
+
+    const testTarget = (resolvedFb && !resolvedFb.startsWith('fb-test-key') && resolvedFb !== 'FB-1049284729184712-live')
+      ? {
+          name: 'Facebook Live',
+          url: (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').endsWith('/')
+            ? `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}${resolvedFb}`
+            : `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}/${resolvedFb}`
+        }
+      : (resolvedYt && !resolvedYt.startsWith('yt-test-key') && resolvedYt !== 'yt-live-9382-7712-4412-omni')
+        ? {
+            name: 'YouTube Live',
+            url: (yt.url || 'rtmp://a.rtmp.youtube.com/live2').endsWith('/')
+              ? `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}${resolvedYt}`
+              : `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}/${resolvedYt}`
+          }
+        : null;
+
+    if (!testTarget) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'No hay ninguna clave válida configurada para Facebook ni YouTube.', logs: [] }));
+      return;
+    }
+
+    const testArgs = [
+      '-thread_queue_size', '1024',
+      '-f', 'lavfi',
+      '-i', 'color=c=blue:s=1280x720:r=30',
+      '-f', 'lavfi',
+      '-i', 'anullsrc=r=44100:cl=stereo',
+      '-c:v', 'libx264',
+      '-preset', 'ultrafast',
+      '-tune', 'zerolatency',
+      '-threads', '2',
+      '-b:v', '2000k',
+      '-pix_fmt', 'yuv420p',
+      '-g', '60',
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      '-ar', '44100',
+      '-t', '3',
+      '-f', 'flv',
+      testTarget.url
+    ];
+
+    const testLogs = [];
+    console.log(`[Diagnostic Pipeline] Testing 3s live stream to ${testTarget.name}...`);
+    const proc = spawn(ffmpegPath, testArgs);
+    proc.stderr.on('data', d => {
+      const lines = d.toString().split(/\r?\n/).filter(Boolean);
+      for (const l of lines) {
+        testLogs.push(l.trim());
+        addFfmpegLog(`[Test] ${l.trim()}`);
+      }
+    });
+    proc.on('close', (code, signal) => {
+      const connected = testLogs.some(l => l.includes('Output #0') || l.includes('frame='));
+      console.log(`[Diagnostic Pipeline] Test ended: code=${code}, signal=${signal}, connected=${connected}`);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: connected,
+        code,
+        signal,
+        target: testTarget.name,
+        logs: testLogs
+      }));
+    });
+    proc.on('error', err => {
+      console.error('[Diagnostic Pipeline Error]:', err.message);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message, logs: testLogs }));
+    });
+    return;
+  }
+
   // Endpoint: Get Persistent Streaming Config (Shared across all connected devices)
   if (parsedUrl === '/api/stream/config' && req.method === 'GET') {
     loadPersistentDatabase();
@@ -1886,6 +1987,18 @@ function dequeueTvPcmBytes(bytesNeeded) {
   tvPcmQueueBytes = res.remaining;
   return res.chunk;
 }
+
+// Live Stream FFmpeg Diagnostic Circular Log Buffer
+const recentFfmpegLogs = [];
+function addFfmpegLog(line) {
+  if (!line) return;
+  const ts = new Date().toISOString().substring(11, 19);
+  const clean = String(line).trim();
+  if (!clean) return;
+  recentFfmpegLogs.push(`[${ts}] ${clean}`);
+  if (recentFfmpegLogs.length > 120) recentFfmpegLogs.shift();
+}
+
 let standbyJpegBuffer = null;
 let currentFrameJpeg = null;
 
@@ -2288,7 +2401,8 @@ function startFfmpegStream(dest, activeWs) {
 
   activeTargetNames = targets.map(t => t.name);
   console.log(`[FFmpeg RTMP] Spawning OBS-grade 30fps pipeline for: ${activeTargetNames.join(' & ')}`);
-  const proc = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] });
+  addFfmpegLog(`[FFmpeg RTMP] Spawning pipeline for targets: ${activeTargetNames.join(', ')}`);
+  const proc = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'ignore', 'pipe', 'pipe'] });
   activeFfmpegProcess = proc;
   streamHasValidHeader = true;
   streamChunkCount = 0;
@@ -2296,7 +2410,7 @@ function startFfmpegStream(dest, activeWs) {
   liveStreamState.isStreaming = true;
   liveStreamState.startTime = Date.now();
   liveStreamState.destinations = dest;
-  liveStreamState.stats = { fps: 30, bitrate: 3500, speed: '1x', totalBytes: 0, droppedFrames: 0, pcmPackets: 0, error: null };
+  liveStreamState.stats = { fps: 30, bitrate: 3000, speed: '1x', totalBytes: 0, droppedFrames: 0, pcmPackets: 0, error: null };
 
   // Immediately pump the initial frame and start the rock-solid 30.00 FPS + 44.1kHz PCM server clocks
   if (currentFrameJpeg && proc.stdin && proc.stdin.writable && !proc.stdin.destroyed) {
@@ -2344,15 +2458,21 @@ function startFfmpegStream(dest, activeWs) {
 
   proc.stdin.on('error', (err) => {
     console.warn('[FFmpeg stdin error]:', err.message);
+    addFfmpegLog(`[FFmpeg stdin error]: ${err.message}`);
   });
   if (proc.stdio && proc.stdio[3]) {
     proc.stdio[3].on('error', (err) => {
       console.warn('[FFmpeg audio pipe error]:', err.message);
+      addFfmpegLog(`[FFmpeg audio pipe error]: ${err.message}`);
     });
   }
 
   proc.stderr.on('data', (data) => {
     const text = data.toString();
+    const rawLines = text.split(/\r?\n/).filter(Boolean);
+    for (const l of rawLines) {
+      addFfmpegLog(l);
+    }
     if (!text.includes('frame=')) {
       console.log('[FFmpeg]:', text.trim());
     } else {
@@ -2408,8 +2528,9 @@ function startFfmpegStream(dest, activeWs) {
     }
   });
 
-  proc.on('close', (code) => {
-    console.log(`[FFmpeg RTMP] Stream ended with exit code ${code}`);
+  proc.on('close', (code, signal) => {
+    console.log(`[FFmpeg RTMP] Stream ended with exit code ${code}, signal: ${signal}`);
+    addFfmpegLog(`[FFmpeg RTMP] Stream ended with exit code ${code}, signal: ${signal}`);
     if (activeFfmpegProcess === proc) {
       if (ffmpegFramePumpTimer) {
         clearInterval(ffmpegFramePumpTimer);
@@ -2424,20 +2545,32 @@ function startFfmpegStream(dest, activeWs) {
       activeFfmpegProcess = null;
       liveStreamState.isStreaming = false;
       streamHasValidHeader = false;
+
+      let detectedError = liveStreamState.stats.error;
+      if (!detectedError && (code !== 0 || signal)) {
+        const meaningfulLogs = recentFfmpegLogs
+          .map(l => l.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, ''))
+          .filter(l => !l.startsWith('[FFmpeg Frame]') && !l.includes('frame=') && !l.includes('speed=') && !l.includes('Stream ended'));
+        const lastErr = meaningfulLogs.slice(-2).join(' | ');
+        detectedError = lastErr || (signal ? `Proceso terminado por señal ${signal}` : `Servidor RTMP cerró la transmisión (código ${code})`);
+      }
+
       const stopPayload = {
         type: 'stopped',
         code,
-        error: liveStreamState.stats.error || (code && code !== 0 ? `Servidor RTMP cerró la transmisión (código ${code})` : null)
+        signal,
+        error: detectedError || null
       };
       if (activeWs && activeWs.readyState === WebSocket.OPEN) {
         activeWs.send(JSON.stringify(stopPayload));
       }
-      broadcastSSE('stream_status', { isStreaming: false, code, error: stopPayload.error });
+      broadcastSSE('stream_status', { isStreaming: false, code, signal, error: stopPayload.error });
     }
   });
 
   proc.on('error', (err) => {
     console.error('[FFmpeg RTMP Process Error]:', err);
+    addFfmpegLog(`[FFmpeg RTMP Process Error]: ${err.message}`);
     if (activeFfmpegProcess === proc) {
       liveStreamState.stats.error = err.message;
       activeFfmpegProcess = null;
