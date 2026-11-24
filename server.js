@@ -1,5 +1,7 @@
 const http = require('http');
 const https = require('https');
+const net = require('net');
+const tls = require('tls');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -1283,103 +1285,120 @@ const requestHandler = (req, res) => {
 
   // Endpoint: Test FFmpeg Live Pipeline (Diagnostic test to verify RTMP handshake or null encoding)
   if (parsedUrl === '/api/stream/test-pipeline' && req.method === 'GET') {
-    loadPersistentDatabase();
-    const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    const mode = fullUrl.searchParams.get('mode') || 'live';
-    const cfg = persistentDb.streamingConfig || {};
-    const fb = cfg.facebook || {};
-    const yt = cfg.youtube || {};
-    const resolvedFb = resolveLatestFacebookKey(fb.key);
-    const resolvedYt = resolveLatestYouTubeKey(yt.key);
-    const ffmpegPath = getFfmpegPath();
+    (async () => {
+      loadPersistentDatabase();
+      const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      const mode = fullUrl.searchParams.get('mode') || 'live';
+      const cfg = persistentDb.streamingConfig || {};
+      const fb = cfg.facebook || {};
+      const yt = cfg.youtube || {};
+      const resolvedFb = resolveLatestFacebookKey(fb.key);
+      const resolvedYt = resolveLatestYouTubeKey(yt.key);
+      const ffmpegPath = getFfmpegPath();
 
-    if (!hasFfmpeg()) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: 'FFmpeg no disponible en este servidor', logs: [] }));
-      return;
-    }
-
-    let outFormat = ['-f', 'flv'];
-    let targetUrl = '';
-    let targetName = 'Facebook Live';
-
-    if (mode === 'null') {
-      outFormat = ['-f', 'null', '-'];
-      targetUrl = '';
-      targetName = 'Codificador x264/AAC Local (Sin red)';
-    } else {
-      const testTarget = (resolvedFb && !resolvedFb.startsWith('fb-test-key') && resolvedFb !== 'FB-1049284729184712-live')
-        ? {
-            name: 'Facebook Live',
-            url: (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').endsWith('/')
-              ? `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}${resolvedFb}`
-              : `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}/${resolvedFb}`
-          }
-        : (resolvedYt && !resolvedYt.startsWith('yt-test-key') && resolvedYt !== 'yt-live-9382-7712-4412-omni')
-          ? {
-              name: 'YouTube Live',
-              url: (yt.url || 'rtmp://a.rtmp.youtube.com/live2').endsWith('/')
-                ? `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}${resolvedYt}`
-                : `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}/${resolvedYt}`
-            }
-          : null;
-
-      if (!testTarget) {
+      if (!hasFfmpeg()) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, error: 'No hay ninguna clave válida configurada para Facebook ni YouTube.', logs: [] }));
+        res.end(JSON.stringify({ success: false, error: 'FFmpeg no disponible en este servidor', logs: [] }));
         return;
       }
-      targetName = testTarget.name;
-      targetUrl = testTarget.url;
-    }
 
-    const testArgs = [
-      '-thread_queue_size', '1024',
-      '-f', 'lavfi',
-      '-i', 'color=c=blue:s=1280x720:r=30',
-      '-f', 'lavfi',
-      '-i', 'anullsrc=r=44100:cl=stereo',
-      '-c:v', 'libx264',
-      '-preset', 'ultrafast',
-      '-tune', 'zerolatency',
-      '-threads', '2',
-      '-b:v', '2000k',
-      '-pix_fmt', 'yuv420p',
-      '-g', '60',
-      '-c:a', 'aac',
-      '-b:a', '128k',
-      '-ar', '44100',
-      '-t', '3',
-      ...outFormat
-    ];
-    if (targetUrl) testArgs.push(targetUrl);
+      let outFormat = ['-f', 'flv'];
+      let targetUrl = '';
+      let targetName = 'Facebook Live';
 
-    const testLogs = [];
-    console.log(`[Diagnostic Pipeline] Testing 3s live stream (${targetName})...`);
-    const proc = spawn(ffmpegPath, testArgs);
-    proc.stderr.on('data', d => {
-      const lines = d.toString().split(/\r?\n/).filter(Boolean);
-      for (const l of lines) {
-        testLogs.push(l.trim());
-        addFfmpegLog(`[Test] ${l.trim()}`);
+      if (mode === 'null') {
+        outFormat = ['-f', 'null', '-'];
+        targetUrl = '';
+        targetName = 'Codificador x264/AAC Local (Sin red)';
+      } else {
+        const testTarget = (resolvedFb && !resolvedFb.startsWith('fb-test-key') && resolvedFb !== 'FB-1049284729184712-live')
+          ? {
+              name: 'Facebook Live',
+              url: (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').endsWith('/')
+                ? `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}${resolvedFb}`
+                : `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}/${resolvedFb}`
+            }
+          : (resolvedYt && !resolvedYt.startsWith('yt-test-key') && resolvedYt !== 'yt-live-9382-7712-4412-omni')
+            ? {
+                name: 'YouTube Live',
+                url: (yt.url || 'rtmp://a.rtmp.youtube.com/live2').endsWith('/')
+                  ? `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}${resolvedYt}`
+                  : `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}/${resolvedYt}`
+              }
+            : null;
+
+        if (!testTarget) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'No hay ninguna clave válida configurada para Facebook ni YouTube.', logs: [] }));
+          return;
+        }
+        targetName = testTarget.name;
+        targetUrl = testTarget.url;
       }
-    });
-    proc.on('close', (code, signal) => {
-      const connected = code === 0 || testLogs.some(l => l.includes('Output #0') || l.includes('frame='));
-      console.log(`[Diagnostic Pipeline] Test ended: code=${code}, signal=${signal}, connected=${connected}`);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        success: connected,
-        code,
-        signal,
-        target: targetName,
-        logs: testLogs
-      }));
-    });
-    proc.on('error', err => {
-      console.error('[Diagnostic Pipeline Error]:', err.message);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: err.message, logs: testLogs }));
+
+      let testRelay = null;
+      if (targetUrl && targetUrl.startsWith('rtmps://')) {
+        testRelay = await createLocalTlsRtmpRelay(targetUrl);
+        targetUrl = testRelay.url;
+      }
+
+      const testArgs = [
+        '-thread_queue_size', '1024',
+        '-f', 'lavfi',
+        '-i', 'color=c=blue:s=1280x720:r=30',
+        '-f', 'lavfi',
+        '-i', 'anullsrc=r=44100:cl=stereo',
+        '-c:v', 'libx264',
+        '-preset', 'ultrafast',
+        '-tune', 'zerolatency',
+        '-threads', '2',
+        '-b:v', '2000k',
+        '-pix_fmt', 'yuv420p',
+        '-g', '60',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-ar', '44100',
+        '-t', '3',
+        ...outFormat
+      ];
+      if (targetUrl) testArgs.push(targetUrl);
+
+      const testLogs = [];
+      console.log(`[Diagnostic Pipeline] Testing 3s live stream (${targetName})...`);
+      const proc = spawn(ffmpegPath, testArgs);
+      proc.stderr.on('data', d => {
+        const lines = d.toString().split(/\r?\n/).filter(Boolean);
+        for (const l of lines) {
+          testLogs.push(l.trim());
+          addFfmpegLog(`[Test] ${l.trim()}`);
+        }
+      });
+      proc.on('close', (code, signal) => {
+        if (testRelay) {
+          try { testRelay.close(); } catch (e) {}
+        }
+        const connected = code === 0 || testLogs.some(l => l.includes('Output #0') || l.includes('frame='));
+        console.log(`[Diagnostic Pipeline] Test ended: code=${code}, signal=${signal}, connected=${connected}`);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: connected,
+          code,
+          signal,
+          target: targetName,
+          logs: testLogs
+        }));
+      });
+      proc.on('error', err => {
+        if (testRelay) {
+          try { testRelay.close(); } catch (e) {}
+        }
+        console.error('[Diagnostic Pipeline Error]:', err.message);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, error: err.message, logs: testLogs }));
+      });
+    })().catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
     });
     return;
   }
@@ -2185,7 +2204,80 @@ function detectDirectShowAudioDevice() {
   return '';
 }
 
+let activeTlsRelays = [];
+
+function createLocalTlsRtmpRelay(targetUrl) {
+  return new Promise((resolve) => {
+    try {
+      if (!targetUrl || !targetUrl.startsWith('rtmps://')) {
+        return resolve({ url: targetUrl, close: () => {} });
+      }
+
+      // Parse rtmps://hostname:port/app/key
+      const raw = targetUrl.replace(/^rtmps:\/\//, '');
+      const slashIdx = raw.indexOf('/');
+      const hostPart = slashIdx !== -1 ? raw.substring(0, slashIdx) : raw;
+      const pathPart = slashIdx !== -1 ? raw.substring(slashIdx) : '';
+
+      const colonIdx = hostPart.indexOf(':');
+      const remoteHost = colonIdx !== -1 ? hostPart.substring(0, colonIdx) : hostPart;
+      const remotePort = colonIdx !== -1 ? parseInt(hostPart.substring(colonIdx + 1), 10) : 443;
+
+      const server = net.createServer((clientSocket) => {
+        const tlsSocket = tls.connect({
+          host: remoteHost,
+          port: remotePort,
+          servername: remoteHost,
+          rejectUnauthorized: false
+        }, () => {
+          clientSocket.pipe(tlsSocket);
+          tlsSocket.pipe(clientSocket);
+        });
+
+        tlsSocket.on('error', (err) => {
+          addFfmpegLog(`[TLS Relay ${remoteHost}] Socket error: ${err.message}`);
+          try { clientSocket.destroy(); } catch (e) {}
+        });
+
+        clientSocket.on('error', () => {
+          try { tlsSocket.destroy(); } catch (e) {}
+        });
+
+        clientSocket.on('close', () => {
+          try { tlsSocket.destroy(); } catch (e) {}
+        });
+      });
+
+      server.on('error', (err) => {
+        addFfmpegLog(`[TLS Relay Server Error]: ${err.message}`);
+        resolve({ url: targetUrl, close: () => {} });
+      });
+
+      server.listen(0, '127.0.0.1', () => {
+        const localPort = server.address().port;
+        const localUrl = `rtmp://127.0.0.1:${localPort}${pathPart}`;
+        console.log(`[OmniCast Stream] Local TLS Bridge active: 127.0.0.1:${localPort} -> ${remoteHost}:${remotePort}`);
+        addFfmpegLog(`[TLS Bridge] Active on 127.0.0.1:${localPort} -> ${remoteHost}:${remotePort}`);
+        resolve({
+          url: localUrl,
+          close: () => {
+            try { server.close(); } catch (e) {}
+          }
+        });
+      });
+    } catch (err) {
+      resolve({ url: targetUrl, close: () => {} });
+    }
+  });
+}
+
 function stopFfmpegStream(notifyClient = true) {
+  if (activeTlsRelays && activeTlsRelays.length > 0) {
+    for (const r of activeTlsRelays) {
+      try { r.close(); } catch (e) {}
+    }
+    activeTlsRelays = [];
+  }
   if (ffmpegFramePumpTimer) {
     clearInterval(ffmpegFramePumpTimer);
     ffmpegFramePumpTimer = null;
@@ -2284,7 +2376,7 @@ function resolveLatestYouTubeKey(rawKey) {
   return trimmed;
 }
 
-function startFfmpegStream(dest, activeWs) {
+async function startFfmpegStream(dest, activeWs) {
   dest = dest || {};
   const yt = dest.youtube || {};
   const fb = dest.facebook || {};
@@ -2343,6 +2435,18 @@ function startFfmpegStream(dest, activeWs) {
 
   // Clean up any existing stream process without sending 'stopped' to new client
   stopFfmpegStream(false);
+
+  // Wrap any RTMPS targets in native Node.js TLS bridges to guarantee 100% stable connection on any OS/container
+  const preparedTargets = [];
+  for (const t of targets) {
+    if (t.url.startsWith('rtmps://')) {
+      const relay = await createLocalTlsRtmpRelay(t.url);
+      activeTlsRelays.push(relay);
+      preparedTargets.push({ name: t.name, url: relay.url });
+    } else {
+      preparedTargets.push(t);
+    }
+  }
 
   const ffmpegPath = getFfmpegPath();
   if (!hasFfmpeg()) {
@@ -2406,14 +2510,14 @@ function startFfmpegStream(dest, activeWs) {
     '-flvflags', 'no_duration_filesize'
   );
 
-  if (targets.length === 1) {
-    ffmpegArgs.push('-f', 'flv', targets[0].url);
+  if (preparedTargets.length === 1) {
+    ffmpegArgs.push('-f', 'flv', preparedTargets[0].url);
   } else {
-    const teeTargets = targets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
+    const teeTargets = preparedTargets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
     ffmpegArgs.push('-f', 'tee', teeTargets);
   }
 
-  activeTargetNames = targets.map(t => t.name);
+  activeTargetNames = preparedTargets.map(t => t.name);
   console.log(`[FFmpeg RTMP] Spawning OBS-grade 30fps pipeline for: ${activeTargetNames.join(' & ')}`);
   addFfmpegLog(`[FFmpeg RTMP] Spawning pipeline for targets: ${activeTargetNames.join(', ')}`);
   const proc = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'ignore', 'pipe', 'pipe'] });
@@ -2559,6 +2663,13 @@ function startFfmpegStream(dest, activeWs) {
       activeFfmpegProcess = null;
       liveStreamState.isStreaming = false;
       streamHasValidHeader = false;
+
+      if (activeTlsRelays && activeTlsRelays.length > 0) {
+        for (const r of activeTlsRelays) {
+          try { r.close(); } catch (e) {}
+        }
+        activeTlsRelays = [];
+      }
 
       let detectedError = liveStreamState.stats.error;
       if (!detectedError && (code !== 0 || signal)) {
