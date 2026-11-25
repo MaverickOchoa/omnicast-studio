@@ -2234,85 +2234,41 @@ function createLocalTlsRtmpRelay(targetUrl) {
       const remotePort = colonIdx !== -1 ? parseInt(hostPart.substring(colonIdx + 1), 10) : 443;
 
       const activeSockets = new Set();
-      let currentClient = null;
-      let tlsSocket = null;
-      let tlsReady = false;
-      const earlyChunks = [];
 
-      function getOrConnectTls() {
-        if (tlsSocket && !tlsSocket.destroyed && tlsReady) return tlsSocket;
-        tlsReady = false;
-        tlsSocket = tls.connect({
+      const server = net.createServer((clientSocket) => {
+        activeSockets.add(clientSocket);
+
+        const tlsSocket = tls.connect({
           host: remoteHost,
           port: remotePort,
           servername: remoteHost,
           rejectUnauthorized: false
-        }, () => {
-          tlsReady = true;
-          addFfmpegLog(`[TLS Relay ${remoteHost}] Connected securely`);
-          if (currentClient && !currentClient.destroyed) {
-            for (const c of earlyChunks) {
-              tlsSocket.write(c);
-            }
-            earlyChunks.length = 0;
-            currentClient.pipe(tlsSocket);
-            tlsSocket.pipe(currentClient);
-          }
         });
 
         activeSockets.add(tlsSocket);
 
+        // Native duplex streaming pipe: Node automatically buffers early writes until TLS connects
+        clientSocket.pipe(tlsSocket);
+        tlsSocket.pipe(clientSocket);
+
         tlsSocket.on('error', (err) => {
           addFfmpegLog(`[TLS Relay ${remoteHost}] Socket error: ${err.message}`);
-          tlsReady = false;
-          if (currentClient && !currentClient.destroyed) {
-            try { currentClient.destroy(); } catch (e) {}
-          }
+          try { clientSocket.destroy(); } catch (e) {}
         });
 
         tlsSocket.on('close', () => {
           activeSockets.delete(tlsSocket);
-          tlsReady = false;
-          if (currentClient && !currentClient.destroyed) {
-            try { currentClient.destroy(); } catch (e) {}
-          }
+          try { clientSocket.destroy(); } catch (e) {}
         });
-
-        return tlsSocket;
-      }
-
-      // Pre-connect immediately so DNS and TLS handshake are completed before FFmpeg spawns
-      getOrConnectTls();
-
-      const server = net.createServer((clientSocket) => {
-        currentClient = clientSocket;
-        activeSockets.add(clientSocket);
-
-        clientSocket.on('data', (chunk) => {
-          if (!tlsReady) {
-            earlyChunks.push(chunk);
-          }
-        });
-
-        if (tlsReady && tlsSocket && !tlsSocket.destroyed) {
-          clientSocket.pipe(tlsSocket);
-          tlsSocket.pipe(clientSocket);
-        } else {
-          getOrConnectTls();
-        }
 
         clientSocket.on('error', (err) => {
           addFfmpegLog(`[TLS Relay ${remoteHost}] Client error: ${err.message}`);
-          if (tlsSocket && !tlsSocket.destroyed) {
-            try { tlsSocket.destroy(); } catch (e) {}
-          }
+          try { tlsSocket.destroy(); } catch (e) {}
         });
 
         clientSocket.on('close', () => {
           activeSockets.delete(clientSocket);
-          if (tlsSocket && !tlsSocket.destroyed) {
-            try { tlsSocket.destroy(); } catch (e) {}
-          }
+          try { tlsSocket.destroy(); } catch (e) {}
         });
       });
 
