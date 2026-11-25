@@ -2115,14 +2115,16 @@ function getFfmpegPath() {
 
 let cachedHasFfmpeg = null;
 function hasFfmpeg() {
-  if (cachedHasFfmpeg !== null) return cachedHasFfmpeg;
+  if (cachedHasFfmpeg === true) return true;
   const p = getFfmpegPath();
   try {
     const res = spawnSync(p, ['-version']);
-    cachedHasFfmpeg = (res.status === 0);
-    return cachedHasFfmpeg;
+    if (res && res.status === 0) {
+      cachedHasFfmpeg = true;
+      return true;
+    }
+    return false;
   } catch (e) {
-    cachedHasFfmpeg = false;
     return false;
   }
 }
@@ -2230,8 +2232,17 @@ function createLocalTlsRtmpRelay(targetUrl) {
       const activeSockets = new Set();
 
       const server = net.createServer((clientSocket) => {
-        clientSocket.pause();
         activeSockets.add(clientSocket);
+
+        const earlyChunks = [];
+        let tlsReady = false;
+
+        const onEarlyData = (chunk) => {
+          if (!tlsReady) {
+            earlyChunks.push(chunk);
+          }
+        };
+        clientSocket.on('data', onEarlyData);
 
         const tlsSocket = tls.connect({
           host: remoteHost,
@@ -2239,9 +2250,14 @@ function createLocalTlsRtmpRelay(targetUrl) {
           servername: remoteHost,
           rejectUnauthorized: false
         }, () => {
+          tlsReady = true;
+          clientSocket.removeListener('data', onEarlyData);
+          for (const c of earlyChunks) {
+            tlsSocket.write(c);
+          }
+          earlyChunks.length = 0;
           clientSocket.pipe(tlsSocket);
           tlsSocket.pipe(clientSocket);
-          clientSocket.resume();
         });
 
         activeSockets.add(tlsSocket);
@@ -2398,22 +2414,30 @@ function resolveLatestYouTubeKey(rawKey) {
   return trimmed;
 }
 
-async function startFfmpegStream(dest, activeWs) {
-  dest = dest || {};
-  const yt = dest.youtube || {};
-  const fb = dest.facebook || {};
+let isStartingFfmpegStream = false;
 
-  // If FFmpeg is already actively running from a concurrent start call within the last 3 seconds, attach the WebSocket and reuse it
-  if (activeFfmpegProcess && liveStreamState.isStreaming && liveStreamState.startTime && (Date.now() - liveStreamState.startTime < 3000)) {
-    if (activeWs && activeWs.readyState === WebSocket.OPEN) {
-      activeWs.send(JSON.stringify({
-        type: 'ready',
-        message: `Pipeline RTMP listo para ${activeTargetNames.join(' y ')}`,
-        destinations: activeTargetNames
-      }));
-    }
-    return { success: true, destinations: activeTargetNames };
+async function startFfmpegStream(dest, activeWs) {
+  if (isStartingFfmpegStream) {
+    console.log('[FFmpeg RTMP] Stream start already in progress, ignoring duplicate start call');
+    return { success: true, pending: true };
   }
+  isStartingFfmpegStream = true;
+  try {
+    dest = dest || {};
+    const yt = dest.youtube || {};
+    const fb = dest.facebook || {};
+
+    // If FFmpeg is already actively running from a concurrent start call within the last 3 seconds, attach the WebSocket and reuse it
+    if (activeFfmpegProcess && liveStreamState.isStreaming && liveStreamState.startTime && (Date.now() - liveStreamState.startTime < 3000)) {
+      if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+        activeWs.send(JSON.stringify({
+          type: 'ready',
+          message: `Pipeline RTMP listo para ${activeTargetNames.join(' y ')}`,
+          destinations: activeTargetNames
+        }));
+      }
+      return { success: true, destinations: activeTargetNames };
+    }
 
   const targets = [];
 
@@ -2752,6 +2776,9 @@ async function startFfmpegStream(dest, activeWs) {
   broadcastSSE('stream_status', { isStreaming: true, destinations: activeTargetNames });
 
   return { success: true, destinations: activeTargetNames };
+  } finally {
+    isStartingFfmpegStream = false;
+  }
 }
 
 // =========================================================================
