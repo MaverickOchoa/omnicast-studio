@@ -2144,7 +2144,11 @@ function getStandbyJpegBuffer() {
         'pipe:1'
       ], { maxBuffer: 2 * 1024 * 1024 });
       if (res && res.stdout && res.stdout.length > 100 && res.stdout[0] === 0xFF && res.stdout[1] === 0xD8) {
-        standbyJpegBuffer = res.stdout;
+        let buf = res.stdout;
+        if (buf[buf.length - 2] !== 0xFF || buf[buf.length - 1] !== 0xD9) {
+          buf = Buffer.concat([buf, Buffer.from([0xFF, 0xD9])]);
+        }
+        standbyJpegBuffer = buf;
         if (!currentFrameJpeg) currentFrameJpeg = standbyJpegBuffer;
         return standbyJpegBuffer;
       }
@@ -2230,56 +2234,85 @@ function createLocalTlsRtmpRelay(targetUrl) {
       const remotePort = colonIdx !== -1 ? parseInt(hostPart.substring(colonIdx + 1), 10) : 443;
 
       const activeSockets = new Set();
+      let currentClient = null;
+      let tlsSocket = null;
+      let tlsReady = false;
+      const earlyChunks = [];
 
-      const server = net.createServer((clientSocket) => {
-        activeSockets.add(clientSocket);
-
-        const earlyChunks = [];
-        let tlsReady = false;
-
-        const onEarlyData = (chunk) => {
-          if (!tlsReady) {
-            earlyChunks.push(chunk);
-          }
-        };
-        clientSocket.on('data', onEarlyData);
-
-        const tlsSocket = tls.connect({
+      function getOrConnectTls() {
+        if (tlsSocket && !tlsSocket.destroyed && tlsReady) return tlsSocket;
+        tlsReady = false;
+        tlsSocket = tls.connect({
           host: remoteHost,
           port: remotePort,
           servername: remoteHost,
           rejectUnauthorized: false
         }, () => {
           tlsReady = true;
-          clientSocket.removeListener('data', onEarlyData);
-          for (const c of earlyChunks) {
-            tlsSocket.write(c);
+          addFfmpegLog(`[TLS Relay ${remoteHost}] Connected securely`);
+          if (currentClient && !currentClient.destroyed) {
+            for (const c of earlyChunks) {
+              tlsSocket.write(c);
+            }
+            earlyChunks.length = 0;
+            currentClient.pipe(tlsSocket);
+            tlsSocket.pipe(currentClient);
           }
-          earlyChunks.length = 0;
-          clientSocket.pipe(tlsSocket);
-          tlsSocket.pipe(clientSocket);
         });
 
         activeSockets.add(tlsSocket);
 
         tlsSocket.on('error', (err) => {
           addFfmpegLog(`[TLS Relay ${remoteHost}] Socket error: ${err.message}`);
-          try { clientSocket.destroy(); } catch (e) {}
+          tlsReady = false;
+          if (currentClient && !currentClient.destroyed) {
+            try { currentClient.destroy(); } catch (e) {}
+          }
         });
 
         tlsSocket.on('close', () => {
           activeSockets.delete(tlsSocket);
-          try { clientSocket.destroy(); } catch (e) {}
+          tlsReady = false;
+          if (currentClient && !currentClient.destroyed) {
+            try { currentClient.destroy(); } catch (e) {}
+          }
         });
+
+        return tlsSocket;
+      }
+
+      // Pre-connect immediately so DNS and TLS handshake are completed before FFmpeg spawns
+      getOrConnectTls();
+
+      const server = net.createServer((clientSocket) => {
+        currentClient = clientSocket;
+        activeSockets.add(clientSocket);
+
+        clientSocket.on('data', (chunk) => {
+          if (!tlsReady) {
+            earlyChunks.push(chunk);
+          }
+        });
+
+        if (tlsReady && tlsSocket && !tlsSocket.destroyed) {
+          clientSocket.pipe(tlsSocket);
+          tlsSocket.pipe(clientSocket);
+        } else {
+          getOrConnectTls();
+        }
 
         clientSocket.on('error', (err) => {
           addFfmpegLog(`[TLS Relay ${remoteHost}] Client error: ${err.message}`);
-          try { tlsSocket.destroy(); } catch (e) {}
+          if (tlsSocket && !tlsSocket.destroyed) {
+            try { tlsSocket.destroy(); } catch (e) {}
+          }
         });
 
         clientSocket.on('close', () => {
           activeSockets.delete(clientSocket);
-          try { tlsSocket.destroy(); } catch (e) {}
+          if (tlsSocket && !tlsSocket.destroyed) {
+            try { tlsSocket.destroy(); } catch (e) {}
+          }
         });
       });
 

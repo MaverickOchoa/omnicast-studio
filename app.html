@@ -21626,6 +21626,7 @@ Pues resucitaste, Rey`
     // MASTER LIVE STREAMING ENGINE (OBS-GRADE DIRECT JPEG FRAME PUMP -> FFMPEG 30FPS)
     // -------------------------------------------------------------------------
     let isLiveStreaming = false;
+    let liveStreamStartTime = 0;
     let tvServiceFeedManual = false;
     let autoTvFeedWithStreamOrRec = true;
     try {
@@ -22099,6 +22100,28 @@ Pues resucitaste, Rey`
               showToast('⚠️ RTMP: ' + data.message, '⚠️');
             } else if (data.type === 'stopped') {
               logStreamClientEvent('ws_stream_stopped', { code: data.code, signal: data.signal, error: data.error });
+              const elapsedLiveMs = liveStreamStartTime ? (Date.now() - liveStreamStartTime) : 99999;
+              if (isLiveStreaming && elapsedLiveMs < 6000 && !window.__hasRetriedLiveConnect && pendingStreamConfig) {
+                window.__hasRetriedLiveConnect = true;
+                console.log('[OmniCast Stream] Reconectando transmisión en vivo automáticamente tras primer intento...');
+                showToast('🔄 Reconectando enlace RTMP en vivo...', '🔄');
+                setTimeout(() => {
+                  if (isLiveStreaming && pendingStreamConfig) {
+                    const savedCfg = pendingStreamConfig;
+                    stopMasterLiveStream(false);
+                    isLiveStreaming = true;
+                    pendingStreamConfig = savedCfg;
+                    liveStreamStartTime = Date.now();
+                    setStreamUIState('live', liveDestinationsSummary);
+                    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const encodedCfg = encodeURIComponent(JSON.stringify(savedCfg));
+                    const wsUrl = `${proto}//${window.location.host}/api/live-stream-ws?config=${encodedCfg}`;
+                    startLiveStreamWorkerEngine(wsUrl);
+                  }
+                }, 500);
+                return;
+              }
+              window.__hasRetriedLiveConnect = false;
               stopMasterLiveStream(false);
               if (data.error) {
                 showToast('⚠️ Transmisión finalizada: ' + data.error, '⚠️');
@@ -22294,6 +22317,8 @@ Pues resucitaste, Rey`
       if (hasLocalTest) initialDestNames.push('Grabación de Prueba MP4');
 
       isLiveStreaming = true;
+      liveStreamStartTime = Date.now();
+      window.__hasRetriedLiveConnect = false;
       isEncodingStreamFrame = false;
       pendingStreamConfig = streamConfig;
       liveDestinationsSummary = initialDestNames;
