@@ -1359,6 +1359,7 @@ const requestHandler = (req, res) => {
         '-b:a', '128k',
         '-ar', '44100',
         '-t', '3',
+        '-rw_timeout', '15000000',
         ...outFormat
       ];
       if (targetUrl) testArgs.push(targetUrl);
@@ -2113,6 +2114,19 @@ function getFfmpegPath() {
   return 'ffmpeg';
 }
 
+function prewarmDns() {
+  const hosts = ['rtmp-api.facebook.com', 'a.rtmp.youtube.com'];
+  for (const h of hosts) {
+    dns.lookup(h, (err, address) => {
+      if (!err && address) {
+        addFfmpegLog(`[DNS Warm] ${h} -> ${address}`);
+      }
+    });
+  }
+}
+prewarmDns();
+setInterval(prewarmDns, 60000);
+
 let cachedHasFfmpeg = null;
 function hasFfmpeg() {
   if (cachedHasFfmpeg === true) return true;
@@ -2550,9 +2564,9 @@ async function startFfmpegStream(dest, activeWs) {
   );
 
   if (preparedTargets.length === 1) {
-    ffmpegArgs.push('-f', 'flv', preparedTargets[0].url);
+    ffmpegArgs.push('-rw_timeout', '15000000', '-f', 'flv', preparedTargets[0].url);
   } else {
-    const teeTargets = preparedTargets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
+    const teeTargets = preparedTargets.map(t => `[f=flv:onfail=ignore:rw_timeout=15000000]${t.url}`).join('|');
     ffmpegArgs.push('-f', 'tee', teeTargets);
   }
 
