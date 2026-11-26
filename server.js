@@ -1425,6 +1425,8 @@ const requestHandler = (req, res) => {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body || '{}');
+        if (payload.facebook && typeof payload.facebook.key === 'string') payload.facebook.key = sanitizeStreamKey(payload.facebook.key);
+        if (payload.youtube && typeof payload.youtube.key === 'string') payload.youtube.key = sanitizeStreamKey(payload.youtube.key);
         persistentDb.streamingConfig = payload;
         savePersistentDatabase();
         broadcastSSE('streaming_config_update', persistentDb.streamingConfig);
@@ -2389,8 +2391,18 @@ function stopFfmpegStream(notifyClient = true) {
   }
 }
 
+function sanitizeStreamKey(rawKey) {
+  let k = String(rawKey || '').replace(/\s+/g, '').trim();
+  // Collapse keys accidentally pasted twice (e.g. "FB-123-abcFB-123-abc")
+  if (k.length >= 8 && k.length % 2 === 0) {
+    const half = k.length / 2;
+    if (k.substring(0, half) === k.substring(half)) k = k.substring(0, half);
+  }
+  return k;
+}
+
 function resolveLatestFacebookKey(rawKey) {
-  const trimmed = (rawKey || '').trim();
+  const trimmed = sanitizeStreamKey(rawKey);
   // If key is empty or matches dummy test keys or expired session keys, check OBS profile or persistentDb for real key
   const isDummyOrExpired = !trimmed || 
     trimmed === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS' ||
@@ -2420,7 +2432,7 @@ function resolveLatestFacebookKey(rawKey) {
 }
 
 function resolveLatestYouTubeKey(rawKey) {
-  const trimmed = (rawKey || '').trim();
+  const trimmed = sanitizeStreamKey(rawKey);
   const isDummy = !trimmed || trimmed.startsWith('yt-test-key') || trimmed === 'yt-live-9382-7712-4412-omni';
   if (isDummy) {
     try {
