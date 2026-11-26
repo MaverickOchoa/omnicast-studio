@@ -1312,21 +1312,26 @@ const requestHandler = (req, res) => {
         targetUrl = '';
         targetName = 'Codificador x264/AAC Local (Sin red)';
       } else {
-        const testTarget = (resolvedFb && !resolvedFb.startsWith('fb-test-key') && resolvedFb !== 'FB-1049284729184712-live')
+        const wantTarget = (fullUrl.searchParams.get('target') || '').toLowerCase();
+        const fbTarget = (resolvedFb && !resolvedFb.startsWith('fb-test-key') && resolvedFb !== 'FB-1049284729184712-live')
           ? {
               name: 'Facebook Live',
               url: (fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/').endsWith('/')
                 ? `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}${resolvedFb}`
                 : `${fb.url || 'rtmps://rtmp-api.facebook.com:443/rtmp/'}/${resolvedFb}`
             }
-          : (resolvedYt && !resolvedYt.startsWith('yt-test-key') && resolvedYt !== 'yt-live-9382-7712-4412-omni')
-            ? {
-                name: 'YouTube Live',
-                url: (yt.url || 'rtmp://a.rtmp.youtube.com/live2').endsWith('/')
-                  ? `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}${resolvedYt}`
-                  : `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}/${resolvedYt}`
-              }
-            : null;
+          : null;
+        const ytTarget = (resolvedYt && !resolvedYt.startsWith('yt-test-key') && resolvedYt !== 'yt-live-9382-7712-4412-omni')
+          ? {
+              name: 'YouTube Live',
+              url: (yt.url || 'rtmp://a.rtmp.youtube.com/live2').endsWith('/')
+                ? `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}${resolvedYt}`
+                : `${yt.url || 'rtmp://a.rtmp.youtube.com/live2'}/${resolvedYt}`
+            }
+          : null;
+        const testTarget = wantTarget === 'youtube' ? ytTarget
+          : wantTarget === 'facebook' ? fbTarget
+          : (fbTarget || ytTarget);
 
         if (!testTarget) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1338,7 +1343,7 @@ const requestHandler = (req, res) => {
       }
 
       let testRelay = null;
-      if (targetUrl && targetUrl.startsWith('rtmps://')) {
+      if (targetUrl && (targetUrl.startsWith('rtmps://') || targetUrl.startsWith('rtmp://'))) {
         testRelay = await createLocalTlsRtmpRelay(targetUrl);
         targetUrl = testRelay.url;
       }
@@ -2234,31 +2239,44 @@ let activeTlsRelays = [];
 function createLocalTlsRtmpRelay(targetUrl) {
   return new Promise((resolve) => {
     try {
-      if (!targetUrl || !targetUrl.startsWith('rtmps://')) {
+      // Relays BOTH rtmps:// (TLS) and rtmp:// (plain TCP) so FFmpeg only ever connects to 127.0.0.1.
+      // The static FFmpeg build (statically linked glibc) crashes with SIGSEGV when it resolves
+      // hostnames itself (e.g. rtmp://a.rtmp.youtube.com), so Node must do the DNS + connect.
+      const isTls = !!targetUrl && targetUrl.startsWith('rtmps://');
+      const isPlain = !!targetUrl && targetUrl.startsWith('rtmp://');
+      if (!isTls && !isPlain) {
         return resolve({ url: targetUrl, close: () => {} });
       }
 
-      // Parse rtmps://hostname:port/app/key
-      const raw = targetUrl.replace(/^rtmps:\/\//, '');
+      // Parse rtmp(s)://hostname:port/app/key
+      const raw = targetUrl.replace(/^rtmps?:\/\//, '');
       const slashIdx = raw.indexOf('/');
       const hostPart = slashIdx !== -1 ? raw.substring(0, slashIdx) : raw;
       const pathPart = slashIdx !== -1 ? raw.substring(slashIdx) : '';
 
       const colonIdx = hostPart.indexOf(':');
       const remoteHost = colonIdx !== -1 ? hostPart.substring(0, colonIdx) : hostPart;
-      const remotePort = colonIdx !== -1 ? parseInt(hostPart.substring(colonIdx + 1), 10) : 443;
+      const remotePort = colonIdx !== -1 ? parseInt(hostPart.substring(colonIdx + 1), 10) : (isTls ? 443 : 1935);
+
+      // Plain rtmp:// to a literal local/IP host needs no relay
+      if (isPlain && (net.isIP(remoteHost) || remoteHost === 'localhost')) {
+        return resolve({ url: targetUrl, close: () => {} });
+      }
 
       const activeSockets = new Set();
 
       const server = net.createServer((clientSocket) => {
         activeSockets.add(clientSocket);
 
-        const tlsSocket = tls.connect({
-          host: remoteHost,
-          port: remotePort,
-          servername: remoteHost,
-          rejectUnauthorized: false
-        });
+        const tlsSocket = isTls
+          ? tls.connect({
+              host: remoteHost,
+              port: remotePort,
+              servername: remoteHost,
+              rejectUnauthorized: false
+            })
+          : net.connect({ host: remoteHost, port: remotePort });
+        try { tlsSocket.setNoDelay(true); } catch (e) {}
 
         activeSockets.add(tlsSocket);
 
@@ -2489,7 +2507,7 @@ async function startFfmpegStream(dest, activeWs) {
   // Wrap any RTMPS targets in native Node.js TLS bridges to guarantee 100% stable connection on any OS/container
   const preparedTargets = [];
   for (const t of targets) {
-    if (t.url.startsWith('rtmps://')) {
+    if (t.url.startsWith('rtmps://') || t.url.startsWith('rtmp://')) {
       const relay = await createLocalTlsRtmpRelay(t.url);
       activeTlsRelays.push(relay);
       preparedTargets.push({ name: t.name, url: relay.url });
