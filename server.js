@@ -2,6 +2,7 @@ const http = require('http');
 const https = require('https');
 const net = require('net');
 const tls = require('tls');
+const dns = require('dns');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
