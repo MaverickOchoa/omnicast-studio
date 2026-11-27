@@ -84,7 +84,7 @@ let persistentDb = {
   organizations: [],
   churches: [],
   streamingConfig: {
-    youtube: { enabled: false, url: 'rtmp://a.rtmp.youtube.com/live2', key: '' },
+    youtube: { enabled: true, url: 'rtmp://a.rtmp.youtube.com/live2', key: 'ue8u-58m2-2t38-8ujt-51qa' },
     facebook: { enabled: true, url: 'rtmps://rtmp-api.facebook.com:443/rtmp/', key: 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ' },
     localTest: false
   },
@@ -103,16 +103,15 @@ function loadPersistentDatabase() {
         if (Array.isArray(parsed.churches)) persistentDb.churches = parsed.churches;
         if (parsed.streamingConfig) {
           persistentDb.streamingConfig = Object.assign({
-            youtube: { enabled: false, url: 'rtmp://a.rtmp.youtube.com/live2', key: '' },
+            youtube: { enabled: true, url: 'rtmp://a.rtmp.youtube.com/live2', key: 'ue8u-58m2-2t38-8ujt-51qa' },
             facebook: { enabled: true, url: 'rtmps://rtmp-api.facebook.com:443/rtmp/', key: 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ' },
             localTest: false
           }, parsed.streamingConfig);
-          if (!persistentDb.streamingConfig.facebook || !persistentDb.streamingConfig.facebook.key || persistentDb.streamingConfig.facebook.key.startsWith('fb-test-key')) {
-            persistentDb.streamingConfig.facebook = {
-              enabled: true,
-              url: 'rtmps://rtmp-api.facebook.com:443/rtmp/',
-              key: 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ'
-            };
+          if (persistentDb.streamingConfig.facebook && typeof persistentDb.streamingConfig.facebook.key === 'string') {
+            persistentDb.streamingConfig.facebook.key = sanitizeStreamKey(persistentDb.streamingConfig.facebook.key);
+          }
+          if (persistentDb.streamingConfig.youtube && typeof persistentDb.streamingConfig.youtube.key === 'string') {
+            persistentDb.streamingConfig.youtube.key = sanitizeStreamKey(persistentDb.streamingConfig.youtube.key);
           }
         }
         if (Array.isArray(parsed.diskVideos)) persistentDb.diskVideos = parsed.diskVideos;
@@ -2160,7 +2159,7 @@ function getStandbyJpegBuffer() {
         '-f', 'lavfi',
         '-i', 'color=c=0x0d131f:s=960x540:r=1',
         '-frames:v', '1',
-        '-f', 'image2',
+        '-f', 'image2pipe',
         '-vcodec', 'mjpeg',
         '-q:v', '3',
         'pipe:1'
@@ -2278,7 +2277,9 @@ function createLocalTlsRtmpRelay(targetUrl) {
               rejectUnauthorized: false
             })
           : net.connect({ host: remoteHost, port: remotePort });
-        try { tlsSocket.setNoDelay(true); } catch (e) {}
+        if (!isTls) {
+          try { tlsSocket.setNoDelay(true); } catch (e) {}
+        }
 
         activeSockets.add(tlsSocket);
 
@@ -2303,7 +2304,12 @@ function createLocalTlsRtmpRelay(targetUrl) {
 
         clientSocket.on('close', () => {
           activeSockets.delete(clientSocket);
-          try { tlsSocket.destroy(); } catch (e) {}
+          // Let clientSocket.pipe(tlsSocket) flush RTMP FCUnpublish + deleteStream via tlsSocket.end()
+          // before force-destroying the remote socket
+          try { tlsSocket.end(); } catch (e) {}
+          setTimeout(() => {
+            try { if (!tlsSocket.destroyed) tlsSocket.destroy(); } catch (e) {}
+          }, 1500);
         });
       });
 
@@ -2320,10 +2326,16 @@ function createLocalTlsRtmpRelay(targetUrl) {
         resolve({
           url: localUrl,
           close: () => {
-            for (const s of activeSockets) {
-              try { s.destroy(); } catch (e) {}
-            }
             try { server.close(); } catch (e) {}
+            for (const s of activeSockets) {
+              try { s.end(); } catch (e) {}
+            }
+            setTimeout(() => {
+              for (const s of activeSockets) {
+                try { if (!s.destroyed) s.destroy(); } catch (e) {}
+              }
+              activeSockets.clear();
+            }, 1200);
           }
         });
       });
@@ -2333,12 +2345,19 @@ function createLocalTlsRtmpRelay(targetUrl) {
   });
 }
 
+let ffmpegAutoRetryTimer = null;
+
+function closeRelaysList(relays) {
+  if (!relays || relays.length === 0) return;
+  for (const r of relays) {
+    try { r.close(); } catch (e) {}
+  }
+}
+
 function stopFfmpegStream(notifyClient = true) {
-  if (activeTlsRelays && activeTlsRelays.length > 0) {
-    for (const r of activeTlsRelays) {
-      try { r.close(); } catch (e) {}
-    }
-    activeTlsRelays = [];
+  if (ffmpegAutoRetryTimer) {
+    clearTimeout(ffmpegAutoRetryTimer);
+    ffmpegAutoRetryTimer = null;
   }
   if (ffmpegFramePumpTimer) {
     clearInterval(ffmpegFramePumpTimer);
@@ -2358,13 +2377,16 @@ function stopFfmpegStream(notifyClient = true) {
   pcmPacketCount = 0;
   activeTargetNames = [];
 
+  const relaysToClose = activeTlsRelays;
+  activeTlsRelays = [];
+
   if (activeFfmpegProcess) {
     const proc = activeFfmpegProcess;
     activeFfmpegProcess = null;
 
     try {
       if (proc.stdin && proc.stdin.writable) {
-        proc.stdin.end(); // Clean EOF -> triggers RTMP unpublish
+        proc.stdin.end(); // Clean EOF -> triggers RTMP FCUnpublish + deleteStream
       }
       if (proc.stdio && proc.stdio[3] && proc.stdio[3].writable) {
         proc.stdio[3].end();
@@ -2373,12 +2395,16 @@ function stopFfmpegStream(notifyClient = true) {
 
     const killTimer = setTimeout(() => {
       try { proc.kill(); } catch (e) {}
-    }, 2500);
+      closeRelaysList(relaysToClose);
+    }, 2200);
 
     proc.once('close', (code) => {
       clearTimeout(killTimer);
+      closeRelaysList(relaysToClose);
       console.log(`[FFmpeg RTMP] Stream finished cleanly with code ${code}`);
     });
+  } else {
+    closeRelaysList(relaysToClose);
   }
 
   if (notifyClient) {
@@ -2393,7 +2419,19 @@ function stopFfmpegStream(notifyClient = true) {
 
 function sanitizeStreamKey(rawKey) {
   let k = String(rawKey || '').replace(/\s+/g, '').trim();
-  // Collapse keys accidentally pasted twice (e.g. "FB-123-abcFB-123-abc")
+  // If multiple Facebook keys (FB-<digits>-<digits>-...) were concatenated, keep the last (newest) key
+  const fbRegex = /FB-\d+-\d+-[A-Za-z0-9_-]+/g;
+  const fbMatches = k.match(fbRegex);
+  if (fbMatches && fbMatches.length > 1) {
+    return fbMatches[fbMatches.length - 1];
+  }
+  // If multiple 24-char YouTube keys (xxxx-xxxx-xxxx-xxxx-xxxx) were concatenated, keep the last (newest) key
+  const ytRegex = /[a-z0-9]{4}(?:-[a-z0-9]{4}){4}/gi;
+  const ytMatches = k.match(ytRegex);
+  if (ytMatches && ytMatches.length > 1 && k.length > 24) {
+    return ytMatches[ytMatches.length - 1];
+  }
+  // Collapse keys accidentally pasted twice identically
   if (k.length >= 8 && k.length % 2 === 0) {
     const half = k.length / 2;
     if (k.substring(0, half) === k.substring(half)) k = k.substring(0, half);
@@ -2414,13 +2452,13 @@ function resolveLatestFacebookKey(rawKey) {
       if (fs.existsSync(obsProfilePath)) {
         const obsSvc = JSON.parse(fs.readFileSync(obsProfilePath, 'utf8'));
         if (obsSvc && obsSvc.settings && obsSvc.settings.key && obsSvc.settings.key.trim().startsWith('FB-')) {
-          return obsSvc.settings.key.trim();
+          return sanitizeStreamKey(obsSvc.settings.key);
         }
       }
     } catch (e) {}
     try {
       if (persistentDb && persistentDb.streamingConfig && persistentDb.streamingConfig.facebook && persistentDb.streamingConfig.facebook.key) {
-        const dbKey = persistentDb.streamingConfig.facebook.key.trim();
+        const dbKey = sanitizeStreamKey(persistentDb.streamingConfig.facebook.key);
         if (dbKey && dbKey.startsWith('FB-') && !dbKey.startsWith('fb-test-key')) {
           return dbKey;
         }
@@ -2437,32 +2475,33 @@ function resolveLatestYouTubeKey(rawKey) {
   if (isDummy) {
     try {
       if (persistentDb && persistentDb.streamingConfig && persistentDb.streamingConfig.youtube && persistentDb.streamingConfig.youtube.key) {
-        const dbKey = persistentDb.streamingConfig.youtube.key.trim();
+        const dbKey = sanitizeStreamKey(persistentDb.streamingConfig.youtube.key);
         if (dbKey && !dbKey.startsWith('yt-test-key') && dbKey !== 'yt-live-9382-7712-4412-omni') {
           return dbKey;
         }
       }
     } catch (e) {}
-    return '';
+    return 'ue8u-58m2-2t38-8ujt-51qa';
   }
   return trimmed;
 }
 
 let isStartingFfmpegStream = false;
 
-async function startFfmpegStream(dest, activeWs) {
-  if (isStartingFfmpegStream) {
+async function startFfmpegStream(dest, activeWs, retryCount = 0) {
+  if (isStartingFfmpegStream && retryCount === 0) {
     console.log('[FFmpeg RTMP] Stream start already in progress, ignoring duplicate start call');
     return { success: true, pending: true };
   }
   isStartingFfmpegStream = true;
   try {
+    loadPersistentDatabase();
     dest = dest || {};
     const yt = dest.youtube || {};
     const fb = dest.facebook || {};
 
     // If FFmpeg is already actively running from a concurrent start call within the last 3 seconds, attach the WebSocket and reuse it
-    if (activeFfmpegProcess && liveStreamState.isStreaming && liveStreamState.startTime && (Date.now() - liveStreamState.startTime < 3000)) {
+    if (retryCount === 0 && activeFfmpegProcess && liveStreamState.isStreaming && liveStreamState.startTime && (Date.now() - liveStreamState.startTime < 3000)) {
       if (activeWs && activeWs.readyState === WebSocket.OPEN) {
         activeWs.send(JSON.stringify({
           type: 'ready',
@@ -2516,7 +2555,7 @@ async function startFfmpegStream(dest, activeWs) {
   // Clean up any existing stream process without sending 'stopped' to new client
   stopFfmpegStream(false);
 
-  // Wrap any RTMPS targets in native Node.js TLS bridges to guarantee 100% stable connection on any OS/container
+  // Wrap any RTMP/RTMPS targets in native Node.js bridges to guarantee 100% stable connection on any OS/container
   const preparedTargets = [];
   for (const t of targets) {
     if (t.url.startsWith('rtmps://') || t.url.startsWith('rtmp://')) {
@@ -2576,11 +2615,11 @@ async function startFfmpegStream(dest, activeWs) {
     '-tune', 'zerolatency',
     '-threads', '2',
     '-profile:v', 'main',
-    '-b:v', '3000k',
-    '-minrate', '3000k',
+    '-b:v', '2800k',
+    '-minrate', '2500k',
     '-maxrate', '3000k',
     '-bufsize', '3000k',
-    '-x264-params', 'nal-hrd=cbr:force-cfr=1',
+    '-x264-params', 'force-cfr=1',
     '-pix_fmt', 'yuv420p',
     '-r', '30',
     '-g', '60',
@@ -2590,6 +2629,7 @@ async function startFfmpegStream(dest, activeWs) {
     '-b:a', '160k',
     '-ar', '44100',
     '-ac', '2',
+    '-flags', '+global_header',
     '-max_muxing_queue_size', '9999',
     '-flvflags', 'no_duration_filesize'
   );
@@ -2597,13 +2637,16 @@ async function startFfmpegStream(dest, activeWs) {
   if (preparedTargets.length === 1) {
     ffmpegArgs.push('-rw_timeout', '15000000', '-f', 'flv', preparedTargets[0].url);
   } else {
-    const teeTargets = preparedTargets.map(t => `[f=flv:onfail=ignore:rw_timeout=15000000]${t.url}`).join('|');
+    const teeTargets = preparedTargets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
     ffmpegArgs.push('-f', 'tee', teeTargets);
   }
 
   activeTargetNames = preparedTargets.map(t => t.name);
-  console.log(`[FFmpeg RTMP] Spawning OBS-grade 30fps pipeline for: ${activeTargetNames.join(' & ')}`);
-  addFfmpegLog(`[FFmpeg RTMP] Spawning pipeline for targets: ${activeTargetNames.join(', ')}`);
+  const warnedTargets = new Set();
+  let hasEncodedFrames = false;
+
+  console.log(`[FFmpeg RTMP] Spawning OBS-grade 30fps pipeline for: ${activeTargetNames.join(' & ')} (attempt ${retryCount + 1})`);
+  addFfmpegLog(`[FFmpeg RTMP] Spawning pipeline for targets: ${activeTargetNames.join(', ')} (attempt ${retryCount + 1})`);
   const proc = spawn(ffmpegPath, ffmpegArgs, { stdio: ['pipe', 'ignore', 'pipe', 'pipe'] });
   activeFfmpegProcess = proc;
   streamHasValidHeader = true;
@@ -2612,27 +2655,20 @@ async function startFfmpegStream(dest, activeWs) {
   liveStreamState.isStreaming = true;
   liveStreamState.startTime = Date.now();
   liveStreamState.destinations = dest;
-  liveStreamState.stats = { fps: 30, bitrate: 3000, speed: '1x', totalBytes: 0, droppedFrames: 0, pcmPackets: 0, error: null };
+  liveStreamState.stats = { fps: 30, bitrate: 2800, speed: '1x', totalBytes: 0, droppedFrames: 0, pcmPackets: 0, error: null };
 
-  // Immediately pump the initial frame and start the rock-solid 30.00 FPS + 44.1kHz PCM server clocks
+  // Unified Wall-Clock 30.000 FPS Video + 44.1kHz PCM Audio Master Clock (zero A/V drift)
+  const streamClockStart = Date.now();
+  let videoFramesWritten = 0;
+  let audioBytesWritten = 0;
+
   if (currentFrameJpeg && proc.stdin && proc.stdin.writable && !proc.stdin.destroyed) {
-    try { proc.stdin.write(currentFrameJpeg); } catch (e) {}
+    try {
+      proc.stdin.write(currentFrameJpeg);
+      videoFramesWritten = 1;
+    } catch (e) {}
   }
 
-  clearInterval(ffmpegFramePumpTimer);
-  ffmpegFramePumpTimer = setInterval(() => {
-    if (!activeFfmpegProcess || activeFfmpegProcess !== proc || !proc.stdin || !proc.stdin.writable || proc.stdin.destroyed) return;
-    if (currentFrameJpeg) {
-      try {
-        proc.stdin.write(currentFrameJpeg);
-      } catch (e) {}
-    }
-  }, 33);
-
-  clearInterval(ffmpegAudioPumpTimer);
-  const audioClockStart = Date.now();
-  let audioBytesWritten = 0;
-  // Pre-seed 40ms of silence on pipe:3 so FFmpeg probes audio stream header at t=0.00s immediately
   const audioPipeInit = proc.stdio && proc.stdio[3];
   if (audioPipeInit && audioPipeInit.writable && !audioPipeInit.destroyed) {
     try {
@@ -2641,22 +2677,49 @@ async function startFfmpegStream(dest, activeWs) {
       audioBytesWritten += seed.length;
     } catch (e) {}
   }
-  ffmpegAudioPumpTimer = setInterval(() => {
+
+  clearInterval(ffmpegFramePumpTimer);
+  clearInterval(ffmpegAudioPumpTimer);
+  ffmpegFramePumpTimer = setInterval(() => {
     if (!activeFfmpegProcess || activeFfmpegProcess !== proc) return;
+    const elapsedSec = (Date.now() - streamClockStart) / 1000;
+
+    // 1. Video frame clock locked strictly to 30.000 fps wall time
+    if (proc.stdin && proc.stdin.writable && !proc.stdin.destroyed && currentFrameJpeg) {
+      const targetFrames = Math.floor(elapsedSec * 30) + 1;
+      let framesDue = targetFrames - videoFramesWritten;
+      if (framesDue > 2) {
+        videoFramesWritten = targetFrames - 2;
+        framesDue = 2;
+      }
+      while (framesDue > 0) {
+        try {
+          proc.stdin.write(currentFrameJpeg);
+          videoFramesWritten++;
+          framesDue--;
+        } catch (e) {
+          break;
+        }
+      }
+    }
+
+    // 2. Audio PCM clock locked strictly to 44,100.000 Hz stereo s16le wall time
     const audioPipe = proc.stdio && proc.stdio[3];
-    if (!audioPipe || !audioPipe.writable || audioPipe.destroyed) return;
-    const targetBytes = Math.floor(((Date.now() - audioClockStart) / 1000) * PCM_SAMPLE_RATE) * PCM_BYTES_PER_SAMPLE + Math.floor(PCM_SAMPLE_RATE * 0.04) * PCM_BYTES_PER_SAMPLE;
-    let due = targetBytes - audioBytesWritten;
-    due = due - (due % PCM_BYTES_PER_SAMPLE);
-    if (due <= 0) return;
-    const maxStep = Math.floor(PCM_BYTES_PER_SEC * 0.2);
-    if (due > maxStep) due = maxStep - (maxStep % PCM_BYTES_PER_SAMPLE);
-    const chunk = dequeuePcmBytes(due);
-    try {
-      audioPipe.write(chunk);
-      audioBytesWritten += chunk.length;
-    } catch (e) {}
-  }, 20);
+    if (audioPipe && audioPipe.writable && !audioPipe.destroyed) {
+      const targetBytes = Math.floor(elapsedSec * PCM_SAMPLE_RATE) * PCM_BYTES_PER_SAMPLE + Math.floor(PCM_SAMPLE_RATE * 0.04) * PCM_BYTES_PER_SAMPLE;
+      let due = targetBytes - audioBytesWritten;
+      due = due - (due % PCM_BYTES_PER_SAMPLE);
+      if (due > 0) {
+        const maxStep = Math.floor(PCM_BYTES_PER_SEC * 0.2);
+        if (due > maxStep) due = maxStep - (maxStep % PCM_BYTES_PER_SAMPLE);
+        const chunk = dequeuePcmBytes(due);
+        try {
+          audioPipe.write(chunk);
+          audioBytesWritten += chunk.length;
+        } catch (e) {}
+      }
+    }
+  }, 16);
 
   proc.stdin.on('error', (err) => {
     if (err.code !== 'EPIPE') {
@@ -2682,6 +2745,7 @@ async function startFfmpegStream(dest, activeWs) {
     if (!text.includes('frame=')) {
       console.log('[FFmpeg]:', text.trim());
     } else {
+      hasEncodedFrames = true;
       const lines = text.trim().split(/\r?\n/);
       const lastLine = lines[lines.length - 1];
       console.log('[FFmpeg Frame]:', lastLine);
@@ -2711,25 +2775,33 @@ async function startFfmpegStream(dest, activeWs) {
         activeWs.send(JSON.stringify({ type: 'error', message: errMsg }));
       }
       broadcastSSE('stream_error', { error: errMsg });
-    } else if (/slave muxer #\d+ failed|error opening: i\/o error|handshake failed|connection refused|session has been invalidated/i.test(text)) {
+    } else if (/slave muxer #\d+ failed|Slave '.*': error opening|handshake failed|connection refused|session has been invalidated/i.test(text)) {
       console.warn('[FFmpeg RTMP Warning]:', text.trim());
       let failedTarget = 'la plataforma';
-      if (/youtube/i.test(text)) failedTarget = 'YouTube Live';
-      else if (/facebook|rtmp-api\.facebook|fb/i.test(text)) failedTarget = 'Facebook Live';
+      const slaveIdxMatch = text.match(/slave muxer #(\d+) failed/i);
+      if (slaveIdxMatch && preparedTargets[parseInt(slaveIdxMatch[1], 10)]) {
+        failedTarget = preparedTargets[parseInt(slaveIdxMatch[1], 10)].name;
+      } else if (/youtube|\/live2\//i.test(text)) {
+        failedTarget = 'YouTube Live';
+      } else if (/facebook|rtmp-api\.facebook|\/rtmp\/|FB-/i.test(text)) {
+        failedTarget = 'Facebook Live';
+      }
 
       if (targets.length === 1) {
-        const errMsg = `La plataforma (${failedTarget}) rechazó la conexión RTMP (clave caducada o no válida). Verifica tu clave en Ajustes > Destinos.`;
+        const errMsg = `La plataforma (${failedTarget}) rechazó la conexión RTMP (clave caducada o sesión anterior cerrándose).`;
         liveStreamState.stats.error = errMsg;
-        if (activeWs && activeWs.readyState === WebSocket.OPEN) {
-          activeWs.send(JSON.stringify({ type: 'error', message: errMsg }));
-        }
-        broadcastSSE('stream_error', { error: errMsg });
-      } else {
-        const warnMsg = `⚠️ Advertencia: ${failedTarget} rechazó la clave RTMP, pero la transmisión continúa en el otro destino activo.`;
+      } else if (!warnedTargets.has(failedTarget)) {
+        warnedTargets.add(failedTarget);
+        activeTargetNames = activeTargetNames.filter(n => n !== failedTarget);
+        const remainingStr = activeTargetNames.join(' y ') || 'el otro destino activo';
+        const warnMsg = `⚠️ ${failedTarget} rechazó la conexión RTMP, pero la transmisión continúa en vivo hacia ${remainingStr}.`;
         if (activeWs && activeWs.readyState === WebSocket.OPEN) {
           activeWs.send(JSON.stringify({ type: 'warning', message: warnMsg }));
+          if (activeTargetNames.length > 0) {
+            activeWs.send(JSON.stringify({ type: 'destinations_update', destinations: activeTargetNames }));
+          }
         }
-        broadcastSSE('stream_warning', { warning: warnMsg });
+        broadcastSSE('stream_warning', { warning: warnMsg, destinations: activeTargetNames });
       }
     }
   });
@@ -2749,18 +2821,29 @@ async function startFfmpegStream(dest, activeWs) {
       pcmAudioQueue = [];
       pcmQueueBytes = 0;
       activeFfmpegProcess = null;
+
+      const relaysToClose = activeTlsRelays;
+      activeTlsRelays = [];
+      closeRelaysList(relaysToClose);
+
+      // Auto-retry if initial RTMP handshake hit a transient session teardown cooldown (code 251 / 1 with 0 encoded frames)
+      if (!hasEncodedFrames && !signal && (code === 251 || code === 1) && retryCount < 3 && activeWs && activeWs.readyState === WebSocket.OPEN) {
+        console.log(`[FFmpeg RTMP] Handshake transient rejection (code ${code}), auto-retrying in 2.5s (${retryCount + 1}/3)...`);
+        addFfmpegLog(`[FFmpeg RTMP] Reintentando enlace RTMP automáticamente (${retryCount + 1}/3)...`);
+        ffmpegAutoRetryTimer = setTimeout(() => {
+          ffmpegAutoRetryTimer = null;
+          if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+            startFfmpegStream(dest, activeWs, retryCount + 1);
+          }
+        }, 2500);
+        return;
+      }
+
       liveStreamState.isStreaming = false;
       streamHasValidHeader = false;
 
-      if (activeTlsRelays && activeTlsRelays.length > 0) {
-        for (const r of activeTlsRelays) {
-          try { r.close(); } catch (e) {}
-        }
-        activeTlsRelays = [];
-      }
-
       let detectedError = liveStreamState.stats.error;
-      if (!detectedError && (code !== 0 || signal)) {
+      if (!detectedError && (code !== 0 || signal) && !hasEncodedFrames) {
         const meaningfulLogs = recentFfmpegLogs
           .map(l => l.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/, ''))
           .filter(l => !l.startsWith('[FFmpeg Frame]') && !l.includes('frame=') && !l.includes('speed=') && !l.includes('Stream ended') && !l.includes('EPIPE') && !l.includes('ECONNRESET'));

@@ -5701,8 +5701,8 @@ Te adoraré, te adoraré..."
               <div>
                 <label class="text-[10px] text-slate-300 font-semibold block mb-1">Clave de Transmisión (Stream Key):</label>
                 <div class="relative">
-                  <input type="password" id="ytStreamKey" placeholder="Pega aquí tu clave de YouTube Live" 
-                         oninput="onStreamingKeyInput()"
+                  <input type="password" id="ytStreamKey" value="ue8u-58m2-2t38-8ujt-51qa" placeholder="Pega aquí tu clave de YouTube Live" 
+                         onfocus="this.select()" oninput="onStreamingKeyInput()"
                          class="w-full bg-slate-950 border border-slate-700 focus:border-red-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none pr-9 shadow-inner">
                   <button type="button" onclick="togglePasswordVisibility('ytStreamKey')" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition">
                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
@@ -5754,7 +5754,7 @@ Te adoraré, te adoraré..."
                 <label class="text-[10px] text-slate-300 font-semibold block mb-1">Clave de Transmisión (Stream Key):</label>
                 <div class="relative">
                   <input type="password" id="fbStreamKey" value="FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ" placeholder="Pega aquí tu clave de Facebook Live" 
-                         oninput="onStreamingKeyInput()"
+                         onfocus="this.select()" oninput="onStreamingKeyInput()"
                          class="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-slate-200 font-mono outline-none pr-9 shadow-inner">
                   <button type="button" onclick="togglePasswordVisibility('fbStreamKey')" class="absolute right-2.5 top-2.5 text-slate-400 hover:text-white transition">
                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
@@ -20991,10 +20991,25 @@ Pues resucitaste, Rey`
       if (el) el.type = el.type === 'password' ? 'text' : 'password';
     }
 
+    function sanitizeClientStreamKey(rawKey) {
+      let k = String(rawKey || '').replace(/\s+/g, '').trim();
+      const fbMatches = k.match(/FB-\d+-\d+-[A-Za-z0-9_-]+/g);
+      if (fbMatches && fbMatches.length > 1) return fbMatches[fbMatches.length - 1];
+      const ytMatches = k.match(/[a-z0-9]{4}(?:-[a-z0-9]{4}){4}/gi);
+      if (ytMatches && ytMatches.length > 1 && k.length > 24) return ytMatches[ytMatches.length - 1];
+      if (k.length >= 8 && k.length % 2 === 0) {
+        const half = k.length / 2;
+        if (k.substring(0, half) === k.substring(half)) k = k.substring(0, half);
+      }
+      return k;
+    }
+
     function saveStreamingConfig(showAlert = true) {
       const ytEnable = document.getElementById('ytStreamEnable')?.checked ?? true;
       const ytUrl = document.getElementById('ytStreamUrl')?.value.trim() || 'rtmp://a.rtmp.youtube.com/live2';
-      const ytKey = document.getElementById('ytStreamKey')?.value.trim() || '';
+      const ytEl = document.getElementById('ytStreamKey');
+      const ytKey = sanitizeClientStreamKey(ytEl?.value || '');
+      if (ytEl && ytEl.value !== ytKey) ytEl.value = ytKey;
 
       const fbEnable = document.getElementById('fbStreamEnable')?.checked ?? true;
       let fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://rtmp-api.facebook.com:443/rtmp/';
@@ -21002,11 +21017,12 @@ Pues resucitaste, Rey`
         fbUrl = 'rtmps://rtmp-api.facebook.com:443/rtmp/';
         if (document.getElementById('fbStreamUrl')) document.getElementById('fbStreamUrl').value = fbUrl;
       }
-      let fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
-      if (!fbKey || fbKey.startsWith('fb-test-key') || fbKey === 'FB-1049284729184712-live' || fbKey === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS') {
+      const fbEl = document.getElementById('fbStreamKey');
+      let fbKey = sanitizeClientStreamKey(fbEl?.value || '');
+      if (fbKey.startsWith('fb-test-key') || fbKey === 'FB-1049284729184712-live' || fbKey === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS') {
         fbKey = 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
-        if (document.getElementById('fbStreamKey')) document.getElementById('fbStreamKey').value = fbKey;
       }
+      if (fbEl && fbEl.value !== fbKey) fbEl.value = fbKey;
 
       const localTestEnable = document.getElementById('localTestStreamEnable')?.checked ?? false;
 
@@ -21035,26 +21051,9 @@ Pues resucitaste, Rey`
       }
     }
 
-    function updateDestinationsLiveBadge() {
-      const ytEnabled = document.getElementById('ytStreamEnable')?.checked ?? false;
-      const fbEnabled = document.getElementById('fbStreamEnable')?.checked ?? false;
-      const localTestEnabled = document.getElementById('localTestStreamEnable')?.checked ?? false;
-      const badge = document.getElementById('destinationsLiveBadge');
-
-      if (badge) {
-        badge.innerHTML = `
-          ${ytEnabled ? '<span class="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold">YouTube</span>' : ''}
-          ${fbEnabled ? '<span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold">Facebook</span>' : ''}
-          ${localTestEnabled ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">Prueba Local</span>' : ''}
-        `;
-      }
-      onStreamingKeyInput();
-    }
-
-    let streamingKeyDebounceTimer = null;
-    function onStreamingKeyInput() {
-      const ytVal = document.getElementById('ytStreamKey')?.value.trim() || '';
-      const fbVal = document.getElementById('fbStreamKey')?.value.trim() || '';
+    function updateStreamingKeyStatusBadges() {
+      const ytVal = sanitizeClientStreamKey(document.getElementById('ytStreamKey')?.value || '');
+      const fbVal = sanitizeClientStreamKey(document.getElementById('fbStreamKey')?.value || '');
       const ytBadge = document.getElementById('ytKeyStatusBadge');
       const fbBadge = document.getElementById('fbKeyStatusBadge');
 
@@ -21077,11 +21076,42 @@ Pues resucitaste, Rey`
           fbBadge.innerHTML = '✓ Clave de Facebook Live lista';
         }
       }
+    }
+
+    function updateDestinationsLiveBadge() {
+      const ytEnabled = document.getElementById('ytStreamEnable')?.checked ?? false;
+      const fbEnabled = document.getElementById('fbStreamEnable')?.checked ?? false;
+      const localTestEnabled = document.getElementById('localTestStreamEnable')?.checked ?? false;
+      const badge = document.getElementById('destinationsLiveBadge');
+
+      if (badge) {
+        badge.innerHTML = `
+          ${ytEnabled ? '<span class="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 text-[10px] font-bold">YouTube</span>' : ''}
+          ${fbEnabled ? '<span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold">Facebook</span>' : ''}
+          ${localTestEnabled ? '<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">Prueba Local</span>' : ''}
+        `;
+      }
+      updateStreamingKeyStatusBadges();
+    }
+
+    let streamingKeyDebounceTimer = null;
+    function onStreamingKeyInput() {
+      const ytEl = document.getElementById('ytStreamKey');
+      if (ytEl) {
+        const cleanedYt = sanitizeClientStreamKey(ytEl.value);
+        if (cleanedYt !== ytEl.value) ytEl.value = cleanedYt;
+      }
+      const fbEl = document.getElementById('fbStreamKey');
+      if (fbEl) {
+        const cleanedFb = sanitizeClientStreamKey(fbEl.value);
+        if (cleanedFb !== fbEl.value) fbEl.value = cleanedFb;
+      }
+      updateStreamingKeyStatusBadges();
 
       clearTimeout(streamingKeyDebounceTimer);
       streamingKeyDebounceTimer = setTimeout(() => {
         saveStreamingConfig(false);
-      }, 350);
+      }, 450);
     }
 
     async function testStreamingTargetsConnection() {
@@ -22094,6 +22124,11 @@ Pues resucitaste, Rey`
               }
             } else if (data.type === 'warning') {
               showToast(data.message, '⚠️');
+            } else if (data.type === 'destinations_update') {
+              if (Array.isArray(data.destinations) && data.destinations.length > 0) {
+                liveDestinationsSummary = data.destinations;
+                if (isLiveStreaming) setStreamUIState('live', liveDestinationsSummary);
+              }
             } else if (data.type === 'error') {
               logStreamClientEvent('ws_server_error', { message: data.message });
               stopMasterLiveStream(false);
@@ -22218,28 +22253,34 @@ Pues resucitaste, Rey`
 
       let ytEnabled = document.getElementById('ytStreamEnable')?.checked ?? true;
       let ytUrl = document.getElementById('ytStreamUrl')?.value.trim() || 'rtmp://a.rtmp.youtube.com/live2';
-      let ytKey = document.getElementById('ytStreamKey')?.value.trim() || '';
+      let ytKey = sanitizeClientStreamKey(document.getElementById('ytStreamKey')?.value || '');
 
       let fbEnabled = document.getElementById('fbStreamEnable')?.checked ?? true;
       let fbUrl = document.getElementById('fbStreamUrl')?.value.trim() || 'rtmps://rtmp-api.facebook.com:443/rtmp/';
-      let fbKey = document.getElementById('fbStreamKey')?.value.trim() || '';
+      let fbKey = sanitizeClientStreamKey(document.getElementById('fbStreamKey')?.value || '');
 
       try {
         const saved = localStorage.getItem('omnicast_streaming_config');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (!ytKey && parsed.youtube && parsed.youtube.key && !parsed.youtube.key.startsWith('yt-test-key')) {
-            ytKey = parsed.youtube.key.trim();
+            ytKey = sanitizeClientStreamKey(parsed.youtube.key);
             ytEnabled = parsed.youtube.enabled;
           }
           if (!fbKey && parsed.facebook && parsed.facebook.key && !parsed.facebook.key.startsWith('fb-test-key')) {
-            fbKey = parsed.facebook.key.trim();
+            fbKey = sanitizeClientStreamKey(parsed.facebook.key);
             fbEnabled = parsed.facebook.enabled;
           }
         }
       } catch (e) {}
 
-      // Auto-upgrade empty, dummy or expired Facebook keys to verified OBS key
+      // Auto-upgrade empty, dummy or expired keys to verified keys
+      const isYtDummyInit = !ytKey || ytKey.startsWith('yt-test-key') || ytKey === 'yt-live-9382-7712-4412-omni';
+      if (isYtDummyInit) {
+        ytKey = 'ue8u-58m2-2t38-8ujt-51qa';
+        const ytKeyInput = document.getElementById('ytStreamKey');
+        if (ytKeyInput) ytKeyInput.value = ytKey;
+      }
       const isFbDummy = !fbKey || fbKey.startsWith('fb-test-key') || fbKey === 'FB-1049284729184712-live' || fbKey === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS';
       if (isFbDummy) {
         fbKey = 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
@@ -23922,17 +23963,18 @@ Resucitaste en majestad`;
     function loadSavedCampusSettings() {
       try {
         const raw = localStorage.getItem('omnicast_campus_settings');
-        if (!raw) return;
-        const s = JSON.parse(raw);
-        if (s.campusName && document.getElementById('settingCampusName')) document.getElementById('settingCampusName').value = s.campusName;
-        if (s.pastor && document.getElementById('settingCampusPastor')) document.getElementById('settingCampusPastor').value = s.pastor;
-        if (s.city && document.getElementById('settingCampusCity')) document.getElementById('settingCampusCity').value = s.city;
-        if (s.worshipLeader && document.getElementById('settingCampusWorshipLeader')) document.getElementById('settingCampusWorshipLeader').value = s.worshipLeader;
-        if (s.projectorRes && document.getElementById('settingProjectorRes')) document.getElementById('settingProjectorRes').value = s.projectorRes;
-        if (s.clearBehavior && document.getElementById('settingClearBehavior')) document.getElementById('settingClearBehavior').value = s.clearBehavior;
-        if (s.fontSize && document.getElementById('settingFontSize')) document.getElementById('settingFontSize').value = s.fontSize;
-        if (s.fontFamily && document.getElementById('settingFontFamily')) document.getElementById('settingFontFamily').value = s.fontFamily;
-        updateTypographyPreview();
+        if (raw) {
+          const s = JSON.parse(raw);
+          if (s.campusName && document.getElementById('settingCampusName')) document.getElementById('settingCampusName').value = s.campusName;
+          if (s.pastor && document.getElementById('settingCampusPastor')) document.getElementById('settingCampusPastor').value = s.pastor;
+          if (s.city && document.getElementById('settingCampusCity')) document.getElementById('settingCampusCity').value = s.city;
+          if (s.worshipLeader && document.getElementById('settingCampusWorshipLeader')) document.getElementById('settingCampusWorshipLeader').value = s.worshipLeader;
+          if (s.projectorRes && document.getElementById('settingProjectorRes')) document.getElementById('settingProjectorRes').value = s.projectorRes;
+          if (s.clearBehavior && document.getElementById('settingClearBehavior')) document.getElementById('settingClearBehavior').value = s.clearBehavior;
+          if (s.fontSize && document.getElementById('settingFontSize')) document.getElementById('settingFontSize').value = s.fontSize;
+          if (s.fontFamily && document.getElementById('settingFontFamily')) document.getElementById('settingFontFamily').value = s.fontFamily;
+          updateTypographyPreview();
+        }
       } catch (e) {}
 
       try {
@@ -23943,18 +23985,20 @@ Resucitaste en majestad`;
             if (cfg.youtube.key && (cfg.youtube.key.startsWith('yt-test-key') || cfg.youtube.key === 'yt-live-9382-7712-4412-omni')) {
               cfg.youtube.key = '';
             }
+            const cleanYt = sanitizeClientStreamKey(cfg.youtube.key || '');
             if (document.getElementById('ytStreamEnable')) document.getElementById('ytStreamEnable').checked = Boolean(cfg.youtube.enabled);
             if (document.getElementById('ytStreamUrl')) document.getElementById('ytStreamUrl').value = cfg.youtube.url || 'rtmp://a.rtmp.youtube.com/live2';
-            if (document.getElementById('ytStreamKey')) document.getElementById('ytStreamKey').value = cfg.youtube.key || '';
+            if (cleanYt && document.getElementById('ytStreamKey')) document.getElementById('ytStreamKey').value = cleanYt;
           }
           if (cfg.facebook) {
-            if (!cfg.facebook.key || cfg.facebook.key.startsWith('fb-test-key') || cfg.facebook.key === 'FB-1049284729184712-live' || cfg.facebook.key === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS') {
+            if (cfg.facebook.key && (cfg.facebook.key.startsWith('fb-test-key') || cfg.facebook.key === 'FB-1049284729184712-live' || cfg.facebook.key === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS')) {
               cfg.facebook.key = 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
             }
+            const cleanFb = sanitizeClientStreamKey(cfg.facebook.key || '');
             cfg.facebook.url = 'rtmps://rtmp-api.facebook.com:443/rtmp/';
             if (document.getElementById('fbStreamEnable')) document.getElementById('fbStreamEnable').checked = (cfg.facebook.enabled !== false);
             if (document.getElementById('fbStreamUrl')) document.getElementById('fbStreamUrl').value = cfg.facebook.url;
-            if (document.getElementById('fbStreamKey')) document.getElementById('fbStreamKey').value = cfg.facebook.key;
+            if (cleanFb && document.getElementById('fbStreamKey')) document.getElementById('fbStreamKey').value = cleanFb;
           }
           if (document.getElementById('localTestStreamEnable')) {
             document.getElementById('localTestStreamEnable').checked = Boolean(cfg.localTest === true);
@@ -23972,11 +24016,12 @@ Resucitaste en majestad`;
         const testInput = document.getElementById('localTestStreamEnable');
 
         if (serverCfg.youtube && ytInput) {
-          if (!ytInput.value || ytInput.value.startsWith('yt-test-key') || ytInput.value === 'yt-live-9382-7712-4412-omni') {
-            ytInput.value = serverCfg.youtube.key || '';
+          const srvYtKey = sanitizeClientStreamKey(serverCfg.youtube.key || '');
+          if (srvYtKey && !srvYtKey.startsWith('yt-test-key') && srvYtKey !== 'yt-live-9382-7712-4412-omni') {
+            ytInput.value = srvYtKey;
           }
           if (document.getElementById('ytStreamEnable')) {
-            document.getElementById('ytStreamEnable').checked = Boolean(serverCfg.youtube.enabled && ytInput.value);
+            document.getElementById('ytStreamEnable').checked = Boolean(serverCfg.youtube.enabled !== false && ytInput.value);
           }
           if (document.getElementById('ytStreamUrl') && serverCfg.youtube.url) {
             document.getElementById('ytStreamUrl').value = serverCfg.youtube.url;
@@ -23984,8 +24029,9 @@ Resucitaste en majestad`;
         }
 
         if (serverCfg.facebook && fbInput) {
-          if (!fbInput.value || fbInput.value.startsWith('fb-test-key') || fbInput.value === 'FB-1049284729184712-live' || fbInput.value === 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS') {
-            fbInput.value = serverCfg.facebook.key || 'FB-10243400060152717-0-Ab729pizCDn_CdsWUvW9yDBZ';
+          const srvFbKey = sanitizeClientStreamKey(serverCfg.facebook.key || '');
+          if (srvFbKey && !srvFbKey.startsWith('fb-test-key') && srvFbKey !== 'FB-1049284729184712-live' && srvFbKey !== 'FB-10243398655477601-0-Ab7vOtOaRuRCvYfxN4R6KnuS') {
+            fbInput.value = srvFbKey;
           }
           if (document.getElementById('fbStreamEnable')) {
             document.getElementById('fbStreamEnable').checked = (serverCfg.facebook.enabled !== false);
