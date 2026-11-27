@@ -1424,9 +1424,19 @@ const requestHandler = (req, res) => {
     req.on('end', () => {
       try {
         const payload = JSON.parse(body || '{}');
+        // Ignore legacy un-reloaded tabs stuck in the old 350ms auto-post loop (which lack payload.v >= 2)
+        if (!payload.v || payload.v < 2) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, config: persistentDb.streamingConfig, ignoredLegacyLoop: true }));
+          return;
+        }
         if (payload.facebook && typeof payload.facebook.key === 'string') payload.facebook.key = sanitizeStreamKey(payload.facebook.key);
         if (payload.youtube && typeof payload.youtube.key === 'string') payload.youtube.key = sanitizeStreamKey(payload.youtube.key);
-        persistentDb.streamingConfig = payload;
+        persistentDb.streamingConfig = {
+          youtube: payload.youtube || persistentDb.streamingConfig.youtube,
+          facebook: payload.facebook || persistentDb.streamingConfig.facebook,
+          localTest: Boolean(payload.localTest)
+        };
         savePersistentDatabase();
         broadcastSSE('streaming_config_update', persistentDb.streamingConfig);
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -2615,11 +2625,11 @@ async function startFfmpegStream(dest, activeWs, retryCount = 0) {
     '-tune', 'zerolatency',
     '-threads', '2',
     '-profile:v', 'main',
-    '-b:v', '2800k',
+    '-b:v', '2500k',
     '-minrate', '2500k',
-    '-maxrate', '3000k',
-    '-bufsize', '3000k',
-    '-x264-params', 'force-cfr=1',
+    '-maxrate', '2500k',
+    '-bufsize', '2500k',
+    '-x264-params', 'nal-hrd=cbr:force-cfr=1',
     '-pix_fmt', 'yuv420p',
     '-r', '30',
     '-g', '60',

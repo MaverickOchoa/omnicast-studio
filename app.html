@@ -394,7 +394,7 @@
       </button>
 
       <!-- Telemetry Capsule (Consolidated) -->
-      <div class="hidden xl:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">
+      <div class="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] font-mono text-slate-400 whitespace-nowrap shrink-0">
         <span class="hidden 2xl:inline text-sky-400 font-bold">1080p60</span>
         <span class="hidden 2xl:inline text-slate-700">•</span>
         <div id="destinationsLiveBadge" class="flex items-center gap-1">
@@ -21029,7 +21029,8 @@ Pues resucitaste, Rey`
       const config = {
         youtube: { enabled: ytEnable, url: ytUrl, key: ytKey },
         facebook: { enabled: fbEnable, url: fbUrl, key: fbKey },
-        localTest: localTestEnable
+        localTest: localTestEnable,
+        v: 2
       };
 
       try {
