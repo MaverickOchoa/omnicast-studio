@@ -11934,10 +11934,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         omniAudio.resume();
       }
 
-      const isNewSource = (vidEl.getAttribute('data-src') !== url);
+      const isNewSource = (vidEl.getAttribute('data-src') !== url && vidEl.getAttribute('data-raw-src') !== rawUrl);
       if (isNewSource) {
         vidEl.src = url;
         vidEl.setAttribute('data-src', url);
+        vidEl.setAttribute('data-raw-src', rawUrl);
         vidEl._lastPlayAttemptTs = 0;
       }
 
@@ -12200,9 +12201,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
       // =======================================================================
       if (isVideo && item.videoUrl) {
         if (progVid) {
-          if (progVid.getAttribute('data-src') !== item.videoUrl) {
-            progVid.src = item.videoUrl;
-            progVid.setAttribute('data-src', item.videoUrl);
+          const playableItemUrl = normalizePlayableVideoUrl(item.videoUrl);
+          if (progVid.getAttribute('data-src') !== playableItemUrl) {
+            progVid.src = playableItemUrl;
+            progVid.setAttribute('data-src', playableItemUrl);
+            progVid.setAttribute('data-raw-src', item.videoUrl);
             progVid.currentTime = 0;
           }
           progVid.loop = Boolean(activeVideoLoopEnabled);
@@ -12788,9 +12791,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
                 const isVid = activeItem && (activeItem.category === 'medios' || Boolean(activeItem.isVideo) || Boolean(activeItem.videoUrl));
                 const progVid = document.getElementById('programMediaVideo');
                 if (isVid && activeItem.videoUrl && progVid) {
-                  if (progVid.getAttribute('data-src') !== activeItem.videoUrl) {
-                    progVid.src = activeItem.videoUrl;
-                    progVid.setAttribute('data-src', activeItem.videoUrl);
+                  const playableItemUrl = normalizePlayableVideoUrl(activeItem.videoUrl);
+                  if (progVid.getAttribute('data-src') !== playableItemUrl) {
+                    progVid.src = playableItemUrl;
+                    progVid.setAttribute('data-src', playableItemUrl);
+                    progVid.setAttribute('data-raw-src', activeItem.videoUrl);
                   }
                   if (!state.isBlackout) {
                     progVid.muted = Boolean(activeVideoMuted);
@@ -12823,9 +12828,11 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
             if (!progVid) return;
 
             if (cmd.action === 'play') {
-              if (cmd.videoUrl && progVid.getAttribute('data-src') !== cmd.videoUrl) {
-                progVid.src = cmd.videoUrl;
-                progVid.setAttribute('data-src', cmd.videoUrl);
+              const playableCmdUrl = cmd.videoUrl ? normalizePlayableVideoUrl(cmd.videoUrl) : '';
+              if (playableCmdUrl && progVid.getAttribute('data-src') !== playableCmdUrl) {
+                progVid.src = playableCmdUrl;
+                progVid.setAttribute('data-src', playableCmdUrl);
+                progVid.setAttribute('data-raw-src', cmd.videoUrl);
               }
               if (typeof cmd.time === 'number' && Math.abs((progVid.currentTime || 0) - cmd.time) > 0.5) {
                 progVid.currentTime = cmd.time;
@@ -18841,9 +18848,11 @@ Pues resucitaste, Rey`
         const prevVid = document.getElementById('previewMediaVideo');
         const customVid = getLayer3VideoForShot(shotId);
         if (prevVid && customVid && customVid.videoUrl) {
-          if (prevVid.getAttribute('data-src') !== customVid.videoUrl) {
-            prevVid.src = customVid.videoUrl;
-            prevVid.setAttribute('data-src', customVid.videoUrl);
+          const playableUrl = normalizePlayableVideoUrl(customVid.videoUrl);
+          if (prevVid.getAttribute('data-src') !== playableUrl) {
+            prevVid.src = playableUrl;
+            prevVid.setAttribute('data-src', playableUrl);
+            prevVid.setAttribute('data-raw-src', customVid.videoUrl);
           }
           prevVid.currentTime = 0;
           prevVid.pause();
@@ -18961,9 +18970,11 @@ Pues resucitaste, Rey`
       const customVid = getLayer3VideoForShot(prevShot);
       const prevVid = document.getElementById('previewMediaVideo');
       if (prevVid && customVid && customVid.videoUrl) {
-        if (prevVid.getAttribute('data-src') !== customVid.videoUrl) {
-          prevVid.src = customVid.videoUrl;
-          prevVid.setAttribute('data-src', customVid.videoUrl);
+        const playableUrl = normalizePlayableVideoUrl(customVid.videoUrl);
+        if (prevVid.getAttribute('data-src') !== playableUrl) {
+          prevVid.src = playableUrl;
+          prevVid.setAttribute('data-src', playableUrl);
+          prevVid.setAttribute('data-raw-src', customVid.videoUrl);
         }
         if (videoPlayback.preview.isPlaying) {
           prevVid.play().catch(() => {});
@@ -19096,9 +19107,11 @@ Pues resucitaste, Rey`
       const prevCustomVid = getLayer3VideoForShot(prevShot);
       const prevVid = document.getElementById('previewMediaVideo');
       if (prevVid && prevCustomVid && prevCustomVid.videoUrl) {
-        if (prevVid.getAttribute('data-src') !== prevCustomVid.videoUrl) {
-          prevVid.src = prevCustomVid.videoUrl;
-          prevVid.setAttribute('data-src', prevCustomVid.videoUrl);
+        const playableUrl = normalizePlayableVideoUrl(prevCustomVid.videoUrl);
+        if (prevVid.getAttribute('data-src') !== playableUrl) {
+          prevVid.src = playableUrl;
+          prevVid.setAttribute('data-src', playableUrl);
+          prevVid.setAttribute('data-raw-src', prevCustomVid.videoUrl);
         }
         prevVid.pause();
         videoPlayback.preview.isPlaying = false;
@@ -19589,8 +19602,9 @@ Pues resucitaste, Rey`
         const vidEl = document.getElementById(isProgram ? 'layer3ProgramVideo' : 'previewMediaVideo');
 
         if (customVid && customVid.videoUrl && vidEl) {
-          if (vidEl.getAttribute('data-src') !== customVid.videoUrl) {
-            playMediaVideoElement(vidEl, customVid.videoUrl, {
+          const playableVidUrl = normalizePlayableVideoUrl(customVid.videoUrl);
+          if (vidEl.getAttribute('data-src') !== playableVidUrl) {
+            playMediaVideoElement(vidEl, playableVidUrl, {
               loop: true,
               muted: isProgram ? Boolean(activeVideoMuted) : true
             });
@@ -19798,13 +19812,14 @@ Pues resucitaste, Rey`
               ctx.save();
 
               if (item.videoUrl && progVid) {
-                if (progVid.getAttribute('data-src') !== item.videoUrl) {
-                  playMediaVideoElement(progVid, item.videoUrl, {
+                const playableItemUrl = normalizePlayableVideoUrl(item.videoUrl);
+                if (progVid.getAttribute('data-src') !== playableItemUrl) {
+                  playMediaVideoElement(progVid, playableItemUrl, {
                     loop: Boolean(activeVideoLoopEnabled),
                     muted: Boolean(activeVideoMuted)
                   });
                 } else if (progVid.paused && !progVid.ended && progVid.readyState >= 2) {
-                  playMediaVideoElement(progVid, item.videoUrl, {
+                  playMediaVideoElement(progVid, playableItemUrl, {
                     loop: Boolean(activeVideoLoopEnabled),
                     muted: Boolean(activeVideoMuted)
                   });
@@ -24551,6 +24566,9 @@ Resucitaste en majestad`;
             if (v && (v.muted || v._autoplayMutedFallback)) {
               v._autoplayMutedFallback = false;
               v.muted = false;
+              if (typeof omniAudio !== 'undefined') {
+                omniAudio.attachVideoElement(v);
+              }
             }
           });
         }
