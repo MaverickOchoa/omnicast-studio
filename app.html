@@ -3515,12 +3515,12 @@ Te adoraré, te adoraré..."
     </div>
   </div>
 
-  <!-- Decodificadores maestros de video en raíz de body (con CORS anónimo habilitado para ruteo Web Audio y decodificación GPU continua) -->
-  <video id="programMediaVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 0; right: 0; width: 4px; height: 4px; opacity: 0.001; pointer-events: none; z-index: -10;"></video>
-  <video id="layer3ProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 0; right: 0; width: 4px; height: 4px; opacity: 0.001; pointer-events: none; z-index: -10;"></video>
-  <video id="previewMediaVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 0; right: 0; width: 4px; height: 4px; opacity: 0.001; pointer-events: none; z-index: -10;"></video>
-  <video id="wirecastProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 0; right: 0; width: 4px; height: 4px; opacity: 0.001; pointer-events: none; z-index: -10;"></video>
-  <video id="wirecastPreviewVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 0; right: 0; width: 4px; height: 4px; opacity: 0.001; pointer-events: none; z-index: -10;"></video>
+  <!-- Decodificadores maestros de video en raíz de body (en viewport activo para que Chromium mantenga decodificación GPU a 60fps sin suspender) -->
+  <video id="programMediaVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 2px; right: 170px; width: 12px; height: 12px; opacity: 0.02; pointer-events: none; z-index: 1;"></video>
+  <video id="layer3ProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 2px; right: 184px; width: 12px; height: 12px; opacity: 0.02; pointer-events: none; z-index: 1;"></video>
+  <video id="previewMediaVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 2px; right: 198px; width: 12px; height: 12px; opacity: 0.02; pointer-events: none; z-index: 1;"></video>
+  <video id="wirecastProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 2px; right: 212px; width: 12px; height: 12px; opacity: 0.02; pointer-events: none; z-index: 1;"></video>
+  <video id="wirecastPreviewVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 2px; right: 226px; width: 12px; height: 12px; opacity: 0.02; pointer-events: none; z-index: 1;"></video>
   <audio id="layer5AudioPlayer" crossorigin="anonymous" loop playsinline preload="auto" style="display: none;"></audio>
 
   <!-- ========================================================================= -->
@@ -4550,13 +4550,13 @@ Te adoraré, te adoraré..."
     </div>
   </div>
 
-  <!-- Live video capture elements for hardware & mobile feeds (must be in viewport for Chromium to decode at full 60fps) -->
-  <div aria-hidden="true" style="position: fixed; bottom: 2px; right: 2px; width: 32px; height: 18px; opacity: 0.02; pointer-events: none; z-index: 1; overflow: hidden;">
-    <video id="hwVideo-1" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-    <video id="hwVideo-2" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-    <video id="hwVideo-3" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-    <video id="hwVideo-4" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-    <video id="hwVideo-5" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+  <!-- Live video capture elements for hardware & mobile feeds (side-by-side in viewport so all 5 stay hardware-decoded at 60fps simultaneously without clipping) -->
+  <div aria-hidden="true" style="position: fixed; bottom: 2px; right: 2px; width: 160px; height: 18px; display: flex; flex-direction: row; gap: 2px; opacity: 0.02; pointer-events: none; z-index: 1; overflow: hidden;">
+    <video id="hwVideo-1" autoplay playsinline muted style="width: 30px; height: 18px; flex-shrink: 0; object-fit: cover;"></video>
+    <video id="hwVideo-2" autoplay playsinline muted style="width: 30px; height: 18px; flex-shrink: 0; object-fit: cover;"></video>
+    <video id="hwVideo-3" autoplay playsinline muted style="width: 30px; height: 18px; flex-shrink: 0; object-fit: cover;"></video>
+    <video id="hwVideo-4" autoplay playsinline muted style="width: 30px; height: 18px; flex-shrink: 0; object-fit: cover;"></video>
+    <video id="hwVideo-5" autoplay playsinline muted style="width: 30px; height: 18px; flex-shrink: 0; object-fit: cover;"></video>
   </div>
 
   <!-- ========================================================================= -->
@@ -11878,14 +11878,51 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
     // =========================================================================
     // REPRODUCCIÓN FLUIDA DE VIDEO PARA COMPOSITOR Y TRANSMISIÓN A 60 FPS
     // =========================================================================
-    function playMediaVideoElement(vidEl, url, options = {}) {
+    function normalizePlayableVideoUrl(rawUrl) {
+      if (!rawUrl || typeof rawUrl !== 'string') return '';
+      const trimmed = rawUrl.trim();
+      const gDriveMatch = trimmed.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]{20,})/i);
+      if (gDriveMatch && gDriveMatch[1] && trimmed.includes('google.com')) {
+        return `/api/proxy/gdrive?id=${encodeURIComponent(gDriveMatch[1])}`;
+      }
+      return trimmed;
+    }
+
+    function resolveEffectiveLayer4VideoUrl(shot) {
+      if (!shot) return '';
+      if (shot.videoUrl && shot.videoUrl.trim() !== '') {
+        return normalizePlayableVideoUrl(shot.videoUrl);
+      }
+      if (shot.type !== 'video') return '';
+      // Auto-resolve to active video item or first uploaded MP4 so AUX 1 (VIDEO) works out of the box
+      const curItem = (typeof libraryItems !== 'undefined' && Array.isArray(libraryItems) && currentItemIndex >= 0) ? libraryItems[currentItemIndex] : null;
+      if (curItem && curItem.videoUrl && !extractYouTubeId(curItem.videoUrl)) {
+        return normalizePlayableVideoUrl(curItem.videoUrl);
+      }
+      if (typeof layer3Videos !== 'undefined' && Array.isArray(layer3Videos)) {
+        const l3 = layer3Videos.find(v => v && v.videoUrl && v.videoUrl.startsWith('/uploads/'));
+        if (l3) return normalizePlayableVideoUrl(l3.videoUrl);
+      }
+      if (typeof libraryItems !== 'undefined' && Array.isArray(libraryItems)) {
+        const libV = libraryItems.find(it => it && it.videoUrl && !extractYouTubeId(it.videoUrl));
+        if (libV) return normalizePlayableVideoUrl(libV.videoUrl);
+      }
+      return '';
+    }
+
+    function playMediaVideoElement(vidEl, rawUrl, options = {}) {
+      const url = normalizePlayableVideoUrl(rawUrl);
       if (!vidEl || !url) return;
       const loop = options.loop !== undefined ? options.loop : true;
       const muted = options.muted !== undefined ? options.muted : Boolean(activeVideoMuted);
 
       vidEl.loop = loop;
       vidEl.muted = muted;
-      try { vidEl.crossOrigin = 'anonymous'; } catch (e) {}
+      try {
+        if (vidEl.getAttribute('crossorigin') !== 'anonymous') {
+          vidEl.setAttribute('crossorigin', 'anonymous');
+        }
+      } catch (e) {}
 
       const isProgramDecoder = (
         vidEl.id === 'programMediaVideo' ||
@@ -11902,11 +11939,10 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         vidEl.src = url;
         vidEl.setAttribute('data-src', url);
         vidEl._lastPlayAttemptTs = 0;
-        vidEl.load();
       }
 
       const now = performance.now();
-      if (!isNewSource && vidEl._lastPlayAttemptTs && (now - vidEl._lastPlayAttemptTs < 500)) {
+      if (!isNewSource && vidEl._lastPlayAttemptTs && (now - vidEl._lastPlayAttemptTs < 750)) {
         return;
       }
       vidEl._lastPlayAttemptTs = now;
@@ -11915,10 +11951,13 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         const p = vidEl.play();
         if (p !== undefined) {
           p.catch(err => {
+            if (err && err.name === 'AbortError') return;
             console.warn('[OmniCast Video Engine] Autoplay protegido por navegador:', err);
             vidEl._autoplayMutedFallback = true;
             vidEl.muted = true;
-            vidEl.play().catch(e => console.warn('[OmniCast Video Engine] Muted retry error:', e));
+            vidEl.play().catch(e => {
+              if (e && e.name !== 'AbortError') console.warn('[OmniCast Video Engine] Muted retry error:', e);
+            });
             if (isProgramDecoder && !activeVideoMuted) {
               const unmuteOnNextTouch = () => {
                 window.removeEventListener('pointerdown', unmuteOnNextTouch);
@@ -11946,7 +11985,6 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           vidEl.oncanplay = null;
           attemptPlay();
         };
-        attemptPlay();
       }
     }
 
@@ -12437,13 +12475,14 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
 
       const progVid = document.getElementById('programMediaVideo');
       if (item && item.videoUrl && progVid) {
-        const isSameVideo = (progVid.getAttribute('data-src') === item.videoUrl);
+        const playableUrl = normalizePlayableVideoUrl(item.videoUrl);
+        const isSameVideo = (progVid.getAttribute('data-src') === playableUrl);
         if (!isSameVideo) {
           // Desactivar temporalmente studioVideoIntendedPlay antes de cambiar src para que el evento 'pause'
           // síncrono del video anterior no dispare un play() prematuro (evita AbortError y doble petición HTTP)
           studioVideoIntendedPlay = false;
-          progVid.src = item.videoUrl;
-          progVid.setAttribute('data-src', item.videoUrl);
+          progVid.src = playableUrl;
+          progVid.setAttribute('data-src', playableUrl);
         } else if (progVid.ended || (progVid.duration > 0 && progVid.currentTime >= (progVid.duration - 0.3))) {
           try { progVid.currentTime = 0; } catch(e) {}
         }
@@ -12452,17 +12491,18 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
         progVid.loop = Boolean(activeVideoLoopEnabled);
 
         if (typeof omniAudio !== 'undefined') {
-          const attached = omniAudio.attachVideoElement(progVid, item.videoUrl);
-          if (!attached && !omniAudio.isSameOriginUrl(item.videoUrl) && !progVid._warnedExternalAudio) {
+          const attached = omniAudio.attachVideoElement(progVid, playableUrl);
+          if (!attached && !omniAudio.isSameOriginUrl(playableUrl) && !progVid._warnedExternalAudio) {
             progVid._warnedExternalAudio = true;
             showToast('⚠️ Video externo: suena en bocinas pero sube el MP4 local para enviarlo al streaming', 'ℹ️');
           }
           omniAudio.resume();
+          omniAudio.syncDspParameters();
         }
 
         renderSongsList();
         renderSlidesGrid();
-        sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime || 0, loop: Boolean(activeVideoLoopEnabled) });
+        sendProjectorVideoCommand({ action: 'play', videoUrl: playableUrl, time: progVid.currentTime || 0, loop: Boolean(activeVideoLoopEnabled) });
         broadcastSlide(false, true, 'play');
 
         if (progVid.paused) {
@@ -14886,19 +14926,30 @@ _Generado automáticamente por OmniCast Studio Ministerial Suite_`;
           }
         }
 
-        // If editing camera 1..4, synchronize hardwareConfig channel label as well!
-        const targetHwCh = (shotId >= 1 && shotId <= 4) ? shotId : 1;
-        if (typeof hardwareConfig !== 'undefined' && hardwareConfig.channels && hardwareConfig.channels[targetHwCh]) {
-          if (shotId <= 4) {
+        // If editing camera 1..5, synchronize hardwareConfig channel and connect physical/screen/mobile stream!
+        const targetHwCh = (typeof shot.channel === 'number' && shot.channel >= 1 && shot.channel <= 5)
+          ? shot.channel
+          : ((shotId >= 1 && shotId <= 5) ? shotId : 1);
+        if (typeof hardwareConfig !== 'undefined' && hardwareConfig.channels) {
+          if (!hardwareConfig.channels[targetHwCh]) {
+            hardwareConfig.channels[targetHwCh] = { type: 'simulation', deviceId: '', label: shot.title, sourceDesc: shot.subtitle };
+          }
+          if (shotId <= 5) {
             hardwareConfig.channels[targetHwCh].label = shot.title;
             hardwareConfig.channels[targetHwCh].sourceDesc = shot.subtitle;
           }
-          if (shot.type === 'screen') {
+          if (shot.type === 'screen' || shot.channel === 'screen') {
             hardwareConfig.channels[targetHwCh].type = 'screen';
+            hardwareConfig.channels[targetHwCh].deviceId = 'screen';
+            if (typeof connectChannelStream === 'function') connectChannelStream(targetHwCh);
           } else if (shot.channel === 'mobile') {
             hardwareConfig.channels[targetHwCh].type = 'mobile';
             if (typeof generateMobileCamQR === 'function') generateMobileCamQR(targetHwCh);
             if (typeof initStudioWebRTCForChannel === 'function') initStudioWebRTCForChannel(targetHwCh);
+          } else if (shot.deviceId) {
+            hardwareConfig.channels[targetHwCh].type = 'hardware';
+            hardwareConfig.channels[targetHwCh].deviceId = shot.deviceId;
+            if (typeof connectChannelStream === 'function') connectChannelStream(targetHwCh);
           }
           try {
             localStorage.setItem('omnicast_hardware_config', JSON.stringify(hardwareConfig));
@@ -16037,7 +16088,7 @@ Pues resucitaste, Rey`
 
     function safePlayVideo(vidEl) {
       if (!vidEl) return Promise.resolve();
-      const url = vidEl.getAttribute('data-src') || vidEl.currentSrc || vidEl.src || '';
+      const url = normalizePlayableVideoUrl(vidEl.getAttribute('data-src') || vidEl.currentSrc || vidEl.src || '');
       const isProgramDecoder = (
         vidEl.id === 'programMediaVideo' ||
         vidEl.id === 'layer3ProgramVideo' ||
@@ -16045,12 +16096,14 @@ Pues resucitaste, Rey`
       );
       if (isProgramDecoder && url && typeof omniAudio !== 'undefined') {
         omniAudio.attachVideoElement(vidEl, url);
+        omniAudio.resume();
       }
       vidEl.muted = Boolean(activeVideoMuted);
       vidEl.loop = Boolean(activeVideoLoopEnabled);
       const p = vidEl.play();
       if (p !== undefined) {
         return p.catch(err => {
+          if (err && err.name === 'AbortError') return;
           console.warn('[OmniCast Video Engine] Autoplay protegido por navegador. Reproduciendo en modo seguro:', err);
           vidEl._autoplayMutedFallback = true;
           vidEl.muted = true;
@@ -16226,15 +16279,16 @@ Pues resucitaste, Rey`
       if (monStreamVideoCanvas) monStreamVideoCanvas.classList.remove('hidden');
 
       if (progVid) {
-        if (cmd.videoUrl && progVid.getAttribute('data-src') !== cmd.videoUrl) {
+        const playableCmdUrl = cmd.videoUrl ? normalizePlayableVideoUrl(cmd.videoUrl) : '';
+        if (playableCmdUrl && progVid.getAttribute('data-src') !== playableCmdUrl) {
           studioVideoIntendedPlay = false;
-          progVid.src = cmd.videoUrl;
-          progVid.setAttribute('data-src', cmd.videoUrl);
+          progVid.src = playableCmdUrl;
+          progVid.setAttribute('data-src', playableCmdUrl);
         }
         if (typeof cmd.loop === 'boolean') progVid.loop = cmd.loop;
         if (typeof cmd.muted === 'boolean') progVid.muted = cmd.muted;
         if (!progVid.muted && typeof omniAudio !== 'undefined') {
-          const url = cmd.videoUrl || progVid.getAttribute('data-src') || progVid.currentSrc || progVid.src || '';
+          const url = playableCmdUrl || progVid.getAttribute('data-src') || progVid.currentSrc || progVid.src || '';
           if (url) omniAudio.attachVideoElement(progVid, url);
         }
 
@@ -16276,10 +16330,11 @@ Pues resucitaste, Rey`
       const item = libraryItems[currentItemIndex];
       const progVid = document.getElementById('programMediaVideo');
       if (!item || !item.videoUrl || !progVid) return;
+      const playableItemUrl = normalizePlayableVideoUrl(item.videoUrl);
 
-      if (progVid.getAttribute('data-src') !== item.videoUrl) {
-        progVid.src = item.videoUrl;
-        progVid.setAttribute('data-src', item.videoUrl);
+      if (progVid.getAttribute('data-src') !== playableItemUrl) {
+        progVid.src = playableItemUrl;
+        progVid.setAttribute('data-src', playableItemUrl);
         progVid.currentTime = 0;
       }
 
@@ -16295,21 +16350,22 @@ Pues resucitaste, Rey`
         if (typeof updateLayerPowerUI === 'function') updateLayerPowerUI(2);
         progVid.muted = Boolean(activeVideoMuted);
         progVid.loop = Boolean(activeVideoLoopEnabled);
-        progVid.muted = Boolean(activeVideoMuted);
         if (typeof omniAudio !== 'undefined') {
-          omniAudio.attachVideoElement(progVid, item.videoUrl);
+          omniAudio.attachVideoElement(progVid, playableItemUrl);
           omniAudio.resume();
+          omniAudio.syncDspParameters();
         }
         progVid.play().then(() => {
-          sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime, loop: Boolean(activeVideoLoopEnabled) });
+          sendProjectorVideoCommand({ action: 'play', videoUrl: playableItemUrl, time: progVid.currentTime, loop: Boolean(activeVideoLoopEnabled) });
           broadcastSlide(false, true, 'play');
           renderSlidesGrid();
         }).catch(err => {
+          if (err && err.name === 'AbortError') return;
           console.warn('Audio play restricted, trying safe mode:', err);
           progVid._autoplayMutedFallback = true;
           progVid.muted = true;
           progVid.play().then(() => {
-            sendProjectorVideoCommand({ action: 'play', videoUrl: item.videoUrl, time: progVid.currentTime, loop: Boolean(activeVideoLoopEnabled) });
+            sendProjectorVideoCommand({ action: 'play', videoUrl: playableItemUrl, time: progVid.currentTime, loop: Boolean(activeVideoLoopEnabled) });
             broadcastSlide(false, true, 'play');
             renderSlidesGrid();
           }).catch(e => console.error('Play failed completely:', e));
@@ -16957,7 +17013,7 @@ Pues resucitaste, Rey`
 
       attachVideoElement(vidEl, url) {
         if (!vidEl) return false;
-        const srcUrl = url || vidEl.getAttribute('data-src') || vidEl.currentSrc || vidEl.src || '';
+        const srcUrl = normalizePlayableVideoUrl(url || vidEl.getAttribute('data-src') || vidEl.currentSrc || vidEl.src || '');
         if (srcUrl.startsWith('data:') || srcUrl.startsWith('blob:')) {
           // soportado
         } else if (!this.isSameOriginUrl(srcUrl) && !srcUrl.startsWith('http')) {
@@ -16966,7 +17022,11 @@ Pues resucitaste, Rey`
         const c = this.init();
         if (!c) return false;
         this.resume();
-        try { vidEl.crossOrigin = 'anonymous'; } catch (e) {}
+        try {
+          if (vidEl.getAttribute('crossorigin') !== 'anonymous') {
+            vidEl.setAttribute('crossorigin', 'anonymous');
+          }
+        } catch (e) {}
         if (!vidEl._omniAudioSource) {
           try {
             vidEl._omniAudioSource = c.createMediaElementSource(vidEl);
@@ -17178,6 +17238,7 @@ Pues resucitaste, Rey`
         zeroSink.connect(c.destination);
         this.pcmScriptNode = proc;
         this.pcmSilentSink = zeroSink;
+        this.syncDspParameters();
       }
 
       stopLivePcmCapture() {
@@ -17742,7 +17803,8 @@ Pues resucitaste, Rey`
         1: { type: 'simulation', deviceId: '', label: 'Púlpito Principal', sourceDesc: 'Simulación 1080p' },
         2: { type: 'simulation', deviceId: '', label: 'Altar Abierto', sourceDesc: 'Simulación 1080p' },
         3: { type: 'simulation', deviceId: '', label: 'Músicos / Alabanza', sourceDesc: 'Simulación 1080p' },
-        4: { type: 'simulation', deviceId: '', label: 'Pastor + Pantalla', sourceDesc: 'Compositor 70/30' }
+        4: { type: 'simulation', deviceId: '', label: 'Pastor + Pantalla', sourceDesc: 'Compositor 70/30' },
+        5: { type: 'simulation', deviceId: '', label: 'Cámara Extra / Screen', sourceDesc: 'Multi-in' }
       },
       audioInput: { type: 'none', deviceId: '', label: 'Sin entrada de audio' },
       audioInput2: { type: 'none', deviceId: '', label: 'Sin entrada auxiliar' }
@@ -17755,6 +17817,7 @@ Pues resucitaste, Rey`
       2: null,
       3: null,
       4: null,
+      5: null,
       audio: null,
       audio2: null,
       test: null
@@ -18345,19 +18408,42 @@ Pues resucitaste, Rey`
     async function connectAudioStream(deviceId) {
       stopAudioStream();
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            deviceId: { exact: deviceId },
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false
+        let stream = null;
+        if (deviceId && deviceId !== 'default' && deviceId !== 'none') {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                deviceId: { exact: deviceId },
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+              }
+            });
+          } catch (eExact) {
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                deviceId: { ideal: deviceId },
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+              }
+            }).catch(() => null);
           }
-        });
+        }
+        if (!stream) {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          }).catch(() => navigator.mediaDevices.getUserMedia({ audio: true }));
+        }
         activeHardwareStreams.audio = stream;
         omniAudio.connectCh1Stream(stream);
         updateAudioStatusIndicators();
       } catch (err) {
-        console.error('Error connecting real audio input:', err);
+        console.warn('Error connecting real audio input:', err);
         stopAudioStream();
       }
     }
@@ -18835,10 +18921,11 @@ Pues resucitaste, Rey`
         const wProg = document.getElementById('wirecastProgramVideo');
         const shotObj = (shotConfig && shotConfig[4]) ? shotConfig[4].find(s => s.id === shotId) : null;
         const isVid = Boolean(shotObj && (shotObj.type === 'video' || (shotObj.videoUrl && shotObj.videoUrl.trim() !== '')));
-        const isEmbed = (isVid && shotObj.videoUrl) ? Boolean(getLayer4EmbedUrl(shotObj.videoUrl, Boolean(activeVideoMuted))) : false;
+        const effUrl = isVid ? resolveEffectiveLayer4VideoUrl(shotObj) : '';
+        const isEmbed = (isVid && effUrl) ? Boolean(getLayer4EmbedUrl(effUrl, Boolean(activeVideoMuted))) : false;
         if (wProg) {
-          if (isVid && shotObj.videoUrl && !isEmbed) {
-            playMediaVideoElement(wProg, shotObj.videoUrl, {
+          if (isVid && effUrl && !isEmbed) {
+            playMediaVideoElement(wProg, effUrl, {
               loop: true,
               muted: Boolean(activeVideoMuted)
             });
@@ -18958,9 +19045,10 @@ Pues resucitaste, Rey`
 
       const wProg = document.getElementById('wirecastProgramVideo');
       if (wProg) {
-        const isEmbedProg = (isProg4Vid && progShot4Obj.videoUrl) ? Boolean(getLayer4EmbedUrl(progShot4Obj.videoUrl, Boolean(activeVideoMuted))) : false;
-        if (isProg4Vid && progShot4Obj.videoUrl && !isEmbedProg) {
-          playMediaVideoElement(wProg, progShot4Obj.videoUrl, {
+        const effProgUrl = isProg4Vid ? resolveEffectiveLayer4VideoUrl(progShot4Obj) : '';
+        const isEmbedProg = (isProg4Vid && effProgUrl) ? Boolean(getLayer4EmbedUrl(effProgUrl, Boolean(activeVideoMuted))) : false;
+        if (isProg4Vid && effProgUrl && !isEmbedProg) {
+          playMediaVideoElement(wProg, effProgUrl, {
             loop: true,
             muted: Boolean(activeVideoMuted)
           });
@@ -18971,9 +19059,10 @@ Pues resucitaste, Rey`
 
       const wPrev = document.getElementById('wirecastPreviewVideo');
       if (wPrev) {
-        const isEmbedPrev = (isPrev4Vid && prevShot4Obj.videoUrl) ? Boolean(getLayer4EmbedUrl(prevShot4Obj.videoUrl, true)) : false;
-        if (isPrev4Vid && prevShot4Obj.videoUrl && !isEmbedPrev) {
-          playMediaVideoElement(wPrev, prevShot4Obj.videoUrl, {
+        const effPrevUrl = isPrev4Vid ? resolveEffectiveLayer4VideoUrl(prevShot4Obj) : '';
+        const isEmbedPrev = (isPrev4Vid && effPrevUrl) ? Boolean(getLayer4EmbedUrl(effPrevUrl, true)) : false;
+        if (isPrev4Vid && effPrevUrl && !isEmbedPrev) {
+          playMediaVideoElement(wPrev, effPrevUrl, {
             loop: true,
             muted: true
           });
@@ -19133,10 +19222,7 @@ Pues resucitaste, Rey`
       if (ytId) {
         return `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&loop=1&playlist=${ytId}&enablejsapi=1`;
       }
-      const gDriveMatch = rawUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
-      if (gDriveMatch && gDriveMatch[1]) {
-        return `https://drive.google.com/file/d/${gDriveMatch[1]}/preview`;
-      }
+      // Google Drive links are proxied via /api/proxy/gdrive as native MP4 streams so <video>, Canvas and WebAudio capture them
       return null;
     }
 
@@ -19200,13 +19286,14 @@ Pues resucitaste, Rey`
         if (typeof currentShot.channel === 'number' && currentShot.channel >= 1 && currentShot.channel <= 5) {
           targetChannel = currentShot.channel;
         } else if (currentShot.channel === 'mobile') {
-          targetChannel = 1;
+          targetChannel = (camShot >= 1 && camShot <= 5) ? camShot : 1;
         }
       }
       const camCfg = (hardwareConfig && hardwareConfig.channels) ? hardwareConfig.channels[targetChannel] : null;
 
       const isVideoShot = Boolean(currentShot && (currentShot.type === 'video' || (currentShot.videoUrl && currentShot.videoUrl.trim() !== '')));
-      const embedUrl = (isVideoShot && currentShot.videoUrl) ? getLayer4EmbedUrl(currentShot.videoUrl, isProgram ? Boolean(activeVideoMuted) : true) : null;
+      const effectiveL4VideoUrl = isVideoShot ? resolveEffectiveLayer4VideoUrl(currentShot) : '';
+      const embedUrl = (isVideoShot && effectiveL4VideoUrl) ? getLayer4EmbedUrl(effectiveL4VideoUrl, isProgram ? Boolean(activeVideoMuted) : true) : null;
       const isEmbedActive = Boolean(layerPower[4] && isVideoShot && embedUrl);
 
       if (isProgram && !options.skipProjectorSync) {
@@ -19244,7 +19331,7 @@ Pues resucitaste, Rey`
       // =======================================================================
       const targetWirecastVidId = options.wirecastVideoElId || (isProgram ? 'wirecastProgramVideo' : 'wirecastPreviewVideo');
       const wVidEl = document.getElementById(targetWirecastVidId);
-      if (!options.wirecastVideoElId && (!layerPower[4] || !isVideoShot || !currentShot.videoUrl || isEmbedActive)) {
+      if (!options.wirecastVideoElId && (!layerPower[4] || !isVideoShot || !effectiveL4VideoUrl || isEmbedActive)) {
         if (wVidEl && !wVidEl.paused) {
           wVidEl.pause();
         }
@@ -19252,15 +19339,17 @@ Pues resucitaste, Rey`
 
       if (layerPower[4]) {
         if (isEmbedActive) {
-          // El video de YouTube / Drive corre en vivo en el iframe nativo bajo el canvas.
+          // El video de YouTube corre en vivo en el iframe nativo bajo el canvas.
           // Canvas se mantiene transparente para que logos y lower-thirds se vean arriba.
-        } else if (isVideoShot && currentShot.videoUrl) {
-          // Video local / MP4 directo en Capa 4 (Preview o Program)
+        } else if (isVideoShot && effectiveL4VideoUrl) {
+          // Video local / MP4 o Google Drive proxied en Capa 4 (Preview o Program)
           if (wVidEl) {
-            const shouldBeMuted = options.forceMuted !== undefined ? Boolean(options.forceMuted) : (isProgram ? Boolean(activeVideoMuted) : true);
-            if (wVidEl.muted !== shouldBeMuted) wVidEl.muted = shouldBeMuted;
-            if (wVidEl.getAttribute('data-src') !== currentShot.videoUrl || (wVidEl.paused && !wVidEl.ended)) {
-              playMediaVideoElement(wVidEl, currentShot.videoUrl, {
+            const shouldBeMuted = options.forceMuted !== undefined
+              ? Boolean(options.forceMuted)
+              : ((isProgram && !options.isTransitionIncoming) ? Boolean(activeVideoMuted) : true);
+            if (wVidEl.muted !== shouldBeMuted && !wVidEl._autoplayMutedFallback) wVidEl.muted = shouldBeMuted;
+            if (wVidEl.getAttribute('data-src') !== effectiveL4VideoUrl || (wVidEl.paused && !wVidEl.ended)) {
+              playMediaVideoElement(wVidEl, effectiveL4VideoUrl, {
                 loop: true,
                 muted: shouldBeMuted
               });
@@ -20474,7 +20563,7 @@ Pues resucitaste, Rey`
           // 2. Render incoming state to Offscreen buffer using Preview decoder so Program decoder is never interrupted
           transitionOffscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
           transitionOffscreenCtx.clearRect(0, 0, transitionOffscreenCanvas.width, transitionOffscreenCanvas.height);
-          drawComposedFrame(transitionOffscreenCtx, transitionToState, true, { wirecastVideoElId: 'wirecastPreviewVideo', skipProjectorSync: true });
+          drawComposedFrame(transitionOffscreenCtx, transitionToState, true, { wirecastVideoElId: 'wirecastPreviewVideo', isTransitionIncoming: true, skipProjectorSync: true });
 
           // 3. Composite incoming state over Program with alpha = transProgress
           progCtx.save();
@@ -20518,8 +20607,8 @@ Pues resucitaste, Rey`
           drawComposedFrame(progCtx, wirecastState.program, true);
         }
 
-        // Render Preview Canvas ONLY when Wirecast Switcher tab is visible on screen
-        if (isWirecastTabVisible && !document.hidden) {
+        // Render Preview Canvas ONLY when Wirecast Switcher tab is visible and not mid-dissolve transition (saves 33% GPU/CPU during camera transitions)
+        if (isWirecastTabVisible && !document.hidden && !transitionActive) {
           drawComposedFrame(prevCtx, wirecastState.preview, false);
         }
 
@@ -20860,29 +20949,40 @@ Pues resucitaste, Rey`
     function applyMobileCamFrameData(ch, blob) {
       if ('createImageBitmap' in window) {
         createImageBitmap(blob).then(bitmap => {
+          const prevBmp = mobileCamFrames[ch];
+          if (prevBmp && prevBmp !== bitmap && typeof prevBmp.close === 'function') {
+            try { prevBmp.close(); } catch (e) {}
+          }
+          const wasConnected = Boolean(activeHardwareStreams[ch]);
           mobileCamFrames[ch] = bitmap;
           mobileCamLastFrameTime[ch] = Date.now();
           activeHardwareStreams[ch] = true;
-          if (typeof hardwareConfig !== 'undefined' && hardwareConfig.channels && hardwareConfig.channels[ch]) {
-            hardwareConfig.channels[ch].type = 'mobile';
+          if (!wasConnected) {
+            if (typeof hardwareConfig !== 'undefined' && hardwareConfig.channels && hardwareConfig.channels[ch]) {
+              hardwareConfig.channels[ch].type = 'mobile';
+            }
+            updateMobileCamStatusBadge(ch, true);
+            updateChannelBadge(ch);
+            updateRackChannelLabels(ch);
           }
-          updateMobileCamStatusBadge(ch, true);
-          updateChannelBadge(ch);
-          updateRackChannelLabels(ch);
         }).catch(() => {});
       } else {
         const img = new Image();
         const objUrl = URL.createObjectURL(blob);
         img.onload = () => {
+          try { URL.revokeObjectURL(objUrl); } catch (e) {}
+          const wasConnected = Boolean(activeHardwareStreams[ch]);
           mobileCamFrames[ch] = img;
           mobileCamLastFrameTime[ch] = Date.now();
           activeHardwareStreams[ch] = true;
-          if (typeof hardwareConfig !== 'undefined' && hardwareConfig.channels && hardwareConfig.channels[ch]) {
-            hardwareConfig.channels[ch].type = 'mobile';
+          if (!wasConnected) {
+            if (typeof hardwareConfig !== 'undefined' && hardwareConfig.channels && hardwareConfig.channels[ch]) {
+              hardwareConfig.channels[ch].type = 'mobile';
+            }
+            updateMobileCamStatusBadge(ch, true);
+            updateChannelBadge(ch);
+            updateRackChannelLabels(ch);
           }
-          updateMobileCamStatusBadge(ch, true);
-          updateChannelBadge(ch);
-          updateRackChannelLabels(ch);
         };
         img.src = objUrl;
       }
@@ -21752,6 +21852,14 @@ Pues resucitaste, Rey`
       if (typeof omniAudio !== 'undefined') {
         omniAudio.init();
         omniAudio.resume();
+        omniAudio.syncDspParameters();
+      }
+      // Auto-connect default microphone / USB audio interface if not yet connected and audio is unmuted
+      if (!isStreamAudioMuted && (!activeHardwareStreams || !activeHardwareStreams.audio) && typeof connectAudioStream === 'function') {
+        const prefAudioDevId = (typeof hardwareConfig !== 'undefined' && hardwareConfig.audioInput && hardwareConfig.audioInput.deviceId)
+          ? hardwareConfig.audioInput.deviceId
+          : 'default';
+        connectAudioStream(prefAudioDevId).catch(() => {});
       }
       if (tvServiceFeedManual) {
         setTvDisplayMode('SERVICE');
@@ -22345,6 +22453,14 @@ Pues resucitaste, Rey`
       if (typeof omniAudio !== 'undefined') {
         omniAudio.init();
         omniAudio.resume();
+        omniAudio.syncDspParameters();
+      }
+      // Auto-connect default microphone / USB audio interface if not yet connected and audio is unmuted
+      if (!isStreamAudioMuted && (!activeHardwareStreams || !activeHardwareStreams.audio) && typeof connectAudioStream === 'function') {
+        const prefAudioDevId = (typeof hardwareConfig !== 'undefined' && hardwareConfig.audioInput && hardwareConfig.audioInput.deviceId)
+          ? hardwareConfig.audioInput.deviceId
+          : 'default';
+        connectAudioStream(prefAudioDevId).catch(() => {});
       }
       setStreamUIState('live', liveDestinationsSummary);
       updateTvServiceBroadcastUI();

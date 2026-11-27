@@ -1449,6 +1449,61 @@ const requestHandler = (req, res) => {
     return;
   }
 
+  // Endpoint: Same-Origin HTTP 206 Byte-Range Proxy for Google Drive MP4 Videos
+  // Allows <video> + WebAudio (createMediaElementSource) + Canvas drawImage to stream Google Drive videos live to Facebook & YouTube
+  if (parsedUrl === '/api/proxy/gdrive' && (req.method === 'GET' || req.method === 'HEAD')) {
+    const fullUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const fileId = (fullUrl.searchParams.get('id') || '').trim();
+    if (!fileId || !/^[A-Za-z0-9_-]+$/.test(fileId)) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Invalid Google Drive file ID');
+      return;
+    }
+    const targetDriveUrl = `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`;
+    const fetchDriveStream = (urlToFetch, redirectsLeft = 4) => {
+      const reqHeaders = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      };
+      if (req.headers.range) {
+        reqHeaders['Range'] = req.headers.range;
+      }
+      const upstreamReq = https.get(urlToFetch, { rejectUnauthorized: false, headers: reqHeaders }, (upRes) => {
+        if ([301, 302, 303, 307, 308].includes(upRes.statusCode) && upRes.headers.location && redirectsLeft > 0) {
+          upRes.resume();
+          fetchDriveStream(upRes.headers.location, redirectsLeft - 1);
+          return;
+        }
+        const outHeaders = {
+          'Content-Type': upRes.headers['content-type'] || 'video/mp4',
+          'Accept-Ranges': 'bytes',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges',
+          'Cache-Control': 'public, max-age=3600'
+        };
+        if (upRes.headers['content-length']) outHeaders['Content-Length'] = upRes.headers['content-length'];
+        if (upRes.headers['content-range']) outHeaders['Content-Range'] = upRes.headers['content-range'];
+        res.writeHead(upRes.statusCode || 200, outHeaders);
+        if (req.method === 'HEAD') {
+          upRes.resume();
+          res.end();
+          return;
+        }
+        upRes.pipe(res);
+        req.on('close', () => {
+          try { upRes.destroy(); } catch (e) {}
+        });
+      });
+      upstreamReq.on('error', (err) => {
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'text/plain' });
+          res.end('Upstream Google Drive stream error: ' + err.message);
+        }
+      });
+    };
+    fetchDriveStream(targetDriveUrl);
+    return;
+  }
+
   // =========================================================================
   // CANONICAL BIBLE RVR1960 API ENDPOINTS
   // =========================================================================
@@ -1911,6 +1966,7 @@ const requestHandler = (req, res) => {
       const end = parts[1] ? parseInt(parts[1], 10) : stats.size - 1;
       const chunksize = (end - start) + 1;
 
+      const isMediaRange = /\.(mp4|webm|mov|mkv|mp3|wav|ogg)$/i.test(ext);
       res.writeHead(206, {
         'Content-Range': `bytes ${start}-${end}/${stats.size}`,
         'Accept-Ranges': 'bytes',
@@ -1920,7 +1976,7 @@ const requestHandler = (req, res) => {
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, HEAD',
         'Access-Control-Allow-Headers': 'Content-Type, Range',
         'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges',
-        'Cache-Control': 'no-store'
+        'Cache-Control': isMediaRange ? 'public, max-age=3600' : 'no-store'
       });
       if (req.method === 'HEAD') {
         res.end();
@@ -1940,7 +1996,7 @@ const requestHandler = (req, res) => {
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, HEAD',
       'Access-Control-Allow-Headers': 'Content-Type, Range',
       'Access-Control-Expose-Headers': 'Content-Range, Content-Length, Accept-Ranges',
-      'Cache-Control': reqPath === '/sw.js' ? 'no-cache, no-store, must-revalidate' : 'no-store'
+      'Cache-Control': reqPath === '/sw.js' ? 'no-cache, no-store, must-revalidate' : (isMedia ? 'public, max-age=3600' : 'no-store')
     };
     if (reqPath === '/sw.js') {
       headers['Service-Worker-Allowed'] = '/';
@@ -2626,15 +2682,15 @@ async function startFfmpegStream(dest, activeWs, retryCount = 0) {
     '-threads', '2',
     '-profile:v', 'main',
     '-b:v', '2500k',
-    '-minrate', '2500k',
-    '-maxrate', '2500k',
-    '-bufsize', '2500k',
+    '-minrate', '2200k',
+    '-maxrate', '2800k',
+    '-bufsize', '3600k',
     '-x264-params', 'nal-hrd=cbr:force-cfr=1',
     '-pix_fmt', 'yuv420p',
     '-r', '30',
     '-g', '60',
-    '-keyint_min', '60',
-    '-sc_threshold', '0',
+    '-keyint_min', '15',
+    '-sc_threshold', '40',
     '-c:a', 'aac',
     '-b:a', '160k',
     '-ar', '44100',
@@ -2647,7 +2703,7 @@ async function startFfmpegStream(dest, activeWs, retryCount = 0) {
   if (preparedTargets.length === 1) {
     ffmpegArgs.push('-rw_timeout', '15000000', '-f', 'flv', preparedTargets[0].url);
   } else {
-    const teeTargets = preparedTargets.map(t => `[f=flv:onfail=ignore]${t.url}`).join('|');
+    const teeTargets = preparedTargets.map(t => `[f=flv:onfail=ignore:use_fifo=1]${t.url}`).join('|');
     ffmpegArgs.push('-f', 'tee', teeTargets);
   }
 
