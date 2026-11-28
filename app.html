@@ -3522,6 +3522,8 @@ Te adoraré, te adoraré..."
   <video id="wirecastProgramVideo" crossorigin="anonymous" playsinline preload="auto" style="position: fixed; bottom: 2px; right: 212px; width: 12px; height: 12px; opacity: 0.02; pointer-events: none; z-index: 1;"></video>
   <video id="wirecastPreviewVideo" crossorigin="anonymous" muted playsinline preload="auto" style="position: fixed; bottom: 2px; right: 226px; width: 12px; height: 12px; opacity: 0.02; pointer-events: none; z-index: 1;"></video>
   <audio id="layer5AudioPlayer" crossorigin="anonymous" loop playsinline preload="auto" style="display: none;"></audio>
+  <!-- Lienzo Maestro Desacoplado de Transmisión (Estilo Restream Studio: en raíz de body, permanentemente activo y en viewport para que el renderizado de GPU y WebWorker nunca se congelen al cambiar de pestaña) -->
+  <canvas id="masterStreamCompositorCanvas" width="960" height="540" style="position: fixed; bottom: 2px; right: 240px; width: 16px; height: 9px; opacity: 0.02; pointer-events: none; z-index: 1;"></canvas>
 
   <!-- ========================================================================= -->
   <!-- MODAL: AGREGAR / EDITAR BLOQUE DE MINUTO A MINUTO (SERVICE RUNDOWN)        -->
@@ -16932,7 +16934,8 @@ Pues resucitaste, Rey`
         const chs = fairlightState.channels;
         const hasSolo = Object.values(chs).some(c => c.solo);
         const isLayer5On = (typeof layerPower !== 'undefined' && layerPower && layerPower[5] !== undefined) ? Boolean(layerPower[5]) : true;
-        const masterActive = isLayer5On && !fairlightState.master.mute;
+        // Master Audio Bus NUNCA depende del toggle de Capa 5 (Capa 5 solo silencia Pads/Ambiente en CH 3)
+        const masterActive = !(fairlightState.master && fairlightState.master.mute);
 
         // EQ CH 1
         this._setParam(n.ch1EqLo.gain, Number(chs[1].eqLo || 0));
@@ -16947,6 +16950,7 @@ Pues resucitaste, Rey`
         const calcChGain = (chId) => {
           const ch = chs[chId];
           if (!ch || ch.mute || (hasSolo && !ch.solo)) return 0;
+          if (chId === 3 && !isLayer5On) return 0; // Capa 5 en Wirecast solo apaga o enciende Pads/Ambiente (CH 3)
           return this.faderToGain(ch.fader, 82);
         };
         this._setParam(n.ch1PostGain.gain, calcChGain(1));
@@ -19047,7 +19051,9 @@ Pues resucitaste, Rey`
       const isProg4Vid = Boolean(layerPower[4] && progShot4Obj && (progShot4Obj.type === 'video' || (progShot4Obj.videoUrl && progShot4Obj.videoUrl.trim() !== '')));
       const isPrev4Vid = Boolean(prevShot4Obj && (prevShot4Obj.type === 'video' || (prevShot4Obj.videoUrl && prevShot4Obj.videoUrl.trim() !== '')));
 
-      if (isProg4Vid && layerPower[1] && shotConfig && shotConfig[1]) {
+      // Al conmutar en Switcher a Program (cámaras o videos en Capa 4), si Capa 1 tenía puesto un Telón (slate) de espera,
+      // pasar automáticamente a Logo Bug (1) para no tapar la toma activa de cámaras o video.
+      if (layerPower[4] && layerPower[1] && shotConfig && shotConfig[1]) {
         const activeL1 = shotConfig[1].find(s => s.id === wirecastState.program[1]);
         if (activeL1 && activeL1.type === 'slate') {
           wirecastState.program[1] = 1;
@@ -19185,6 +19191,12 @@ Pues resucitaste, Rey`
     // -------------------------------------------------------------------------
     const previewCanvas = document.getElementById('previewCanvas');
     const programCanvas = document.getElementById('programCanvas');
+    // Restream Studio Architecture: Dedicated Master Program Canvas (always active in root body)
+    const masterProgramCanvas = document.getElementById('masterStreamCompositorCanvas') || document.createElement('canvas');
+    masterProgramCanvas.width = 960;
+    masterProgramCanvas.height = 540;
+    const masterProgCtx = masterProgramCanvas.getContext('2d');
+
     // Mantener soporte alfa para que los iframes embebidos (YouTube/Drive debajo del canvas) no queden tapados de negro
     const prevCtx = previewCanvas.getContext('2d');
     const progCtx = programCanvas.getContext('2d');
@@ -19802,10 +19814,11 @@ Pues resucitaste, Rey`
             // Solo cubrir las cámaras cuando el video de la sección Letras está activamente reproduciéndose en Program.
             // Nunca cubrir Preview del Switcher ni cubrir Program cuando el video de Letras ya terminó o está pausado.
             const progVid = document.getElementById('programMediaVideo');
+            const hasValidVideoUrl = Boolean(item.videoUrl && item.videoUrl.trim() !== '');
             const isLetrasVideoActivelyPlaying = Boolean(
               isProgram &&
               (studioVideoIntendedPlay || (progVid && !progVid.paused && !progVid.ended)) &&
-              (!item.videoUrl || (progVid && !progVid.ended))
+              hasValidVideoUrl && (progVid && !progVid.ended)
             );
 
             if (isLetrasVideoActivelyPlaying) {
@@ -20572,20 +20585,20 @@ Pues resucitaste, Rey`
           const transElapsed = transNow - transitionStartTime;
           const transProgress = Math.min(1.0, transElapsed / transitionDuration);
 
-          // 1. Render outgoing state to Program
-          drawComposedFrame(progCtx, transitionFromState, true, { skipProjectorSync: true });
+          // 1. Render outgoing state to Master Program
+          drawComposedFrame(masterProgCtx, transitionFromState, true, { skipProjectorSync: true });
 
           // 2. Render incoming state to Offscreen buffer using Preview decoder so Program decoder is never interrupted
           transitionOffscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
           transitionOffscreenCtx.clearRect(0, 0, transitionOffscreenCanvas.width, transitionOffscreenCanvas.height);
           drawComposedFrame(transitionOffscreenCtx, transitionToState, true, { wirecastVideoElId: 'wirecastPreviewVideo', isTransitionIncoming: true, skipProjectorSync: true });
 
-          // 3. Composite incoming state over Program with alpha = transProgress
-          progCtx.save();
-          progCtx.setTransform(1, 0, 0, 1, 0, 0);
-          progCtx.globalAlpha = transProgress;
-          progCtx.drawImage(transitionOffscreenCanvas, 0, 0, programCanvas.width, programCanvas.height);
-          progCtx.restore();
+          // 3. Composite incoming state over Master Program with alpha = transProgress
+          masterProgCtx.save();
+          masterProgCtx.setTransform(1, 0, 0, 1, 0, 0);
+          masterProgCtx.globalAlpha = transProgress;
+          masterProgCtx.drawImage(transitionOffscreenCanvas, 0, 0, masterProgramCanvas.width, masterProgramCanvas.height);
+          masterProgCtx.restore();
 
           // Visual feedback on the active transition button (glow/pulse)
           if (activeTransitionBtn) {
@@ -20618,8 +20631,28 @@ Pues resucitaste, Rey`
             applyFlipFlopStateSwap();
           }
         } else {
-          // Render Program Canvas normally
-          drawComposedFrame(progCtx, wirecastState.program, true);
+          // Render Master Program Canvas normally (ALWAYS active for live streaming!)
+          drawComposedFrame(masterProgCtx, wirecastState.program, true);
+        }
+
+        // Mirror masterProgramCanvas to Wirecast Program Monitor if Switcher tab is visible
+        if (isWirecastTabVisible && !document.hidden) {
+          progCtx.setTransform(1, 0, 0, 1, 0, 0);
+          progCtx.clearRect(0, 0, programCanvas.width, programCanvas.height);
+          progCtx.drawImage(masterProgramCanvas, 0, 0, programCanvas.width, programCanvas.height);
+        }
+
+        // Mirror masterProgramCanvas to Letras Stream Monitor if Letras tab is visible
+        const isLetrasTabVisible = document.getElementById('viewLetras') && !document.getElementById('viewLetras').classList.contains('hidden');
+        if (isLetrasTabVisible && !document.hidden) {
+          const msCanvas = document.getElementById('monStreamVideoCanvas');
+          if (msCanvas) {
+            if (msCanvas.classList.contains('hidden')) msCanvas.classList.remove('hidden');
+            const msCtx = msCanvas.getContext('2d');
+            if (msCtx) {
+              msCtx.drawImage(masterProgramCanvas, 0, 0, msCanvas.width, msCanvas.height);
+            }
+          }
         }
 
         // Render Preview Canvas ONLY when Wirecast Switcher tab is visible and not mid-dissolve transition (saves 33% GPU/CPU during camera transitions)
@@ -21353,7 +21386,7 @@ Pues resucitaste, Rey`
     }
 
     function startMasterRecord() {
-      const progCanvas = document.getElementById('programCanvas');
+      const progCanvas = document.getElementById('masterStreamCompositorCanvas') || document.getElementById('programCanvas');
       if (!progCanvas) return;
 
       try {
@@ -22184,19 +22217,21 @@ Pues resucitaste, Rey`
           }
           pumpStats.lastTick = t0;
 
-          const progCanvas = document.getElementById('programCanvas');
-          if (!progCanvas) {
+          const streamCanvas = document.getElementById('masterStreamCompositorCanvas') || document.getElementById('programCanvas');
+          if (!streamCanvas) {
             worker.postMessage({ type: 'frame_skip' });
             return;
           }
 
-          // When tab is in background or rAF hasn't ticked in >65ms, drive compositor once before snapshot
-          if (document.hidden || (t0 - lastRenderCompositorTime > 65)) {
+          // En transmisión en vivo estilo Restream Studio, garantizar que el compositor maestro
+          // haya renderizado un cuadro fresco a ~30 FPS (cada >= 28ms o si la pestaña Wirecast no está visible)
+          const isWirecastTabVisible = document.getElementById('viewWirecast') && !document.getElementById('viewWirecast').classList.contains('hidden');
+          if (document.hidden || !isWirecastTabVisible || (t0 - lastRenderCompositorTime >= 28)) {
             renderCompositor(true);
           }
 
           isCreatingStreamBitmap = true;
-          createImageBitmap(progCanvas).then((bmp) => {
+          createImageBitmap(streamCanvas).then((bmp) => {
             isCreatingStreamBitmap = false;
             if (liveStreamWorker !== worker || !shouldRunStreamUplink()) {
               try { bmp.close(); } catch (err) {}
