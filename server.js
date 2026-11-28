@@ -2030,7 +2030,15 @@ const PCM_SAMPLE_RATE = 44100;
 const PCM_BYTES_PER_SAMPLE = 4; // 16-bit stereo (2 bytes * 2 channels)
 const PCM_BYTES_PER_SEC = PCM_SAMPLE_RATE * PCM_BYTES_PER_SAMPLE;
 const MAX_PCM_QUEUE_BYTES = Math.floor(PCM_BYTES_PER_SEC * 0.25); // Cap latency at ~250ms
-const SILENCE_3528 = Buffer.alloc(3528, 0);
+function generateComfortDitherBuffer(len) {
+  const buf = Buffer.alloc(len);
+  for (let i = 0; i < len; i += 2) {
+    const sample = Math.floor(Math.random() * 25) - 12; // -68 dBFS inaudible broadcast comfort noise
+    buf.writeInt16LE(sample, i);
+  }
+  return buf;
+}
+const DITHER_3528 = generateComfortDitherBuffer(3528);
 
 function pushFifoPcm(queue, currentBytes, pcmBuf) {
   queue.push(pcmBuf);
@@ -2046,7 +2054,7 @@ function shiftFifoPcm(queue, currentBytes, bytesNeeded) {
   if (bytesNeeded <= 0) return { chunk: Buffer.alloc(0), remaining: currentBytes };
   if (liveAudioMutedFlag || currentBytes === 0) {
     return {
-      chunk: bytesNeeded === 3528 ? SILENCE_3528 : Buffer.alloc(bytesNeeded, 0),
+      chunk: bytesNeeded === 3528 ? DITHER_3528 : generateComfortDitherBuffer(bytesNeeded),
       remaining: currentBytes
     };
   }
@@ -2703,7 +2711,7 @@ async function startFfmpegStream(dest, activeWs, retryCount = 0) {
   if (preparedTargets.length === 1) {
     ffmpegArgs.push('-rw_timeout', '15000000', '-f', 'flv', preparedTargets[0].url);
   } else {
-    const teeTargets = preparedTargets.map(t => `[f=flv:onfail=ignore:use_fifo=1]${t.url}`).join('|');
+    const teeTargets = preparedTargets.map(t => `[f=flv:onfail=ignore:use_fifo=1:fifo_options=drop_pkts_on_overflow=1]${t.url}`).join('|');
     ffmpegArgs.push('-f', 'tee', teeTargets);
   }
 

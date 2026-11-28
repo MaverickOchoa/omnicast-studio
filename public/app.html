@@ -16898,6 +16898,24 @@ Pues resucitaste, Rey`
         n.testToneGain.connect(n.mixBusGain);
         n.testToneGain.connect(n.monitorMasterMuteGain);
 
+        // 7. Piso de Confort / Dither Broadcast Inaudible (-62 dBFS, inaudible, previene que codificadores AAC emitan silencio digital puro de ceros)
+        try {
+          const sRate = c.sampleRate || 48000;
+          const ditherBuf = c.createBuffer(2, Math.floor(sRate * 1.5), sRate);
+          for (let ch = 0; ch < 2; ch++) {
+            const chData = ditherBuf.getChannelData(ch);
+            for (let i = 0; i < chData.length; i++) {
+              chData[i] = (Math.random() * 2 - 1) * 0.0008; // -62 dBFS
+            }
+          }
+          const ditherSrc = c.createBufferSource();
+          ditherSrc.buffer = ditherBuf;
+          ditherSrc.loop = true;
+          ditherSrc.connect(n.mixBusGain);
+          ditherSrc.start(0);
+          this.ditherSrc = ditherSrc;
+        } catch (ditherErr) {}
+
         // Buffers temporales Float32 para medición RMS / True Peak
         this._tmpBuf = new Float32Array(256);
         this.built = true;
@@ -17198,7 +17216,8 @@ Pues resucitaste, Rey`
 
         const proc = c.createScriptProcessor(2048, 2, 2);
         const zeroSink = c.createGain();
-        zeroSink.gain.value = 0;
+        // Evita optimizaciones de Chromium que silencian a cero el buffer de entrada si la ganancia es 0 exacta
+        zeroSink.gain.value = 0.00001;
 
         proc.onaudioprocess = (ev) => {
           if (!this.pcmCaptureActive || typeof this.pcmSender !== 'function') return;
@@ -19772,11 +19791,13 @@ Pues resucitaste, Rey`
           const isImage = Boolean(item.isImage || (item.imageUrl && !item.videoUrl));
           const isVideo = !isImage && (Boolean(item.isVideo) || Boolean(item.videoUrl) || (item.category === 'medios' && !item.imageUrl));
 
+          // Si la Capa 4 (Cámaras/Video) está ENCENDIDA, la Capa 2 es un OVERLAY y NUNCA debe tapar la cámara
+          // con una imagen estática a pantalla completa. La cámara tiene prioridad absoluta.
+          const isCamerasActive = Boolean(layerPower[4]);
+
           if (isImage && item.imageUrl) {
-            // =================================================================
-            // REQUERIMIENTO: IMAGEN DE FONDO HD EN PANTALLA COMPLETA DE TRANSMISIÓN
-            // =================================================================
-            if (isProgram) {
+            // Un elemento multimedia de tipo Imagen en Capa 2 solo se dibuja a pantalla completa si la Capa 4 está APAGADA.
+            if (!isCamerasActive && isProgram) {
               ctx.save();
               ctx.fillStyle = '#000000';
               ctx.fillRect(0, 0, w, h);
@@ -20040,40 +20061,42 @@ Pues resucitaste, Rey`
                 l3Lines = [...l3Lines1, ...l3Lines2];
               }
 
-              const headerHeight = 35;
-              const contentHeight = l3Lines.length * l3LineHeight;
-              const boxHeight = Math.max(170, contentHeight + headerHeight + 50);
-              const boxTop = 1040 - boxHeight;
+              if (l3Lines.length > 0 && combinedTxt && combinedTxt.trim() !== '') {
+                const headerHeight = 35;
+                const contentHeight = l3Lines.length * l3LineHeight;
+                const boxHeight = Math.max(170, contentHeight + headerHeight + 50);
+                const boxTop = 1040 - boxHeight;
 
-              const boxGrad = ctx.createLinearGradient(120, boxTop, 1800, boxTop + boxHeight);
-              boxGrad.addColorStop(0, 'rgba(9, 13, 22, 0.94)');
-              boxGrad.addColorStop(1, 'rgba(15, 23, 42, 0.96)');
-              ctx.fillStyle = boxGrad;
-              ctx.strokeStyle = themeAccent;
-              ctx.lineWidth = 4;
+                const boxGrad = ctx.createLinearGradient(120, boxTop, 1800, boxTop + boxHeight);
+                boxGrad.addColorStop(0, 'rgba(9, 13, 22, 0.94)');
+                boxGrad.addColorStop(1, 'rgba(15, 23, 42, 0.96)');
+                ctx.fillStyle = boxGrad;
+                ctx.strokeStyle = themeAccent;
+                ctx.lineWidth = 4;
 
-              ctx.beginPath();
-              ctx.roundRect(120, boxTop, 1680, boxHeight, 20);
-              ctx.fill();
-              ctx.stroke();
+                ctx.beginPath();
+                ctx.roundRect(120, boxTop, 1680, boxHeight, 20);
+                ctx.fill();
+                ctx.stroke();
 
-              // Left Accent Color Pillar
-              ctx.fillStyle = themeAccent;
-              ctx.beginPath();
-              ctx.roundRect(120, boxTop, 14, boxHeight, [20, 0, 0, 20]);
-              ctx.fill();
+                // Left Accent Color Pillar
+                ctx.fillStyle = themeAccent;
+                ctx.beginPath();
+                ctx.roundRect(120, boxTop, 14, boxHeight, [20, 0, 0, 20]);
+                ctx.fill();
 
-              ctx.textAlign = 'left';
-              ctx.fillStyle = themeAccent;
-              ctx.font = `bold 22px ${fontName}`;
-              ctx.fillText(`${item.title.toUpperCase()} • ${slide.badge || 'EN VIVO'}`, 170, boxTop + 38);
+                ctx.textAlign = 'left';
+                ctx.fillStyle = themeAccent;
+                ctx.font = `bold 22px ${fontName}`;
+                ctx.fillText(`${item.title.toUpperCase()} • ${slide.badge || 'EN VIVO'}`, 170, boxTop + 38);
 
-              ctx.fillStyle = '#ffffff';
-              ctx.font = `bold ${l3FontSize}px ${fontName}`;
-              const textStartY = boxTop + 80;
-              l3Lines.forEach((line, idx) => {
-                ctx.fillText(line, 170, textStartY + (idx * l3LineHeight));
-              });
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${l3FontSize}px ${fontName}`;
+                const textStartY = boxTop + 80;
+                l3Lines.forEach((line, idx) => {
+                  ctx.fillText(line, 170, textStartY + (idx * l3LineHeight));
+                });
+              }
 
               ctx.restore();
             }
